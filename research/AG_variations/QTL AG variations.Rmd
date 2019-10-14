@@ -1,0 +1,781 @@
+---
+title: "QTL ancestral variation"
+author: "Alejandro Thérèse Navarro"
+date: "28 de enero de 2019"
+output: html_document
+---
+```{r, echo=F}
+
+compdist<-function(
+  list,
+  legend=NULL,
+  main=NULL,
+  xlab=NULL,
+  ylab=NULL,
+  col=colorRampPalette(c("yellow","red"),alpha=0.7)(length(list)),
+  position="topright"
+){
+  count<-1:length(list)
+
+  
+  low<-min(unlist(list),na.rm=T)
+  high<-max(unlist(list),na.rm=T)
+  # breaks<-seq(low,high,by=(high-low)/100)
+  # ylim<-c(low,high)
+  
+  if(is.null(main)){main<-"Comparison histogram"}
+  if(is.null(legend)){legend<-paste("Distribution",count)}
+  
+
+  for(i in 1:length(list)){
+    
+    h<-density(unlist(list[[i]]))
+    h$y<-h$y/max(h$y)
+    
+    if(i==1){ 
+      plot(h,type="n",xlim=c(low,high),main=main,xlab=xlab,ylab=ylab)
+      polygon(h,col=col[i])
+    }else{
+      polygon(h,col=col[i])
+    }
+
+  }
+  legend(position,legend,fill=col,box.lty=0)
+}
+
+handle<-function( #get a matrix, return a matrix (or vector if select=opposite) 
+  #with specified cross data. Parents are excluded
+  matrix, #the numeric square matrix containing correlations
+  cross, #the cross number or range (what square you want to extract)
+  select=NULL, #a vector with "within", "between" or "opposite"
+  pnum=10, #the number of parents in the matrix (extra columns at the beggining)
+  off=50, #the number of childrenin the matrix (size of each square)
+  crossnum=9 #the number of crosses performed (number of squares)
+){
+
+  #define which columns/rows i want
+  start<-pnum+off*(cross-1)+1
+  end<-pnum+off*cross
+  #and make a vector with all of them
+  sel<-c()
+  for(i in 1:length(cross)){
+    sel<-c(sel,start[i]:end[i])
+  }
+  
+  #get all results within
+  with<-matrix(nrow=off,ncol=0)
+  for(i in 1:length(cross)){
+    with<-cbind(with,matrix[start[i]:end[i],start[i]:end[i]])
+  }
+  
+  #get all results between
+  bet<-matrix(nrow=off,ncol=0)
+  for(i in 1:length(cross)){
+    exclude<-sel[sel!=start[i]:end[i]]
+    bet<-cbind(bet,matrix[start[i]:end[i],exclude])
+  }
+  
+  #get all results of "opposite"
+  op1<-matrix[c(-1:-pnum,-sel),sel]
+  op2<-matrix[sel,c(-1:-pnum,-sel)]
+  
+  #put in result whatever is asked
+  result<-matrix(nrow=off,ncol=0)
+  if(any(select=="between")){
+    result<-cbind(result,bet)
+  }
+  if(any(select=="within")){
+    result<-cbind(result,with)
+  }
+  if(any(select=="opposite")){
+    result<-c(as.vector(result),as.vector(op1),as.vector(op2))
+  }
+  if(any(select=="op1")){
+    result<-c(as.vector(result),as.vector(op1))
+  }
+  if(any(select=="op2")){
+    result<-c(as.vector(result),as.vector(op2))
+  }
+  return(result)  
+}
+```
+
+
+```{r}
+crossfile<-c()
+reps<-1:3
+for(gf in c(0.1,0.001,0.0001,0.01,0.075,0.05,0.025)){
+  file<-paste0("PedigreeSim/geneflow",gf,"/NAM3/cross_")
+  for(i in 1:reps){
+    crossfile<-c(crossfile,paste0(file,sprintf("%03d",i),"_alleledose.dat"))
+  }
+}
+
+for(f in crossfile){
+  g<-data.table::fread(f)
+  K<-calc.K(t(g[,-1]))
+  gf<-sub("/NAM3.*","",sub(".*geneflow","",f))
+  cr<-sub("_alleledose.dat","",sub(".*NAM3/","",f))
+  plotname<-paste("Heatmap geneflow",gf,"NAM3",cr)
+  
+  # png(paste0("Plots/",plotname,".png"),width = 800,height = 800,res = 125)
+  heatmap(K,Rowv = NA,Colv = NA,main=plotname)
+  # dev.off()
+  
+  NAMwithin.gen.3<-handle(K,cross=1:9,select="within",pnum=10,off=50,crossnum=9)
+  
+  #First we extract the distances between with related crosses. With handle we can do that
+  NAMbet.gen.r3<-as.vector(handle(K,cross=1:3,select="between"))
+  NAMbet.gen.r3<-c(NAMbet.gen.r3,handle(K,cross=4:6,select="between"))
+  NAMbet.gen.r3<-c(NAMbet.gen.r3,handle(K,cross=7:9,select="between"))
+  
+  NAMbet.gen.u3<-as.vector(handle(K,cross=1:3,select="opposite"))
+  NAMbet.gen.u3<-c(NAMbet.gen.u3,handle(K,cross=4:6,select="opposite"))
+  NAMbet.gen.u3<-c(NAMbet.gen.u3,handle(K,cross=7:9,select="opposite"))
+  
+  # png(paste0("Plots/",plotname,"histogram.png"),width = 800,height = 800,res = 125)
+  compdist(list(NAMwithin.gen.3,NAMbet.gen.r3,NAMbet.gen.u3),
+           main=plotname,
+           xlab="Relatedness",legend=c("Within","Related Between","Unrelated Between"))
+  # dev.off()
+}
+```
+
+
+```{r,eval=F,echo=F}
+#This section generates the data that we will work with. 
+files<-lapply(c(0.075,0.05,0.025,0.01),function(agd){
+  root<-paste0("PedigreeSim/geneflow",agd)
+  f<-paste0(root,"/NAM3/cross_001_founderalleles.dat")
+  d<-paste0(root,"/NAM3/cross_001_alleledose.dat")
+  t<-paste0(root,"/ancestral_parents_founderalleles.dat")
+  return(list(founders=f,
+              dosage=d,
+              ancestral=t))
+})
+root<-paste0("../mpQTL/PedigreeSIM/")
+  f<-paste0(root,"NAM_crosses/3_ancestral/cross200_founderalleles.dat")
+  d<-paste0(root,"NAM_crosses/3_ancestral/cross200_alleledose.dat")
+  t<-paste0(root,"Parents/Total_pop.txt")
+files[[length(files)+1]]<-list(founders=f,dosage=d,ancestral=t)
+names(files)<-paste0("gf_",c(0.075,0.05,0.025,0.01,0))
+
+#In this loop we will retrieve genotype (IBD alleles),
+#dosage (SNP dosage), generate QTL effects according to
+#different parametrizations (higher or lower ancestral diversity),
+#and evaluate its effect on QTL mapping
+
+QTLpos<-c(453,1348,4023) #QTL positions
+set.seed(50)
+polyg<-sample(1:6910,50) #polygenic effect positions
+
+agdiversity<-c(0.01,0.1,1) #ancestral group spread
+polygsize<-c(0.1,1,10) #size of polygenic effect
+
+geno<-list()
+effects<-list()
+res<-list()
+
+for(f in 1:length(files)){
+  
+  #We link the founderallele files with the ancestral alleles
+  genotypes<-link_NAM(crossfile=files[[f]]$founders,
+                      totallele = files[[f]]$ancestral)
+  
+  #We obtain the SNP dosages
+  dosage<-as.matrix(data.table::fread(files[[f]]$dosage)[,-1])
+  
+  #Predefined unlinked positions
+  QTL<-genotypes[QTLpos,]
+  pg<-genotypes[polyg,]
+  
+  #Obtain a set of QTL effects with different ancestral diversity
+  effects.QTL<-lapply(1:length(agdiversity),function(w){
+      multi.effects2(
+      gen = QTL,
+      anc_alleles = matrix(0:399, nrow = 40),
+      seed = 7,
+      anc_sd = agdiversity[w]
+    )
+  })
+  names(effects.QTL)<-agdiversity
+  
+  #obtain a set of polygenic effects
+  #each set with different polygenic effect size
+  effects.polyg<-lapply(polygsize,function(pgsize){
+    e<-apply(pg,1,function(p){
+      pe<-rnorm(length(unique(p)),0,pgsize)
+      names(pe)<-unique(p)
+      return(pe)
+    })
+    return(e)
+  })
+  names(effects.polyg)<-polygsize
+  
+  #We generate 9 phenotypes (with 3 anc div and 3 pg sizes)
+  pheno<-lapply(effects.QTL,function(eQ){
+   phe<-lapply(effects.polyg,function(ep){
+     pheno2(genotypes=QTL,
+            effects=eQ,
+            polygen=pg,
+            polygen.effects = ep,
+            ploidy=4,
+            herit=0.8,
+            mu=100,
+            return.effects = T)
+   })
+     
+  })
+  pheno<-unlist(pheno,recursive=F)  
+  names(pheno)<-as.vector(sapply(paste0("div_",agdiversity),paste,paste0("pg_",polygsize)))
+  
+  #and then do the analysis of each of them
+  result<-lapply(pheno,function(p){
+    map.QTL(phenotypes = p[[1]], 
+            genotypes = genotypes,
+            dosage = dosage, 
+            map = data.table::fread("PedigreeSim/Potato.map"),
+            K=T,Z=NULL,
+            Q=c(rep(0,10),rep(1,100),rep(2,150),rep(3,200)))
+  })
+  names(result)<-as.vector(sapply(paste0("div_",agdiversity),paste,paste0("pg_",polygsize)))
+  
+  geno[[f]]<-list(genotypes=genotypes,dosage=dosage)
+  effects[[f]]<-list(QTL=effects.QTL,polyg=effects.polyg)
+  res[[f]]<-list(phenotypes=pheno,results=result)
+
+}
+
+#Contains all the genotypes
+names(geno)<-paste0("gf_",c(0.075,0.05,0.025,0.01,0))
+saveRDS(geno,"AG_variations_geno.RDS")
+
+#contains the genetic effects calculated
+names(effects)<-paste0("gf_",c(0.075,0.05,0.025,0.01,0))
+saveRDS(effects,"AG_variations_effects.RDS")
+
+#QTL mapping results
+names(res)<-paste0("gf_",c(0.075,0.05,0.025,0.01,0))
+saveRDS(res,"AG_variations_results.RDS")
+```
+
+```{r}
+source("mpQTL_fun.R")
+res<-readRDS("AG_variations_results.RDS")
+
+geneflow<-paste("Geneflow",c(0.075,0.05,0.025,0.01,0))
+pgsize<-c(0.1,1,10)
+agdiversity<-c(0.01,0.1,1)
+QTLpos<-c(1348,4023,453) #QTL positions
+set.seed(7)
+polyg<-sample(1:6910,50) #polygenic effect positions
+cols<-colorspace::sequential_hcl(3,h=100,c=120)
+
+for(gf in 1:length(geneflow)){ #loop through 4 levels of geneflow
+  for(p in 1:length(pgsize)){ #loop through 3 pgsizes
+    
+    #We define the title
+    title<-paste("Geneflow",geneflow[gf],"polygenic",pgsize[p])
+    r<-res[[gf]][[2]][[p]] #Result with the first ancestral diversity
+    pval<-res[[gf]][[2]][1:3+3*(p-1)]
+    ylim<-range(-log10(unlist(pval)))
+      plot(0,type="n",
+       xlim=c(0,length(r)),
+       ylim=ylim,
+       main=paste("Manplot",title),xlab="markers",ylab="-log10(pval)"
+       )
+     
+  #Draw QTL and polygenic lines
+  abline(v=QTLpos)
+  abline(v=polyg,col="grey",lty=2)
+  
+  for(ad in 1:(length(agdiversity))){ #loop through 3 agdiversities
+    
+    pval<-res[[gf]][[2]][[ad+3*(p-1)]]
+    points(-log10(pval),pch=19,cex=0.5,col=cols[ad])
+  }
+  legend("topright",paste("Div",agdiversity),col=cols,pch=19)
+  
+  }
+}
+```
+
+```{r} 
+###Testing different pg size and diversity
+ancestral<-as.factor(c(c(1,1,1,2,2,2,3,3,3,3),rep(1,100),rep(2,150),rep(3,200)))
+family<-as.factor(c(c(0:9),rep(1:9,each=50)))
+  
+for(i in 1:length(res$gf_0$phenotypes)){
+  p<-res$gf_0$phenotypes[[i]]$pheno
+  a<-aov(p~ancestral)
+  SSRa<-sum(a$residuals^2) #within ancestral
+  SSMa<-sum(a$fitted.values^2) #between ancestral
+  f<-aov(p~family)
+  SSRf<-sum(f$residuals^2) #within family
+  SSMf<-sum(f$fitted.values^2) #between family
+  print(matrix(c(SSRa,SSMa,(SSMa/(460-a$df.residual))/(SSRa/a$df.residual),
+                 SSRf,SSMf,(SSMf/(460-f$df.residual))/(SSRf/f$df.residual)),ncol=3,
+        dimnames = list(
+          c("AGs","families"),
+          c("SS within","SS between","F")),byrow=T
+        ))
+  pval<-res$gf_0$results[[i]]
+  plot(-log10(pval))
+}
+# div001pg01<-do.call(cbind,res$gf_0$results[7:9])
+# plot(-log10(div001pg01[,1]),ylim=c(0,20),col="red")
+# points(-log10(div001pg01[,2]),col="blue")
+# points(-log10(div001pg01[,3]),col="green")
+# abline(v=QTLpos)
+```
+
+
+
+```{r}
+geno<-readRDS("AG_variations_geno.RDS")
+effects<-readRDS("AG_variations_effects.RDS")
+
+for(i in 1:length(geno)){
+  g<-geno[[i]]$genotypes[QTLpos,]
+  hist(g,breaks=seq(0,400,40))
+}
+```
+
+```{r}
+#Here we will try to do the association mapping with random genetic effects
+#No structure whatsoever
+geno<-readRDS("AG_variations_geno.RDS")
+names(geno)<-c(0.075,0.05,0.025,0.01)
+QTLpos<-c(453,1348,4023)
+
+mu<-100 #mean phenotype
+sd<-1 #sd of the genetic effects (mean is 0)
+
+res<-lapply(1:length(geno),function(i){
+  #First we get genotypes at QTL position
+  gen<-geno[[i]]$genotypes[QTLpos,]
+  
+  #Then we create a list of random genetic effects for each
+  #QTL position 
+  effects<-lapply(1:length(QTLpos),function(k){
+    #unique alleles present in locus k
+    a<-unique(gen[k,])
+    set.seed(7*k*i)
+    eff<-rnorm(length(a),0,sd = sd)
+    names(eff)<-a
+    return(eff)
+  })
+  
+  #We obtain the phenotype by summing the adequate
+  #genetic effects of each individual
+  pheno<-phsum(genotypes = gen,effects = effects,ploidy = 4)
+  #Then we create the "noise", environmental variance
+  noise<-rnorm(length(pheno),0,mu/50)
+  #And we calculate the heritability
+  herit<-var(pheno)/var(pheno+noise)
+  
+  res<-map.QTL(pheno+noise,geno[[i]]$genotypes,
+             dosage = geno[[i]]$dosage,
+             map=data.table::fread("PedigreeSim/Potato.map"),
+             K=T)
+  
+  return(list(pheno=pheno+noise,effects=effects,
+              h2=herit,pval=res))
+  
+})
+
+names(res)<-c(0.075,0.05,0.025,0.01)
+saveRDS(res,"testresult_random_effects.RDS")
+
+ymax<-max(sapply(res,function(i) max(-log10(i$pval))))
+col<-colorspace::rainbow_hcl(length(res),c=60,l=85)
+colhard<-colorspace::rainbow_hcl(length(res),c=100,l=60)
+
+plot(0,type="n",
+     main="QTL test with different GF",
+     xlab="marker",ylab="-log10(pval)",
+     xlim=c(0,nrow(geno$`0.075`$genotypes)),
+     ylim=c(0,ymax))
+
+for(i in 1:length(res)){
+  pval<-res[[i]]$pval
+  points(-log10(pval),pch=19,cex=0.5,col=col[i])
+}
+for(i in 1:length(res)) {
+  trueQ<-res[[i]]$pval[QTLpos]
+  points(QTLpos,-log10(trueQ),pch=21,cex=1.5,bg=colhard[i])
+}
+abline(v=QTLpos,cex=1.3)
+legend("topright",legend = names(res),
+       fill=colhard,bty = "n",title = "Geneflow")
+
+
+pvals<-sapply(res,function(i) i$pval)
+comp.QQplot(pvals,main="QQplots of NAM3 with geneflows, random genetic effects")
+```
+```{r}
+geno<-readRDS("AG_variations_geno.RDS")
+res<-readRDS("testresult_random_effects.RDS")
+names(geno)<-c(0.075,0.05,0.025,0.01)
+QTLpos<-c(1348,4023,453)
+
+resbi<-lapply(1:length(geno),function(i){
+  pheno<-res[[i]]$pheno
+  
+  pval<-map.QTL(pheno,geno[[i]]$dosage,
+             dosage = geno[[i]]$dosage,
+             map=data.table::fread("PedigreeSim/Potato.map"),
+             K=T)
+  
+  return(list(pheno=res[[i]]$pheno,effects=res[[i]]$effects,
+              h2=res[[i]]$h2,pval=pval))
+  
+})
+
+saveRDS(resbi,"testresult_random_effects_biallelic.RDS")
+names(resbi)<-c(0.075,0.05,0.025,0.01)
+
+ymax<-max(sapply(resbi,function(i) max(-log10(i$pval))))
+col<-colorspace::rainbow_hcl(length(resbi),c=60,l=85)
+colhard<-colorspace::rainbow_hcl(length(resbi),c=100,l=60)
+
+plot(0,type="n",
+     main="Biallelic QTL test with different GF",
+     xlab="marker",ylab="-log10(pval)",
+     xlim=c(0,nrow(geno$`0.075`$genotypes)),
+     ylim=c(0,ymax))
+
+for(i in 1:length(resbi)){
+  pval<-resbi[[i]]$pval
+  points(-log10(pval),pch=19,cex=0.5,col=col[i])
+}
+#Hard points
+for(i in 1:length(resbi)) {
+  pv<-resbi[[i]]$pval
+  #Find the local maximum
+  posit<-sapply(QTLpos,function(j) {
+    p<-pv[(j-10):(j+10)]
+    which(min(p)==pv)
+  })
+  trueQ<-pv[QTLpos]
+  maxQ<-pv[posit]
+  points(QTLpos,-log10(trueQ),pch=21,cex=1.5,bg=colhard[i])
+  points(posit,-log10(maxQ),pch=24,cex=1.3,bg=colhard[i])
+}
+legend("topright",legend = names(resbi),
+       fill=colhard,bty = "n",title = "Geneflow")
+abline(v=QTLpos,cex=1.3)
+
+pvals<-sapply(resbi,function(i) i$pval)
+comp.QQplot(pvals,main="QQplots of NAM3 with geneflows, random genetic effects", 
+            legtitle = "Geneflow")
+```
+
+```{r,"Diversity test"}
+g<-readRDS(file = "data_A3.RDS")
+QTLpos<-c(453,1348,4023)
+set.seed(50)
+polygpos<-sample(1:nrow(g$geno),50)
+gen<-g$geno[sort(QTLpos),]
+gen.polyg<-g$geno[sort(polygpos),]
+anc_alleles<-mat2list(matrix(0:399,ncol=10))
+
+
+set.seed(50)
+effects<-lapply(1:nrow(gen),function(k){
+    #unique alleles present in locus k
+    a<-unique(gen[k,]) 
+    
+    #to which ancestral does each allele correspond
+    anc_matrix<-sapply(anc_alleles,function(c) a%in%c)
+    rownames(anc_matrix)<-a
+    
+    #Number of alleles present in which ancestral groups
+    anc_n<-colSums(anc_matrix)[colSums(anc_matrix)!=0]
+    
+    #We obtain effects for some ancestral alleles
+    e<-rnorm(sum(anc_n[k:3]),0,10)
+    # e<-e/sum(abs(e))*100
+    #The rest of effects are 0
+    e<-c(rep(0,length(a)-length(e)),e)
+    names(e)<-a
+    return(e)
+    
+})
+set.seed(50)
+effects.polyg<-lapply(1:nrow(gen.polyg),function(k){
+    #unique alleles present in locus k
+    a<-unique(gen.polyg[k,]) 
+    #We obtain effects for some ancestral alleles
+    e<-rnorm(length(a),0,0.2)
+    names(e)<-a
+    return(e)
+    
+})
+names(effects)<-paste("QTL",1:3)
+additive<-phsum(gen,effects,4)
+polygenic<-phsum(gen.polyg,effects.polyg,4)
+
+env<-rnorm(460,0,10) #0.66 herit
+Se<-var(env)
+Sg<-var(additive+polygenic)
+Sg/(Se+Sg) #heritability
+colSums(var(phsum(gen,effects,4,T))/Se) #partial heritabilities ~~~~
+phenotype<-additive+polygenic+env+100
+
+reduced<-round(seq(1,nrow(g$geno),length.out = 6910/6))
+
+anc.res<-map.QTL(phenotype,
+                g$geno,
+                map = data.table::fread("PedigreeSim/Potato.map") ,
+                K = T,dosage = g$dosage)
+bi.res<-map.QTL(phenotype,
+                g$dosage,
+                map = data.table::fread("PedigreeSim/Potato.map") ,
+                K = T,dosage = g$dosage)
+
+vals.manhattan<-function(map,col="black",factor=0.75,...){
+  chlen<-sapply(unique(map$chromosome),function(i) max(map$position[map$chromosome==i])) 
+  chlen<-c(0,chlen)
+  chlen<-sapply(1:length(chlen),function(i) sum(chlen[1:i]))
+  abspos<-map$position+chlen[map$chromosome]
+  
+  lightcol <- col2rgb(col)
+  lightcol <- lightcol + (255 - lightcol)*factor
+  lightcol <- rgb(t(lightcol), maxColorValue=255)
+  
+  col<-c(lightcol,col)[map$chromosome%%2+1]
+  return(list(color=col,
+         position=abspos))
+}
+
+map<-data.table::fread("PedigreeSim/Potato.map")
+maxim<-max(-log10(c(anc.res,bi.res)))
+plot.manhattan(anc.res[reduced],map[reduced,],pch=19,cex=0.7,col="navyblue")
+abline(v=abspos[QTLpos])
+plot.manhattan(bi.res[reduced],map[reduced,],pch=19,cex=0.7)
+abline(v=abspos[QTLpos])
+
+heatmap(calc.K(t(g$dosage)),Colv = NA,Rowv = NA)
+
+```
+
+```{r,"Diversity test"}
+g<-readRDS(file = "data_A3.RDS")
+QTLpos<-c(453,1348,4023)
+set.seed(50)
+polygpos<-sample(1:nrow(g$geno),50)
+gen<-g$geno[sort(QTLpos),]
+gen.polyg<-g$geno[sort(polygpos),]
+anc_alleles<-mat2list(matrix(0:399,ncol=10))
+map<-data.table::fread("PedigreeSim/Potato.map")
+
+#This part should be constant, no need to recalculate
+set.seed(50)
+effects.polyg<-lapply(1:nrow(gen.polyg),function(k){
+    #unique alleles present in locus k
+    a<-unique(gen.polyg[k,]) 
+    #We obtain effects for some ancestral alleles
+    e<-rnorm(length(a),0,0.1)
+    names(e)<-a
+    return(e)
+    
+})
+
+diversity<-c(0.0001,0.05,10)
+set.seed(50)
+divtest<-lapply(diversity,function(div){
+    effects<-multi.effects2(gen,anc_alleles,div,50)
+    ph<-pheno2(gen,effects,4,herit = 0.7,mu=100,return.effects = T)
+    effects<-ph$effects
+    names(effects)<-paste("QTL",1:3)
+    # phenotype<-ph$pheno+polygenic
+    phenotype<-ph$pheno
+    
+    anc.res<-map.QTL(phenotype,
+                g$geno,
+                map = data.table::fread("PedigreeSim/Potato.map") ,
+                K = T,dosage = g$dosage)
+    bi.res<-map.QTL(phenotype,
+                g$dosage,
+                map = data.table::fread("PedigreeSim/Potato.map") ,
+                K = T,dosage = g$dosage)
+    return(list(ancestral=anc.res,
+                biallelic=bi.res,
+                effects=effects,
+                phenotype=phenotype))
+})
+names(divtest)<-diversity
+
+ylim<--log10(min(sapply(divtest,function(d) min(d$ancestral))))
+color<-colorspace::rainbow_hcl(length(divtest),c=80)
+
+# layout(matrix(1:4,ncol=2))
+loop<-1:length(divtest)
+for(i in loop){
+  man<-vals.manhattan(map,col=color[i],factor=0.5)
+  abspos<-man$position
+  col<-man$color
+  pval<-divtest[[i]]$ancestral
+  # main<-paste("Diversity",names(divtest)[i])
+  if(i==loop[1]){
+    plot(abspos,-log10(pval),col=col,pch=19,cex=0.7,main="Ancestral manhattan plot comparison",
+           ylim=c(0,ylim))
+  }else{
+    points(abspos,-log10(pval),col=col,pch=19,cex=0.7)
+  }
+
+  abline(v=man$position[QTLpos],lty=2,col="grey")
+}
+
+for(i in loop){
+  man<-vals.manhattan(map,col=color[i],factor=0.5)
+  abspos<-man$position
+  col<-man$color
+  pval<-divtest[[i]]$biallelic
+  # main<-paste("Diversity",names(divtest)[i])
+  if(i==loop[1]){
+    plot(abspos,-log10(pval),col=col,pch=19,cex=0.7,main="Biallelic manhattan plot comparison",
+           ylim=c(0,ylim))
+  }else{
+    points(abspos,-log10(pval),col=col,pch=19,cex=0.7)
+  }
+
+  abline(v=man$position[QTLpos],lty=2,col="grey")
+}
+
+pval.anc<-sapply(divtest,function(d) d$ancestral)
+pval.bi<-sapply(divtest,function(d) d$biallelic)
+colnames(pval.anc) <- c("Div1","Div2","Div3")
+comp.QQplot(pval.anc,coltype = "sequential",h=240,main="QQplot comparison")
+comp.skyplot(pval.anc,map=map,coltype="sequential",h=240,main="Manhattan plot comparison")
+
+comp.QQplot(pval.bi)
+
+### Effects of QTLs at the end
+effects<-sapply(divtest,function(d) d$effects[[1]])
+alleles<-as.numeric(rownames(effects))
+color <- colorspace::sequential_hcl(3)
+
+#to which ancestral does each allele correspond
+anc_alleles<-mat2list(matrix(0:399,ncol=10))
+anc_matrix<-sapply(anc_alleles,function(c) alleles%in%c)
+anc<-apply(anc_matrix,1,which)
+anc<-sapply(anc,function(i) which(i==unique(anc)))
+anc
+xvals<-sapply(1:ncol(effects),function(i){
+  r<-anc/max(anc)+(i-1)*1.5
+})
+effects<-apply(effects,2,function(e) (e-min(e))/max(e-min(e)))
+plot(xvals,effects,pch=19,col=rep(color,each=nrow(effects)),axes=F,xlab="",cex=1.5,
+     ylab="Relative allelic effect size",main="Genetic effect spread")
+at<-apply(xvals,2,function(i) mean(unique(i)))
+mtext(side=1,text = paste("Div",1:3),at = at,line=3)
+for(i in 1:ncol(effects)){
+  axis(1,at=unique(xvals[,i]),
+       labels = paste0("AG",1:3),cex.axis=0.85,padj = -1,
+       line = 1)
+}
+
+
+```
+
+
+```{r}
+#### Figure 1: Comparison of biparental and ancestral models ####
+map<-data.table::fread("PedigreeSim/Potato.map")
+col<-"navyblue"
+
+#First we calculate the positions based on cumulative cM 
+chlen<-sapply(unique(map$chromosome),function(i) max(map$position[map$chromosome==i])) 
+chlen<-c(0,chlen)
+#absolute chromosome length (cumulative)
+abschlen<-sapply(1:length(chlen),function(i) sum(chlen[1:i]))
+#absolute position for each marker
+abspos<-map$position+abschlen[map$chromosome]
+#Calculate a lighter colour of the "col"
+lightcol <- col2rgb(col)
+lightcol <- lightcol + (255 - lightcol)*0.75
+lightcol <- rgb(t(lightcol), maxColorValue=255)
+#And create a color vector so that chromosome 1=dark, 2=light, 3=dark...
+col<-c(lightcol,col)[map$chromosome%%2+1]
+#Obtain the maximum value of x among the two models
+maxim<-max(-log10(c(anc.res,bi.res)))
+#Rescale the absolute position to plot from top to bottom
+abspos<-max(abspos)-abspos
+
+
+png("Plots/Figure 1 MPP.png",width=900,height=600,res=100)
+    #Establish plotting parameters
+    par(oma=c(4,1,3,1),mar=c(1,2,1,0))
+    layout(matrix(1:3,ncol=3),widths = c(5,1,5))
+    
+    ##Plot 1
+    #First we plot the points
+    plot(-log10(anc.res),abspos,
+         pch=19,cex=0.9,col=col,
+         xlim=c(maxim,0),axes=F,
+         ylab="",xlab="")
+    #Then QTL signals and labels
+    segments(x0=0,x1=maxim,y0=abspos[QTLpos],
+             lty=2,col="#BEBEBE96")
+    text(x = maxim,y=abspos[QTLpos]-0.015*max(abspos),
+         labels = paste("QTL",1:3),xpd=T,adj=0)
+    #Finally add an axis at the bottom
+    at<-axisTicks(c(0,maxim),F) #nice calculation
+    axis(1,at)
+    mtext(side=1,text="-log10(pval) Ancestral model",cex=0.8,line = 2.5)
+    
+    ##Plot 2: middle scale
+    par(mar=c(1,1,1,0))
+    #Empty plot
+    plot(0,type="n",ylim=c(0,1),axes=F,xlab="",xlim=c(0.7,1.3))
+    
+    segments(x0=1,y0=0,y1=1)
+    segments(x0=rep(0.9,length(chlen)),
+             x1=rep(1.1,length(chlen)),
+             y0 = 1-abschlen/max(abschlen),lwd=2)
+    
+    at<-1-((-abschlen[-length(abschlen)]+abschlen[-1])/2
+         +abschlen[-length(abschlen)])/max(abschlen)
+    
+    text(x=1.15,y=at,labels = 1:12,adj=0.5)
+    text(x=0.85,y=1-abschlen/max(abschlen),labels = round(chlen,1),cex=0.9,adj=1,xpd=T)
+    text(x=0.85,y=-0.05,labels="cM",adj=1,xpd=T,cex=1.2)
+    text(x=1.15,y=-0.05,labels="chr",adj=0,xpd=T,cex=1.2)
+    
+    ##Plot 3
+    par(mar=c(1,0,1,2))
+    #Points
+    plot(-log10(bi.res),abspos,
+         pch=19,cex=0.9,col=col,
+         xlim=c(0,maxim),axes=F,
+         ylab="",xlab="")
+    #QTL marks and labels
+    segments(x0=0,x1=maxim,y0=abspos[QTLpos],lty=2,col="#BEBEBE96")
+    text(x = maxim,y=abspos[QTLpos]-0.015*max(abspos),
+         labels = paste("QTL",1:3),xpd=T,adj=1)
+    #New at to be calculated
+    at<-axisTicks(c(0,maxim),F)
+    axis(1,at)
+    mtext(side=1,text="-log10(pval) Biallelic model",cex=0.8,line=2.5)
+    
+    ##Main title
+    mtext(side=3,text="Ancestral vs. Biallelic models",outer=T,font = 2)
+dev.off()
+```
+```{r}
+png("Plots/QQplot ancestral.png",width=800,height=800,res=150)
+comp.QQplot(cbind(anc.res,bi.res),legend = c("anc","bial"),coltype = "sequential",h=240,main="QQ-plot comparison")
+dev.off()
+
+png("Plots/Pval comparison.png",width=800,height=800,res=150)
+plot(-log10(anc.res),-log10(bi.res),
+     pch=19,cex=0.7,col="navyblue",
+     xlim=c(0,maxim),ylim=c(0,maxim),
+     xlab="-log10(pval) Ancestral",ylab="-log10(pval) Biallelic")
+abline(v=5,h=5,lty=2,col="grey")
+abline(0,1,col="red")
+dev.off()
+```
+
