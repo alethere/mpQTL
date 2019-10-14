@@ -1,0 +1,13 @@
+.Rproj.user
+.Rproj
+.Rhistory
+.RData
+.Ruserdata
+research/PedigreeSim/
+research/Plots/
+research/test.R
+researc/output_inferredHaps/
+*.RDS
+*.rds
+*.rda
+

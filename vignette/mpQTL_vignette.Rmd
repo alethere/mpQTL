@@ -1,0 +1,131 @@
+---
+title: "mpQTL vignette"
+author: "Giorgio Tumino - Alejandro Therese Navarro"
+date: "24 May 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+`mpQTL` is an R package for QTL analysis in structured populations (e.g. multiparental populations, diversity panels or a combination of them) of any ploidy. In essence, `mpQTL` is a solver for fixed effects models or mixed models, adapted to use both biallelic and multiallelic markers (haplotypes). 
+Correction of population structure can be obtained: i) including cofactors or covariates (called Q) in a fixed effects model, such as a set of Principal Components; ii) including a kinship matrix (called K) in the random term of a mixed model; iii) using both Q and K in a mixed model.
+
+
+## Load mpQTL
+Install and load `mpQTL`, using the binary file provided.  
+```{r results='hide'}
+### install mpQTL
+install.packages("mpQTL_0.1.0.zip", type = "source", repos = NULL)
+
+### load mpQTL
+library(mpQTL)
+```
+
+
+## Input mp_data
+We provide a sample mp_dataset called mp_data
+### Genotypes
+Genotypes can be billelic SNP dosages (markers in row and individuals in columns) or multiallelic markers (markers in row and individual chromosomes in colums). Missing values are allowed, however a missingness rate per marker lower than 25% is recommended.
+```{r}
+mp_data$dosage[1:5,1:8]
+mp_data$genotypes[1:5,1:8]
+```
+
+### Genetic map
+A genetic map is required. Marker position is very useful for plotting p-values aiding result interpretation, but is also used to sample a subset of nicely spaced markers for kinship calculation. A genetic map is a table with three columns for marker name, chromosome and position. Markers must be in the same order as in the genotype table. 
+```{r}
+mp_data$map[1:5,]
+```
+
+### Phenotypes
+Phenotypes are provided in a table with individuals in rows and phenotypes in columns. Individuals must be in the same order as in the genotype table. Missing phenotypes are allowed.
+```{r}
+mp_data$phenotype[1:5,]
+```
+
+## QTL analysis
+The core function to run a QTL analysis is `map.QTL`.
+A number of arguments can be used to build the desired model. The arguments `K` and `Q` control population structure correction. When K and Q are NULL, a linear model with no structure correction will be applied. If only Q is specified, a fixed effect model with Q correction will be used. When K is provided (or is TRUE), a mixed model including a kinship matrix for structure correction will be used. Q and K can be used at the same time.
+If the map is expressed in base pairs rather than in cM, the argument `cM` can be specified to sample markers every x bp to calculate kinship. 
+Cofactors or covariates can be added using the arguments `cofactor` and `cofactor.type`.
+The output of `map.QTL` is a nested list, including for each phenotype a list of model outputs (Fstat, residuals, p-values, etc.).  
+```{r}
+res <- map.QTL(
+  phenotypes = mp_data$phenotype, #phenotype matrix
+  genotypes = mp_data$genotypes,  #genotype matrix
+  ploidy = 4,
+  map = mp_data$map, #genetic map table
+  K = TRUE,  #TRUE, to calculate a kinship matrix
+  cM = 1, #for kinship, sample markers at every x cM.
+  no_cores = 6, #number of cores
+  approximate = T #approximation, to reduce computation time
+  )
+
+print(names(res))
+names(res$h08)
+res$h08$pval[1:5]
+
+```
+
+A genome-wide significance threshold can be calculated by permutations. If the population contains only a set of F1 families, permutations can be performed within those families (permutation = "fam"). For a more complex population structure, perform permutations over the whole population (permutation = "pop"). A minimum number of 1000 permutations is recommended. However, computation time could be very high, especially when mixed models are used.
+
+```{r}
+res <- map.QTL(
+  phenotypes = mp_data$phenotype, #phenotype matrix
+  genotypes = mp_data$genotypes,  #genotype matrix
+  ploidy = 4,
+  map = mp_data$map, #genetic map table
+  K = TRUE,  #TRUE, to calculate a kinship matrix
+  cM = 1,    #for kinship, sample markers at every x cM
+  no_cores = 6, #number of cores
+  approximate = T, #approximation, to reduce computation time
+  permutation = "pop", #permutation strategy: "pop" or "fam"
+  nperm = 5            #number of permutations
+  )
+
+print(names(res))
+names(res$h08)
+res$h08$perm.thr
+
+```
+
+## Plots
+Plotting functions for PCoA plots, Q-Q plots and Manhattan plots are included.
+
+To visualize structure, a heatmap or a PCoA plot can be used.
+```{r}
+#Obtain the genetic structure
+K <- calc.K(t(mp_data$dosage),ploidy=4)
+#We can also calculate K using the haplotypes if we set haplotypes = T
+heatmap(K,Colv = NA,Rowv = NA,labRow = NA, labCol = NA)
+```
+
+Alternatively we can use the pcoa plotter. The parameter `col` is useful to visualize if our populations share genetic similarity.
+```{r}
+pop = c(rep("parent",10),rep("AG1",100),rep("AG2",150),rep("AG3",200))
+pcoa.plot(K,col=pop,pch=19,main="Structure Plot")
+```
+
+
+Comparison Q-Q plors can obtained by providing a matrix of p-values, where each column corresponds to a set of p-values.
+```{r}
+pvals <- sapply(res,function(r) r$pval)
+comp.QQ(pvals = pvals)
+```
+
+Manhattan plots can also be easily generated, by providing the -log10(pval), or other significance scores. A threshold can also be specified.
+```{r}
+skyplot(pval = -log10(res$h08$pval),
+        map = mp_data$map,
+        threshold = res$h08$perm.thr)
+```
+
+If desired a similar manhattan plot comparison can be obtained. 
+```{r}
+comp.skyplot(pval = -log10(pvals),
+        map = mp_data$map,
+        threshold = res$h08$perm.thr)
+```
