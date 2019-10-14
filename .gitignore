@@ -3,11 +3,14 @@
 .Rhistory
 .RData
 .Ruserdata
+
+PedigreeSim.7z
+
 research/PedigreeSim/
 research/Plots/
 research/test.R
-researc/output_inferredHaps/
+research/output_inferredHaps/
+
 *.RDS
 *.rds
 *.rda
-
