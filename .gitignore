@@ -15,4 +15,5 @@ research/output_inferredHaps/
 *.RDS
 *.rds
 *.rda
+*test.R
 #Exceptions
