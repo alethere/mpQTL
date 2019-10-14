@@ -1,16 +1,18 @@
+#Main ignores
 .Rproj.user
 .Rproj
 .Rhistory
 .RData
 .Ruserdata
-
+#Files
 PedigreeSim.7z
-
+#Folders
 research/PedigreeSim/
 research/Plots/
 research/test.R
 research/output_inferredHaps/
-
+#Extensions
 *.RDS
 *.rds
 *.rda
+#Exceptions
