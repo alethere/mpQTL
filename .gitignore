@@ -11,6 +11,9 @@ research/PedigreeSim/
 research/Plots/
 research/test.R
 research/output_inferredHaps/
+research/inferred_haplotypes/
+research/pop_simulations/HWE_datasets
+devtest/devdatasets/
 #Extensions
 *.RDS
 *.rds
