@@ -1170,6 +1170,79 @@ thr.LiJi <- function(m,
   return(list(threshold=alpha.adj, Meff=Meff))
 }
 
+LD_decay <- function(dos,map,win_size = 0.1,max_dist = NULL,per_chr = F){
+
+  #First we split dosages per chromosome and calculate correlations
+  #only within chromosomes
+  dos_per_chr <- split(dos,map$chromosome)
+  LD <- lapply(dos_per_chr,function(g){
+    ld <- cor(t(g))
+    not_dup <- lower.tri(ld,diag=F)
+    return(ld[not_dup]^2)
+  })
+
+  #then we calculate the distance between markers
+  pos_per_chr <- split(map$position,map$chromosome)
+  dis <- lapply(pos_per_chr,function(d){
+    res <- sapply(d,function(p) abs(p-d))
+    not_dup <- lower.tri(res,diag=F)
+    return(res[not_dup])
+  })
+
+  if(!per_chr){
+
+    #Per window we calculate the percentile estimates
+    LD <- do.call(c,LD)
+    dis <- do.call(c,dis)
+
+    if(is.null(max_dist)) max_dist <- max(dis)
+
+    windows <- seq(0,max_dist,win_size)
+    ld_estimates <- t(sapply(seq_along(windows),function(w){
+      sel <- dis >= windows[w] & dis < windows[w] + win_size
+      return(quantile(LD[sel],c(0.5,0.8,0.9,0.95)))
+    }))
+
+    #We calculate the background correlation between chromosomes
+    dos_sample <- lapply(dos_per_chr,function(d) d[sample(1:nrow(d),100),] )
+    dos_sample <- do.call(rbind,dos_sample)
+    back_ld <- cor(t(dos_sample))^2
+    back_ld <- back_ld[lower.tri(back_ld,diag=F)]
+    back_ld <- quantile(back_ld,c(0.5,0.8,0.9,0.95))
+
+    #We add some extra features
+    res <- list(LD = data.frame(ld_estimates,
+                                distance = windows),
+                background = back_ld)
+    attr(res,"max_dist") <- max(dis,na.rm=T)
+    attr(res,"class") <- c("LD","list")
+
+  }else{
+    res <- lapply(1:length(unique(map$chromosome)),function(i){
+      ld <- LD[[i]]
+      d <- dis[[i]]
+
+      windows <- seq(0,max(d,na.rm=T),win_size)
+      ld_estimates <- t(sapply(seq_along(windows),function(w){
+        sel <- d > windows[w] & d < windows[w] + win_size
+        return(quantile(ld[sel],c(0.5,0.8,0.9,0.95)))
+      }))
+
+      back_ld <- quantile(ld[d > max(d,na.rm=T)*0.9],c(0.5,0.8,0.9,0.95))
+
+      #We add some extra features
+      res <- list(LD = data.frame(ld_estimates,distance = windows),
+                  background = back_ld)
+      attr(res,"max_dist") <- max(d,na.rm=T)
+      attr(res,"class") <- c("LD","list")
+      return(res)
+    })
+
+  }
+
+  return(res)
+}
+
 
 # Input handling ----------------------
 
