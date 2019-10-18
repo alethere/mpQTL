@@ -256,9 +256,10 @@ skyplot<-function(
   #big X axis
   #This line allows us to calculate the geometric position at which
   #each chromosome starts and ends
-  ch_pos <- sapply(split(new_map$axis,map$chromosome),range)[,as.character(chrom)]
+  ch_pos <- sapply(split(new_map$axis,map$chromosome),range)[,as.character(chrom),drop=F]
+  if(is.vector(ch_pos)) ch_pos <- matrix(ch_pos,nrow=2)
   #For each chromosome we draw a "big axis" specifying which chromosome it is
-  if(length(chrom) > 2) small <- T
+  if(length(chrom) <= 2) small <- T
   else small <- F
   draw_chrom_axis(ch_pos[1,],ch_pos[2,],chrom,small)
 
@@ -322,6 +323,8 @@ comp.skyplot<-function(
   h=240,
   threshold=NULL,
   chrom = NULL,
+  ylim=NULL,
+  ylab = NULL,
   ...
 ){
   n <- length(pvals)
@@ -332,7 +335,7 @@ comp.skyplot<-function(
 
   #We filter per chromosome
   if(is.null(chrom)){
-    chrom <- unique(unlist(lapply(new_maps,function(nmp){
+    chrom <- unique(unlist(lapply(map,function(nmp){
       as.character(unique(nmp$chromosome))})))
     chrom <- sort(chrom)
   }
@@ -349,17 +352,18 @@ comp.skyplot<-function(
     pvals[[i]] <- pvals[[i]][chrom_filter]
   }
 
-
-  #Then, we create the colour palette we are going to use
-  cols <- select.col(n,coltype,h=h)
-
   #First we calculate the maximum positions of each map
   maxes <- sapply(1:n,function(i){
     sapply(split(map[[i]]$position,map[[i]]$chromosome),max)
   })
+  if(is.vector(maxes)) maxes <- matrix(maxes,nrow=2)
   maxes <- apply(maxes,1,max)
   #This allows us to calculate unified mapping axes
   new_maps <- lapply(map,map_axis,space = sum(maxes)*0.05,maxes = maxes)
+
+
+  #Then, we create the colour palette we are going to use
+  cols <- select.col(n,coltype,h=h)
 
   #then we calculate the maximum pvalue
   if(is.null(ylim)){
@@ -438,7 +442,8 @@ draw_chrom_axis <- function(ch_start,ch_end,chrom,small=F){
     #Small axis only if there's one or two chromosomes
     if(small){
       at <- round(seq(ch_s,ch_e,length.out = 50))
-      axis(1,at,cex.axis=0.7,padj = -1)
+      lab <- round(at - ch_s)
+      axis(1,at,labels = lab,cex.axis=0.7,padj = -1)
     }
 
     at <- (ch_e - ch_s)/2 + ch_s
@@ -516,6 +521,49 @@ pcoa.plot <- function(
                                       col=unique(cols),bty="n",pch=19)
   }
 }
+
+# Boxplots ----------------------------
+
+#' Phenotype boxplot
+#'
+#' Creates a boxplot per dosage class
+#'
+#' @param phe phenotype vector
+#' @param gen dosage vector
+#' @param coltype
+#' @param h
+#' @param ... other arguments to be passed to boxplot/plot (main, xlab, ylab...).
+#' Not ylim.
+#'
+#' @return
+#' @export
+#' @inheritParams select.col
+#'
+#' @examples
+pheno_box <- function(phe,gen,coltype="qualitative",h=c(120,240),...){
+  #Boxplot works the following way:
+  #It transforms whatever data you give into a list in which each
+  #element is a "box". It will draw as many elements as there are in the list,
+  #taking as axis names the names of the list.
+  #So, you can create an empty space in the boxplot by creating a list
+  #that has all the levels you need, but with one of them empty.
+  boxlist <- split(phe,gen)
+  box_class <- min(gen):max(gen)
+  new_boxlist <- boxlist[as.character(box_class)]
+  names(new_boxlist) <- box_class
+
+  col <- select.col(length(box_class),coltype = coltype,h = h)
+
+  boxplot(new_boxlist,
+          border = col,
+          outline = F,
+          ylim=range(phe),...)
+  set.seed(7)
+  points(jitter(gen+1,amount = 0.25)-min(gen),
+         phe,col=col[gen-min(gen)+1],
+         pch=19,cex=0.85)
+}
+
 
 # LD plots ---------------------------
 plot.LD <- function(LD,max_dist = NULL,main=NULL){

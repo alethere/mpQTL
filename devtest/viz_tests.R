@@ -46,11 +46,11 @@ saveRDS(data, "devtest/test_data.RDS")
 data <- readRDS("devtest/test_data.RDS")
 
 source("R/viz_fun.R")
-pval <- list(data$result$pheno1$pval, data$result2$pheno1$pval)
+pval <- list(-log10(data$result$pheno1$pval),-log10(data$result2$pheno1$pval))
 map <- data$map
 map <- map[sample(1:nrow(map),nrow(map)),]
-skyplot(-log10(pval),map,col="blue")
-
+skyplot(-log10(pval[[1]]),map,col="blue",chrom = c(0,4))
+comp.skyplot(pval,map,chrom=1,threshold = 3.8)
 map$chromosome <- letters[1:5][map$chromosome+1]
 
 
@@ -165,13 +165,39 @@ map <- data$map
 comp.skyplot(pvals,map,chrom=c(1,0))
 
 # Boxploots
+phe <- data$pheno
+dos <- data$dosage
 boxplot(phe~unlist(dos[9,]),col=select.col(5,coltype = "sequential"))
 gen <- unlist(dos[9,])
 
-pheno_box <- function(phe,gen){
-  col <- select.col(length(unique(gen)))
-  boxplot(phe~gen,border = col,outline = F,ylim=range(phe))
-  points(jitter(gen+1),phe,col=col[gen+1],pch=19,cex=0.85)
+
+
+pheno_box <- function(phe,gen,coltype="qualitative",h=c(120,240),...){
+  #Boxplot works the following way:
+  #It transforms whatever data you give into a list in which each
+  #element is a "box". It will draw as many elements as there are in the list,
+  #taking as axis names the names of the list.
+  #So, you can create an empty space in the boxplot by creating a list
+  #that has all the levels you need, but with one of them empty.
+  boxlist <- split(phe,gen)
+  box_class <- min(gen):max(gen)
+  new_boxlist <- boxlist[as.character(box_class)]
+  names(new_boxlist) <- box_class
+
+  col <- select.col(length(box_class),coltype = coltype,h = h)
+
+  boxplot(new_boxlist,
+          border = col,
+          outline = F,
+          ylim=range(phe),...)
+  set.seed(7)
+  points(jitter(gen+1,amount = 0.25)-min(gen),
+         phe,col=col[gen-min(gen)+1],
+         pch=19,cex=0.85)
 }
 
-pheno_box(phe,unlist(dos[1001,]))
+pheno_box(phe,dos2,main="Phenotype boxplot",xlab="dosage",ylab="phenotype")
+dos2<- sample(c(-10,2,4),length(phe),replace = T)
+gen <- dos2
+
+pheno_box(phe,dos2)
