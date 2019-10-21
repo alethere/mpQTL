@@ -564,6 +564,87 @@ pheno_box <- function(phe,gen,coltype="qualitative",h=c(120,240),...){
          pch=19,cex=0.85)
 }
 
+pheno_haplo <- function(
+  phe,
+  gen,
+  ploidy,
+  draw.points = T,
+  hap.select = NULL,
+  coltype = "qualitative",
+  h = c(120,240),
+  ...
+){
+
+  #Here we obtain the matrix of dosages per haplotype
+  data <- dosage.X(gen,haplotype = T,ploidy=4)
+  data <- data[,as.character(sort(as.numeric(colnames(data)))),drop=F]
+
+  #Filtering
+  if(is.null(hap.select)) hap.select <- colnames(data)
+  if(!all(as.character(hap.select) %in% colnames(data))){
+    not_in <- !as.character(hap.select) %in% colnames(data)
+    stop(paste(hap.select[not_in],collapse=" "),
+         " not found in provided haplotypes")
+  }
+  data <- data[,as.character(hap.select),drop=F]
+
+  #Create some basic parameters
+  n_hap <- ncol(data)
+  #space should be relative to the number of elements
+  nbox_hap <- apply(data,2,function(x) length(unique(x)))
+  #Select some colour
+  col <- rep(select.col(n_hap,coltype = coltype,h=h),nbox_hap)
+  space <- sum(nbox_hap)*0.05
+
+  #This function allows us to transform haplotype dosages
+  #into x axis calculation, where i is the box group
+  #we want to draw into.
+  axis_calc <- function(dh,nbox_hap,space,i){
+    dh - min(dh) + sum(nbox_hap[0:(i-1)]) + space*(i-1)
+  }
+
+  #dh is dosage haplotype
+  #Here we calculate where should the boxes be plotted
+  at <- lapply(1:ncol(data),function(i){
+    dh <- data[,i]
+    axis_calc(sort(unique(dh)),nbox_hap,space,i)
+  })
+  big_at <- sapply(at,mean) #This will be used later for the axis
+  at <- unlist(at)
+
+  #Here we create the list of boxes for the boxplot
+  #We split phenotypes according to haplotype dosage
+  boxlist <- apply(data,2,function(x) split(phe,x))
+  boxlist <- unlist(boxlist,recursive = F)
+
+  #We draw the boxplots
+  boxplot(boxlist,at = at,outline = F,
+          border = col,axes = F,
+          ylim=range(pretty(range(phe))),...)
+
+  #We add the observation points
+  if(draw.points){
+    x <- sapply(1:n_hap,function(i){
+      dh <- data[,i]
+      x <- axis_calc(dh,nbox_hap,space,i)
+      set.seed(10)
+      x <- jitter(x,amount = 0.15)
+      return(x)
+    })
+    x <- as.vector(x)
+    y <- rep(phe,n_hap)
+    col_points <- rep(unique(col),each=length(phe))
+    points(x,y,pch=19,cex=0.5,col=col_points)
+
+  }
+
+  #Drawing the axis of the boxplot
+  axis(2,pretty(range(phe)))
+  lab <- unlist(apply(data,2,function(x) sort(unique(x))))
+  axis(1,at,labels = lab,cex.axis = 0.5,padj = - 2)
+  axis(1,at = big_at, lab = colnames(data),tick = F,padj=1)
+
+}
 
 # LD plots ---------------------------
 plot.LD <- function(LD,max_dist = NULL,main=NULL){

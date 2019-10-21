@@ -53,151 +53,164 @@ skyplot(-log10(pval[[1]]),map,col="blue",chrom = c(0,4))
 comp.skyplot(pval,map,chrom=1,threshold = 3.8)
 map$chromosome <- letters[1:5][map$chromosome+1]
 
-
-
-skyplot<-function(
-  pval,
-  map,
-  col="navyblue",
-  threshold=NULL,
-  ylab=NULL,
-  ylim=NULL,
-  chrom = NULL,
-  ...
-){
-  #In case the markers are not in order
-  map <- map[with(map,order(map$chromosome,map$position)),]
-
-  #We filter per chromosome
-  if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
-  chrom_filter <- sapply(map$chromosome,function(x) any(x == chrom))
-  if(!any(chrom_filter)){
-    stop("The specified chrom: ",paste(chrom,collapse=", "),
-         "; is not found in the chromosomes of map: ",
-         paste(as.character(unique(map$chromosome)), collapse=", "))}
-
-  map <- map[chrom_filter, ]
-  pval <- pval[chrom_filter]
-
-  tot_length <- sum(sapply(split(map$position,map$chromosome),max))
-  new_map <- map_axis(map,space = 0.05*tot_length)
-
-  #Calculate a lighter colour of the "col"
-  lightcol <- lighten(col)
-  chrom_col <- sapply(map$chromosome,function(m) which(m == unique(map$chromosome)))
-  col <- c(lightcol,col)[chrom_col%%2+1]
-
-
-  if(is.null(ylim)) ylim <- c(min(pval,na.rm = T),
-                              ceiling(max(pval,na.rm = T)/10)*10)
-
-  if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
-
-  plot(new_map$axis,pval,xlab="",
-       ylim=ylim,axes=F,ylab=ylab,
-       pch=19,col=col)
-
-  #Y axis
-  at <- axisTicks(round(ylim),log = F); axis(2,at)
-
-  #big X axis
-  #This line allows us to calculate the geometric position at which
-  #each chromosome starts and ends
-  ch_pos <- sapply(split(new_map$axis,map$chromosome),range)[,as.character(chrom)]
-  #For each chromosome we draw a "big axis" specifying which chromosome it is
-  for(i in 1:length(unique(map$chromosome))){
-    ch_start <- ch_pos[1,i]
-    ch_end <- ch_pos[2,i]
-    axis(1,c(ch_start,ch_end),labels=c("",""),tck=-0.03)
-
-    #Small axis only if there's one or two chromosomes
-    if(length(chrom) <= 2){
-      at <- round(seq(ch_start,ch_end,length.out = 50))
-      axis(1,at,cex.axis=0.7,padj = -1)
-    }
-
-    at <- (ch_end - ch_start)/2 + ch_start
-    mtext(chrom[i],1,at=at,line=1.8,cex=1.2)
-  }
-
-  mtext("Chromosome",1,line = 3)
-
-  if(!is.null(threshold)) abline(h=threshold,col="red",lwd=1.3,lty=2)
-}
-
-
-map_axis <- function(map,space = 0){
-  sp_map <- split(map,map$chromosome)[as.character(unique(map$chromosome))]
-  maxes <- sapply(sp_map,function(x) max(x$position))
-  maxes <- c(0,maxes)
-
-  for(i in 1:length(sp_map)){
-    sp_map[[i]]$axis <- sp_map[[i]]$position + sum(maxes[1:i]) + space*(i-1)
-  }
-  return(do.call(rbind,sp_map))
-}
-
-
-#' Comparative Skyline Manhattan plot
-#'
-#' @describeIn skyplot
-#' @description Generates overlapped manhattan plots and adds a legend.
-#' @inheritParams skyplot
-#'
-#' @param pvals list of pvalues to be plotted together.
-#' @param map list of map dataframes. If there is only a data.frame, it will be assumed
-#' that all p-value sets have the same underlying genetic map.
-#' @param coltype Argument to be passed to \code{|link{select.col}}.Either "sequential",
-#' "qualitative", "divergent" or "rainbow".For a few categories, such as different treatments,
-#' choose "qualitative" or "rainbow". For ordered categories, such as increasingly high levels
-#' of a compound, use "sequential". For a gradient between two opposites, chose "divergent".
-#' @param ...
-#'
-#' @return A comparative manhattan plot
-#' @export
-#'
-#' @examples
-#'
-
-pvals <- list(-log10(data$result$pheno1$pval),
-              -log10(data$result2$pheno1$pval))
-map <- data$map
-comp.skyplot(pvals,map,chrom=c(1,0))
-
 # Boxploots
 phe <- data$pheno
 dos <- data$dosage
-boxplot(phe~unlist(dos[9,]),col=select.col(5,coltype = "sequential"))
-gen <- unlist(dos[9,])
+pheno_box(phe,unlist(dos[4,]))
 
 
+length(anc[1,])
+gen <- anc[QTLpos[1],]
 
-pheno_box <- function(phe,gen,coltype="qualitative",h=c(120,240),...){
-  #Boxplot works the following way:
-  #It transforms whatever data you give into a list in which each
-  #element is a "box". It will draw as many elements as there are in the list,
-  #taking as axis names the names of the list.
-  #So, you can create an empty space in the boxplot by creating a list
-  #that has all the levels you need, but with one of them empty.
-  boxlist <- split(phe,gen)
-  box_class <- min(gen):max(gen)
-  new_boxlist <- boxlist[as.character(box_class)]
-  names(new_boxlist) <- box_class
+pheno_haplo(phe,anc[QTLpos[4],],4,
+            main="NO",xlab="popo",ylab="more popo")
 
-  col <- select.col(length(box_class),coltype = coltype,h = h)
+pheno_haplo <- function(
+  phe,
+  gen,
+  ploidy,
+  draw.points = T,
+  hap.select = NULL,
+  coltype = "qualitative",
+  h = c(120,240),
+  ...
+  ){
 
-  boxplot(new_boxlist,
-          border = col,
-          outline = F,
-          ylim=range(phe),...)
-  set.seed(7)
-  points(jitter(gen+1,amount = 0.25)-min(gen),
-         phe,col=col[gen-min(gen)+1],
-         pch=19,cex=0.85)
+  #Here we obtain the matrix of dosages per haplotype
+  data <- dosage.X(gen,haplotype = T,ploidy=4)
+  data <- data[,as.character(sort(as.numeric(colnames(data)))),drop=F]
+
+  #Filtering
+  if(is.null(hap.select)) hap.select <- colnames(data)
+  if(!all(as.character(hap.select) %in% colnames(data))){
+    not_in <- !as.character(hap.select) %in% colnames(data)
+    stop(paste(hap.select[not_in],collapse=" "),
+         " not found in provided haplotypes")
+  }
+  data <- data[,as.character(hap.select),drop=F]
+
+  #Create some basic parameters
+  n_hap <- ncol(data)
+  #space should be relative to the number of elements
+  nbox_hap <- apply(data,2,function(x) length(unique(x)))
+  #Select some colour
+  col <- rep(select.col(n_hap,coltype = coltype,h=h),nbox_hap)
+  space <- sum(nbox_hap)*0.05
+
+  #This function allows us to transform haplotype dosages
+  #into x axis calculation, where i is the box group
+  #we want to draw into.
+  axis_calc <- function(dh,nbox_hap,space,i){
+    dh - min(dh) + sum(nbox_hap[0:(i-1)]) + space*(i-1)
+  }
+
+  #dh is dosage haplotype
+  #Here we calculate where should the boxes be plotted
+  at <- lapply(1:ncol(data),function(i){
+    dh <- data[,i]
+    axis_calc(sort(unique(dh)),nbox_hap,space,i)
+  })
+  big_at <- sapply(at,mean) #This will be used later for the axis
+  at <- unlist(at)
+
+  #Here we create the list of boxes for the boxplot
+  #We split phenotypes according to haplotype dosage
+  boxlist <- apply(data,2,function(x) split(phe,x))
+  boxlist <- unlist(boxlist,recursive = F)
+
+  #We draw the boxplots
+  boxplot(boxlist,at = at,outline = F,
+          border = col,axes = F,
+          ylim=range(pretty(range(phe))),...)
+
+  #We add the observation points
+  if(draw.points){
+    x <- sapply(1:n_hap,function(i){
+      dh <- data[,i]
+      x <- axis_calc(dh,nbox_hap,space,i)
+      set.seed(10)
+      x <- jitter(x,amount = 0.15)
+      return(x)
+    })
+    x <- as.vector(x)
+    y <- rep(phe,n_hap)
+    col_points <- rep(unique(col),each=length(phe))
+    points(x,y,pch=19,cex=0.5,col=col_points)
+
+  }
+
+  #Drawing the axis of the boxplot
+  axis(2,pretty(range(phe)))
+  lab <- unlist(apply(data,2,function(x) sort(unique(x))))
+  axis(1,at,labels = lab,cex.axis = 0.5,padj = - 2)
+  axis(1,at = big_at, lab = colnames(data),tick = F,padj=1)
+
 }
 
-pheno_box(phe,dos2,main="Phenotype boxplot",xlab="dosage",ylab="phenotype")
-dos2<- sample(c(-10,2,4),length(phe),replace = T)
-gen <- dos2
 
-pheno_box(phe,dos2)
+
+
+
+
+#' Calculates design matrix of X
+#'
+#' @param genotypes vector of dosages per individual, or matrix of genotypes per
+#' chromosome at one single marker
+#' @param ploidy integer indicating ploidy. Defaults to 4.
+#'
+#' @return if genotypes is vector, a matrix will be returned with first column having an
+#' intercept (all 1's), second column having the dosages. If genotype is a matrix,
+#' a design matrix is return with ncol=unique()
+#' @export
+#'
+#' @examples
+dosage.X <- function(genotypes,
+                     haplotype=F,
+                     ploidy=NULL,
+                     normalize = F) {
+
+  if(!haplotype){
+    alcount <- matrix(genotypes,ncol=1)
+    if(normalize) alcount <- (alcount-mean(alcount))/sd(alcount)
+  }else{
+    #we obtain the different alleles present
+    unals <- unique(genotypes)
+    #we obtain a design matrix indicating the allele of each chromosome
+    #atn: changed this function to add a NA column
+    match <- sapply(unals, function(x) {
+      if (!is.na(x)) {
+        m <- x == genotypes
+        m[is.na(m)] <- F
+      } else{
+        m <- is.na(genotypes)
+      }
+      return(m)
+    })
+
+
+    #we count the number of each allele for each individual
+    #For haplotypes we need to combine ploidy columns into one count
+    n<-length(genotypes)/ploidy
+    alcount <- t(sapply(1:n, function(x){
+      colSums(match[1:ploidy + (x - 1) * ploidy, ,drop=F])
+    }))
+
+    #this line will not give the correct answer if we have a single individual
+    if(nrow(alcount)==1) alcount <- t(alcount)
+
+    if(normalize & ncol(alcount)!= 1) alcount <- apply(alcount,2,function(a) (a-mean(a))/sd(a))
+    else if(normalize) alcount <- apply(alcount,2,function(a) (a-mean(a)))
+
+    # #This part is also not nice
+    # inds <- sapply(1:n,function(i){
+    #   j <- 1:ploidy + (i - 1) * ploidy
+    #   s <- names(genotypes)[j]
+    # })
+
+    inds <- unique(substr(names(genotypes), 1, nchar(names(genotypes)) - 2))
+    rownames(alcount) <- inds
+    colnames(alcount) <- unals
+  }
+
+  return(alcount)
+}
