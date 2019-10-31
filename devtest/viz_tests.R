@@ -39,6 +39,7 @@ res2 <- map.QTL(phe,dos,4,map,K=T,
 data <- list(map = map,
              pheno = phe,
              dosage = dos,
+             hap = anc,
              result = res,
              result2 = res2)
 
@@ -65,87 +66,7 @@ gen <- anc[QTLpos[1],]
 pheno_haplo(phe,anc[QTLpos[4],],4,
             main="NO",xlab="popo",ylab="more popo")
 
-pheno_haplo <- function(
-  phe,
-  gen,
-  ploidy,
-  draw.points = T,
-  hap.select = NULL,
-  coltype = "qualitative",
-  h = c(120,240),
-  ...
-  ){
 
-  #Here we obtain the matrix of dosages per haplotype
-  data <- dosage.X(gen,haplotype = T,ploidy=4)
-  data <- data[,as.character(sort(as.numeric(colnames(data)))),drop=F]
-
-  #Filtering
-  if(is.null(hap.select)) hap.select <- colnames(data)
-  if(!all(as.character(hap.select) %in% colnames(data))){
-    not_in <- !as.character(hap.select) %in% colnames(data)
-    stop(paste(hap.select[not_in],collapse=" "),
-         " not found in provided haplotypes")
-  }
-  data <- data[,as.character(hap.select),drop=F]
-
-  #Create some basic parameters
-  n_hap <- ncol(data)
-  #space should be relative to the number of elements
-  nbox_hap <- apply(data,2,function(x) length(unique(x)))
-  #Select some colour
-  col <- rep(select.col(n_hap,coltype = coltype,h=h),nbox_hap)
-  space <- sum(nbox_hap)*0.05
-
-  #This function allows us to transform haplotype dosages
-  #into x axis calculation, where i is the box group
-  #we want to draw into.
-  axis_calc <- function(dh,nbox_hap,space,i){
-    dh - min(dh) + sum(nbox_hap[0:(i-1)]) + space*(i-1)
-  }
-
-  #dh is dosage haplotype
-  #Here we calculate where should the boxes be plotted
-  at <- lapply(1:ncol(data),function(i){
-    dh <- data[,i]
-    axis_calc(sort(unique(dh)),nbox_hap,space,i)
-  })
-  big_at <- sapply(at,mean) #This will be used later for the axis
-  at <- unlist(at)
-
-  #Here we create the list of boxes for the boxplot
-  #We split phenotypes according to haplotype dosage
-  boxlist <- apply(data,2,function(x) split(phe,x))
-  boxlist <- unlist(boxlist,recursive = F)
-
-  #We draw the boxplots
-  boxplot(boxlist,at = at,outline = F,
-          border = col,axes = F,
-          ylim=range(pretty(range(phe))),...)
-
-  #We add the observation points
-  if(draw.points){
-    x <- sapply(1:n_hap,function(i){
-      dh <- data[,i]
-      x <- axis_calc(dh,nbox_hap,space,i)
-      set.seed(10)
-      x <- jitter(x,amount = 0.15)
-      return(x)
-    })
-    x <- as.vector(x)
-    y <- rep(phe,n_hap)
-    col_points <- rep(unique(col),each=length(phe))
-    points(x,y,pch=19,cex=0.5,col=col_points)
-
-  }
-
-  #Drawing the axis of the boxplot
-  axis(2,pretty(range(phe)))
-  lab <- unlist(apply(data,2,function(x) sort(unique(x))))
-  axis(1,at,labels = lab,cex.axis = 0.5,padj = - 2)
-  axis(1,at = big_at, lab = colnames(data),tick = F,padj=1)
-
-}
 
 
 
@@ -214,3 +135,59 @@ dosage.X <- function(genotypes,
 
   return(alcount)
 }
+
+#Circle of colour ---------------
+n <- 1000
+colour_wheel(120,xlab = "",ylab = "",r=1)
+
+
+
+
+hue_wheel()
+
+
+
+
+polygon(x = c(0,0.01,-0.01),
+        y = c(-0.5,0.5,0.5))
+
+
+for(i in c(seq(3,29),
+           seq(30,by =5,length.out = 10),
+           seq(60,by = 10, length.out = 10),
+           seq(200,by = 50, length.out = 10)
+           )){
+  i <- round(i)
+  jpeg(paste0("devtest/Plots/hue_wheel/",sprintf("%03d",i),".jpeg"),height = 1200,width = 1200)
+  par(mar=c(3,3,3,3))
+  colour_wheel(i,xlab="",ylab="")
+  dev.off()
+}
+
+dir.create("devtest/Plots/lumi_wheel")
+
+for(i in c(0:29,seq(30,170,3))){
+  png(paste0("devtest/Plots/lumi_wheel/",sprintf("0%03d",i),".png"),height = 1000,width = 1000)
+  hue_wheel(l = i)
+  text(0,0,labels = i,cex=3,xpd=T)
+  dev.off()
+}
+
+# Colour choice ----------
+col <- select.col(5, alpha = 0.1)
+
+col2rgb(col,alpha = T)
+
+factor
+light <- col2rgb(col,alpha = T)
+alpha <- light["alpha",]
+if(factor>0){ result<-round(light+(255-light)*factor)
+}else{result<-round(light+light*factor)}
+
+result <- rgb(t(result),alpha = alpha,maxColorValue=255)
+
+return(result)
+
+plot(1:5,col=result,pch=19,cex=5)
+
+col2rgb(result,alpha=T)

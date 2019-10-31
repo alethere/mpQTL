@@ -20,7 +20,6 @@
 #' If negatives are used, it darkens the colour.
 #'
 #' @return Lightened (or darkened) colour(s)
-#' @export
 #'
 #' @examples
 lighten <- function(
@@ -28,12 +27,13 @@ lighten <- function(
   factor=0.55
 ){
 
-  light<-col2rgb(col)
+  light<-col2rgb(col,alpha = T)
+  alpha <- light["alpha",]
+  if(factor>0){ result<-round(light+(255-light)*factor)
+  }else{result<-round(light+light*factor)}
 
-  if(factor>0){ result<-light+(255-light)*factor
-  }else{result<-light+light*factor}
+  result <- rgb(t(result), alpha=alpha, maxColorValue=255)
 
-  result <- rgb(t(result), maxColorValue=255)
   return(result)
 
 }
@@ -79,27 +79,52 @@ lighten <- function(
 #' @examples
 select.col <- function(
   n,
-  coltype = "qualitative",
-  h = c(120, 240),
+  coltype = NULL,
+  h = NULL,
   c = 100,
-  l = 60
+  l = NULL,
+  alpha = 1
 ){
+
+  extra <- F
+  if(is.null(coltype)) coltype <- "qualitative"
+  if(all(is.null(h))){
+    if(coltype == "qualitative"){
+      if(n < 7){
+        h <- c(0,360)
+        extra <- T}
+      else h <- c(120,240)
+    }
+
+    if(coltype == "sequential") h <- 240
+
+    if(coltype == "divergent") h <- c(240,20)
+  }
+
+
+  if(all(is.null(l))){
+    if(coltype == "qualitative") l <- 60
+    if(coltype == "sequential") l <- c(30,90)
+  }
+
   if(coltype=="divergent"){
     #creates a divergent palette from a central neutral color
-    cols<-colorspace::diverge_hcl(n+1,h=h,c=c,power=0.7)
+    cols<-colorspace::diverge_hcl(n+1,h=h,c=c,power=0.7,alpha = alpha)
     half<-(n+1)%/%2+(n+1)%%2
     cols<-c(rev(cols[1:(half-1)]),cols[-1:-(half-1)])
     cols<-cols[-c(half)]#to take out the central neutral color
 
   }else if(coltype=="sequential"){
 
-    cols<-colorspace::sequential_hcl(n,h=h,c=c)
+    cols<-colorspace::sequential_hcl(n,h=h,c=c,l=l,alpha=alpha)
 
   }else if(coltype=="rainbow"){
-    cols<-colorspace::rainbow_hcl(n,c=c,l=l)
+    cols<-colorspace::rainbow_hcl(n,c=c,l=l,h=h,alpha=alpha)
 
   }else if(coltype=="qualitative"){
-    cols<-colorspace::qualitative_hcl(n,h=h,c=c)
+    if(extra) n <- n+1
+    cols <- colorspace::qualitative_hcl(n,h=h,c=c,l=l,alpha = alpha)
+    if(extra) cols <- cols[-n]
   }
   return(cols)
 }
@@ -119,7 +144,7 @@ select.col <- function(
 QQcalc<-function(pvals){
   o <- -log10(sort(pvals,decreasing=F))
   e <- -log10(1:length(o)/length(o))
-  e <- e/max(e)
+  e <- e
   return(data.frame(exp=e,obs=o))
 }
 
@@ -143,7 +168,6 @@ QQcalc<-function(pvals){
 #' @param coltype either "sequential", "rainbow", "qualitative" or "divergent".
 #' Used for determining the color palette to use, for more information check
 #' \code\link[select.col]{select.col}
-#' @param legtitle
 #' @param legend
 #' @param lim
 #' @param ...
@@ -152,14 +176,14 @@ QQcalc<-function(pvals){
 #' @export
 #'
 #' @examples
-comp.QQ <- function(
+QQ.plot <- function(
   pvals,
-  main=NULL,
-  coltype="qualitative",
-  legtitle="Models",
-  legnames=NULL,
   ylim = NULL,
-  h=240,
+  plot_legend = T,
+  legnames=NULL,
+  coltype= NULL,
+  h = NULL,
+  l = NULL,
   ...
 ){
   if(is.numeric(pvals)) pvals <- list(pvals)
@@ -168,15 +192,16 @@ comp.QQ <- function(
   qqval <- lapply(pvals,function(p) QQcalc(p))
 
 
-  if(is.null(ylim)) ylim <- c(0,max(unlist(sapply(qqval,'[', ,2))))
+  if(is.null(ylim)) ylim <- c(0,max(-log10(unlist(pvals))))
+  xlim <- range(unlist(sapply(qqval,'[',1)))
 
-  plot(0,type="l",col="red",main=main,
+  plot(0,type="l",col="red",
        xlab=expression(Expected~~-log[10](italic(p))),
        ylab=expression(Observed~~-log[10](italic(p))),
-       xlim=c(0,1),ylim=ylim)
+       ylim=ylim,xlim=xlim,...)
 
   m <- length(pvals)
-  cols <- select.col(m,coltype,h=h)
+  cols <- select.col(m,coltype,h=h,l=l)
 
   for(i in 1:length(qqval)){
     qvals <- qqval[[i]]
@@ -185,9 +210,11 @@ comp.QQ <- function(
 
   abline(a=0,b=1,col="red",lty=2)
 
-  if(is.null(legnames)) legnames <- names(pvals)
-  if(is.null(legnames)) legnames <- paste("pval",1:length(pvals))
-  legend("topleft",legend = legnames,pch=19,col=cols,bty="n")
+  if(plot_legend){
+    if(is.null(legnames)) legnames <- names(pvals)
+    if(is.null(legnames)) legnames <- paste("pval",1:length(pvals))
+    legend("topleft",legend = legnames,pch=19,col=cols,bty="n")
+  }
 }
 
 # Manhattan plots -------------------------------
@@ -212,11 +239,15 @@ comp.QQ <- function(
 skyplot<-function(
   pval,
   map,
-  col="navyblue",
-  threshold=NULL,
-  ylab=NULL,
+  threshold = NULL,
+  ylab = NULL,
+  xlab = NULL,
   ylim=NULL,
   chrom = NULL,
+  small = NULL,
+  col = NULL,
+  h = NULL,
+  l = NULL,
   ...
 ){
   #In case the markers are not in order
@@ -236,6 +267,7 @@ skyplot<-function(
   new_map <- map_axis(map,space = 0.05*tot_length)
 
   #Calculate a lighter colour of the "col"
+  if(is.null(col)) col <- select.col(1,h = h,l=l)
   lightcol <- lighten(col)
   chrom_col <- sapply(map$chromosome,function(m) which(m == unique(map$chromosome)))
   col <- c(lightcol,col)[chrom_col%%2+1]
@@ -245,10 +277,12 @@ skyplot<-function(
                               ceiling(max(pval,na.rm = T)/10)*10)
 
   if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
+  if(is.null(xlab)) xlab <- "Chromosome"
 
-  plot(new_map$axis,pval,xlab="",
-       ylim=ylim,axes=F,ylab=ylab,
-       pch=19,col=col)
+  plot(new_map$axis,pval,
+       ylim=ylim,axes=F,
+       ylab=ylab,xlab=xlab,
+       pch=19,col=col,...)
 
   #Y axis
   at <- axisTicks(round(ylim),log = F); axis(2,at)
@@ -259,11 +293,13 @@ skyplot<-function(
   ch_pos <- sapply(split(new_map$axis,map$chromosome),range)[,as.character(chrom),drop=F]
   if(is.vector(ch_pos)) ch_pos <- matrix(ch_pos,nrow=2)
   #For each chromosome we draw a "big axis" specifying which chromosome it is
-  if(length(chrom) <= 2) small <- T
-  else small <- F
+  if(is.null(small)){
+    if(length(chrom) <= 2) small <- T
+    else small <- F
+  }
   draw_chrom_axis(ch_pos[1,],ch_pos[2,],chrom,small)
 
-  mtext("Chromosome",1,line = 3)
+
 
   if(!is.null(threshold)) abline(h=threshold,col="red",lwd=1.3,lty=2)
 }
@@ -303,7 +339,7 @@ map_axis <- function(map,space = 0,maxes = NULL){
 #' @description Generates overlapped manhattan plots and adds a legend.
 #' @inheritParams skyplot
 #'
-#' @param pvals list of pvalues to be plotted together.
+#' @param pval list of pvalues to be plotted together.
 #' @param map list of map dataframes. If there is only a data.frame, it will be assumed
 #' that all p-value sets have the same underlying genetic map.
 #' @param coltype Argument to be passed to \code{|link{select.col}}.Either "sequential",
@@ -317,21 +353,29 @@ map_axis <- function(map,space = 0,maxes = NULL){
 #'
 #' @examples
 comp.skyplot<-function(
-  pvals,
+  pval,
   map,
-  coltype="qualitative",
-  h=240,
   threshold=NULL,
   chrom = NULL,
+
   ylim=NULL,
   ylab = NULL,
+  xlab = NULL,
+
+  legnames = NULL,
+
+  coltype=NULL,
+  h = NULL,
+  l = NULL,
   ...
 ){
-  n <- length(pvals)
+  n <- length(pval)
   if(is.data.frame(map)){ map <- lapply(1:n,function(x) map)
   }else{
     if(length(map) != n) stop("The number of maps provided and pvalues does not coincide")
   }
+
+  if(is.matrix(pval)) pval <- mat2list(pval)
 
   #We filter per chromosome
   if(is.null(chrom)){
@@ -349,7 +393,7 @@ comp.skyplot<-function(
            paste(as.character(unique(mp$chromosome)), collapse=", "))}
 
     map[[i]] <- mp[chrom_filter, ]
-    pvals[[i]] <- pvals[[i]][chrom_filter]
+    pval[[i]] <- pval[[i]][chrom_filter]
   }
 
   #First we calculate the maximum positions of each map
@@ -363,11 +407,11 @@ comp.skyplot<-function(
 
 
   #Then, we create the colour palette we are going to use
-  cols <- select.col(n,coltype,h=h)
+  cols <- select.col(n,coltype,h=h,l=50,alpha=0.3)
 
   #then we calculate the maximum pvalue
   if(is.null(ylim)){
-    ylim <- sapply(pvals,function(pv){
+    ylim <- sapply(pval,function(pv){
       c(min(pv,na.rm = T),
         ceiling(max(pv,na.rm = T)/10)*10)
     })
@@ -375,13 +419,14 @@ comp.skyplot<-function(
   }
 
   if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
+  if(is.null(xlab)) xlab <- "Chromosomes"
 
   xlim <- c(0,max(sapply(new_maps,function(x) max(x$axis,na.rm=T))))
 
-  plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = F,xlab="Chromosomes")
+  plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = F,xlab=xlab,...)
 
   for(i in 1:n){
-    pv <- pvals[[i]]
+    pv <- pval[[i]]
     mp <- new_maps[[i]]
     col <- cols[i]
 
@@ -393,9 +438,9 @@ comp.skyplot<-function(
   }
 
   #Plotting the legend
-  leg_names <- names(pvals)
-  if(is.null(leg_names)) leg_names <- paste("pvals",1:n)
-  legend("topright",legend = leg_names,pch=19,col=cols,bty="n")
+  if(is.null(legnames)) legnames <- names(pval)
+  if(is.null(legnames)) legnames <- paste("pval",1:n)
+  legend("topright",legend = legnames,pch=19,col=cols,bty="n")
 
   #Y axis
   at <- axisTicks(round(ylim),log = F); axis(2,at)
@@ -486,12 +531,13 @@ draw_chrom_axis <- function(ch_start,ch_end,chrom,small=F){
 pcoa.plot <- function(
   K,
   comp=c(1,2),
-  legend=T,
+  plot_legend=T,
   col=NULL,
-  coltype="sequential",
-  h=140,
-  add=F,
+  coltype=NULL,
+  h=NULL,
+  l=NULL,
   legpos="topright",
+  legname = NULL,
   ...
 ){
   pc <- prcomp(K)
@@ -502,27 +548,43 @@ pcoa.plot <- function(
     if(length(col) != dim(K)[1]){
       stop("col length and number of individuals do not match")}
     n <- length(unique(col))
-    cols <- select.col(n,coltype=coltype,h=h,c=100)
-    id <- sapply(unique(col),function(i) col==i)
-    cols <- cols[id%*%1:length(cols)]
+    cols <- select.col(n,coltype=coltype,h=h,l=l)
+    id <- sapply(sort(unique(col)),function(i) col == i)
+
+    cols <- cols[id %*% 1:length(cols)]
   }
 
   var.pc <- paste0("PC",1:length(pc$sdev),"  ",
                  round(pc$sdev^2/sum(pc$sdev^2)*100,2),"% variance")
-  if(add){
-    points(pc$rotation[,comp],col=cols,...)
-  }else{
-    plot(pc$rotation[,comp],col=cols,...,
-         xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
-  }
 
-  if(legend){
-    if(length(col)==dim(K)[1]) legend(legpos,legend=unique(col),
-                                      col=unique(cols),bty="n",pch=19)
+  plot(pc$rotation[,comp],col=cols,...,
+         xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
+
+  if(plot_legend){
+    if(length(col)==dim(K)[1]){
+      if(is.null(legname)) legname <- sort(unique(col))
+
+      legend(legpos,legend = legname,
+             col = unique(cols)[order(unique(col))],bty="n",pch=19)
+
+    }
   }
 }
 
 # Boxplots ----------------------------
+
+pheno_box <- function(
+  phe,
+  gen,
+  haplotype = F,
+  ...
+  ){
+  if(haplotype){
+    pheno_haplo(phe,gen,...)
+  }else{
+    pheno_dosage(phe,gen,...)
+  }
+}
 
 #' Phenotype boxplot
 #'
@@ -540,7 +602,15 @@ pcoa.plot <- function(
 #' @inheritParams select.col
 #'
 #' @examples
-pheno_box <- function(phe,gen,coltype="qualitative",h=c(120,240),...){
+pheno_dosage <- function(
+  phe,
+  gen,
+  coltype=NULL,
+  h=NULL,
+  l=NULL,
+  draw.points = T,
+  ...
+  ){
   #Boxplot works the following way:
   #It transforms whatever data you give into a list in which each
   #element is a "box". It will draw as many elements as there are in the list,
@@ -552,16 +622,20 @@ pheno_box <- function(phe,gen,coltype="qualitative",h=c(120,240),...){
   new_boxlist <- boxlist[as.character(box_class)]
   names(new_boxlist) <- box_class
 
-  col <- select.col(length(box_class),coltype = coltype,h = h)
+  col <- select.col(length(box_class),coltype = coltype,h = h,l=l)
 
   boxplot(new_boxlist,
           border = col,
           outline = F,
           ylim=range(phe),...)
-  set.seed(7)
-  points(jitter(gen+1,amount = 0.25)-min(gen),
-         phe,col=col[gen-min(gen)+1],
-         pch=19,cex=0.85)
+
+  if(draw.points){
+    set.seed(7)
+    points(jitter(gen+1,amount = 0.25)-min(gen),
+           phe,col=col[gen-min(gen)+1],
+           pch=19,cex=0.85)
+  }
+
 }
 
 pheno_haplo <- function(
@@ -570,21 +644,23 @@ pheno_haplo <- function(
   ploidy,
   draw.points = T,
   hap.select = NULL,
-  coltype = "qualitative",
-  h = c(120,240),
+  coltype = NULL,
+  h = NULL,
+  l= NULL,
   ...
 ){
 
   #Here we obtain the matrix of dosages per haplotype
-  data <- dosage.X(gen,haplotype = T,ploidy=4)
-  data <- data[,as.character(sort(as.numeric(colnames(data)))),drop=F]
+  data <- dosage.X(gen,haplotype = T,ploidy=ploidy)
+  data <- data[,as.character(colnames(data)),drop=F]
 
   #Filtering
   if(is.null(hap.select)) hap.select <- colnames(data)
   if(!all(as.character(hap.select) %in% colnames(data))){
     not_in <- !as.character(hap.select) %in% colnames(data)
     stop(paste(hap.select[not_in],collapse=" "),
-         " not found in provided haplotypes")
+         " not found in provided haplotypes:\n",
+         paste(unique(gen),collapse = " "))
   }
   data <- data[,as.character(hap.select),drop=F]
 
@@ -593,7 +669,7 @@ pheno_haplo <- function(
   #space should be relative to the number of elements
   nbox_hap <- apply(data,2,function(x) length(unique(x)))
   #Select some colour
-  col <- rep(select.col(n_hap,coltype = coltype,h=h),nbox_hap)
+  col <- rep(select.col(n_hap,coltype = coltype,h=h,l=l),nbox_hap)
   space <- sum(nbox_hap)*0.05
 
   #This function allows us to transform haplotype dosages
@@ -647,7 +723,12 @@ pheno_haplo <- function(
 }
 
 # LD plots ---------------------------
-plot.LD <- function(LD,max_dist = NULL,main=NULL){
+plot.LD <- function(
+  LD,
+  max_dist = NULL,
+  main=NULL
+  ){
+
   if(is.null(max_dist)) max_dist <- attr(LD,"max_dist")
   if(max_dist > attr(LD,"max_dist"))
     stop("Cannot choose a larger max_dist than ",attr(LD,"max_dist"))
@@ -659,7 +740,7 @@ plot.LD <- function(LD,max_dist = NULL,main=NULL){
 
   plot(0,type="n",
        xlab = "cM",ylab = "r2",main = main,
-       xlim = c(0,max_dist),ylim=c(0,0.5))
+       xlim = c(0,max_dist),ylim=c(0,1))
 
   cols <- colorspace::qualitative_hcl(4)
   halflife <- c()
@@ -691,6 +772,136 @@ plot.LD <- function(LD,max_dist = NULL,main=NULL){
          legend=paste(c("50th","80th","90th","95th")," ld1/2=",halflife)
          ,col=cols,bty="n")
 
+}
+
+# Circular plotting ----------------
+
+#' Angular coordinates
+#'
+#' Given a circle, it calculates where in the circumference will a line
+#' at a certain angle cut through the circumference.
+#'
+#' @param angles angles in radians
+#' @param cen numeric, x and y coordinates to locate the center of the circle
+#' @param r numeric, radius of the circle
+#'
+#' @return
+#' @export
+#'
+#' @examples
+angle2coord <- function(angles, cen = c(0,0),r = 1){
+  res <- data.frame(x = cos(angles)*r + cen[1],
+                    y = sin(angles)*r + cen[2])
+  return(res)
+}
+
+#' Colour wheel
+#'
+#' Draws a colour wheel with an indicated resolution
+#'
+#' @param res Number of sections of different colour to draw in the circle
+#' @param cen numeric, x and y coordinates to locate the center of the circle
+#' @param r numeric, radius of the circle
+#' @param l numeric, values of luminance for the colours
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+colour_wheel <- function(res,cen = c(0,0), r = 1,l=NULL,...){
+  col <- select.col(res+1,"qualitative",h=c(0,360),l=l)
+  angles <- seq(0,2*pi,length.out = res + 1)
+  loc <- angle2coord(angles,cen,r)
+
+  lim <- c(-r*1.1+cen[1],r*1.1+cen[2])
+  plot(cen,type="n",axes=F, xlim = lim,ylim = lim,...)
+
+  for(i in 1:res){
+    polygon(x = c(cen[1],loc$x[i],loc$x[i+1]),
+            y = c(cen[2],loc$y[i],loc$y[i+1]),
+            col = col[i],border=NA)
+  }
+}
+
+#' Axis wheel
+#'
+#' Draws axis ticks (not circle)
+#'
+#' @param n resolution of the circle
+#' @param cen numeric, x and y coordinates to locate the center of the circle
+#' @param r numeric, radius of the circle
+#' @param ... other parameters to pass to segments
+#'
+#' @return
+#'
+#' @examples
+axis_wheel <- function(res, cen = c(0,0),r=1,...){
+  angles <- seq(0,2*pi,length.out = res +1)[-(res+1)]
+  loc <- angle2coord(angles,cen,r)
+
+  text(loc*1.2,labels = paste0(angles*360/(2*pi),"º"),xpd = T)
+  ticks <- cbind(loc*1.05,loc*1.1)
+  segments(ticks[,1],ticks[,2],ticks[,3],ticks[,4],...)
+  circle(r = 1.05)
+}
+
+#' Title
+#'
+#' @param cen numeric, x and y coordinates to locate the center of the circle
+#' @param r numeric, radius of the circle
+#' @param res numeric, resolution of the cirlce, over 60 recommended
+#' @param ... other parameters to pass to segment
+#'
+#' @return
+#' @export
+#'
+#' @examples
+circle <- function(cen = c(0,0),r=1,res = 1200,...){
+
+  angles <- seq(0,2*pi,length.out = res + 1)
+  loc <- angle2coord(angles,cen,r)
+
+  segments(loc$x,loc$y,loc$x[c(2:res,1)],loc$y[c(2:res,1)],...)
+}
+
+#' Draws a tick wheel
+#'
+#'
+#' @param n number of ticks
+#' @param cen numeric, x and y coordinates to locate the center of the circle
+#' @param r numeric, radius of the circle
+#'
+#' @return
+#'
+#' @examples
+tick_wheel <- function(n,cen = c(0,0),r=1){
+  angles <- seq(0,2*pi,length.out = n +1)[-1]
+  loc <- angle2coord(angles,cen,r)
+
+  segments(loc$x*1.08,loc$y*1.08,loc$x*1.05,loc$y*1.05)
+}
+
+#' Hue wheel
+#'
+#' Draws the hue wheel of colorspace in order to know what number corresponds to each
+#' colour
+#'
+#' @param l luminance parameter, which can be modified to obtained lighter/darker
+#' colours. Values between 20 and 100 are recommended (above and below
+#' not all colours exist).
+#'
+#' @return
+#' @export
+#'
+#' @examples
+hue_wheel <- function(l = NULL){
+  opar <- par(no.readonly = T)
+  par(mar = c(3,3,3,3))
+  colour_wheel(1200,xlab="",ylab="",main="Hue wheel",l=l)
+  axis_wheel(18)
+  tick_wheel(360)
+  par(opar)
 }
 
 # Miscellaneous ---------------

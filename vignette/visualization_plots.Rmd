@@ -1,0 +1,240 @@
+---
+title: "Visualization functions"
+author: "Alejandro Thérèse Navarro"
+date: "21st October 2019"
+output: html_document
+---
+In this document we show some functionalities of the visualization functions developed within the mpQTL package. In this package there exist multiple graphical outputs that can help explore and understand data and analytical results. These visualizations provided include:
+
+* Quantile-quantile plots (QQ-plots)
+* Manhattan plots (labelled as skyline plots)
+* PCoA plots 
+* Phenotype boxplots based on SNP or haplotype dosage
+* LD decay plots
+
+```{r data_load,echo=F}
+source("../R/viz_fun.R")
+source("../R/mapQTL_fun.R")
+data <- readRDS("../devtest/test_data.RDS")
+map <- data$map
+phe <- data$pheno
+dos <- as.matrix(data$dosage)
+hap <- as.matrix(data$hap)
+pv <- data$result$pheno1$pval
+wald <- data$result$pheno1$wald
+```
+
+
+## Data
+
+The visualization functions are based on different data structures that are also used in the rest of the mpQTL package. In order to introduce these data structures, we will use a sample dataset from a simulated tetraploid population.
+
+*Dosage scores* are represented using a matrix of $markers \times individuals$ so that there are $m$ rows, equal to the number of markers and $n$ columns, equal to the number of individuals. *Haplotype data* is expressed in a similar fashion, with the difference that each each individual is represented by $p$ number of columns, where $p$ is the ploidy. That is, for a tetraploid, each individual has four consecutive columns containing the haplotype type. Haplotypes can be expressed using numeric or character values (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...). All functions have been tested and developed so that missing values in any of the two matrices can be handled without problems.
+```{r gen_tables,echo=F}
+rownames(dos) <- map$marker
+tab <- knitr::kable(dos[1:10,1:8],format = "html",caption = "Dosages of 8 individuals")
+kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
+
+tab <- knitr::kable(hap[1:10,1:8],format = "html",caption = "Haplotypes of 2 individuals")
+kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
+```
+
+With any genotypic data (dosages or haplotypes), an adequate genetic map must be provided. Such map is expressed using a simple `data.frame` that must contain at least three columns, "marker" with a marker name; "chromosome" with the chromosome name or number; and "position", with the genetic position of each marker, preferably in cM (although any unit should work). Most functions will assume that the genetic map and the genotypic data are in the same order, that is, that the marker of the first row of the map is the marker of the first row if the genotypic data. 
+
+Unmapped markers can also be included in this map by indicating that they belong to *chromosome 0*. Importantly, they should be given a position as well, the simplest option is to give the first unmapped marker position 1, the second position 2, and so on. 
+
+```{r map_table,echo=F}
+tab <- knitr::kable(map[1:10,],format = "html",caption = "Genetic map of the first ten markers")
+kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
+```
+
+*Phenotypes* can be expressed either as a numeric vector or a numeric matrix, where each column is a different phenotype. With both formats the phenotypes can be passed to `map.QTL()` to generate the QTL mapping results. There are many outputs in such results, but for the purpose of this tutorial we will focus only on the *p-value vecto*, which contains a p-value score for each marker, again in the same order as the rows of dosages, haplotypes and the genetic map.
+
+Lastly, a visualization function has been included for *distance matrices* (such as the K matrix we will introduce later). These are based on the genotypic data and can be generated through a multitude of methods (euclidean distance, Nei's...). These square matrices assign a numeric value to the "genetic distance" between two individuals for each pair of individuals in the population, and thus are usually symmetric. Within `mpQTL` a single measure has been included, which we will explain later. Any of such distance matrix can be used in the visualization function we will explain below.
+
+## P-value visualization
+
+Visualization of p-values can be performed using two different methods, the QQ-plot and the skyline plot.
+
+#### Quantile-Quantile plot
+Quantile-Quantile plots are useful for determining whether the p-value distribution of a QTL analysis follows the expected distribution. Moreover, they allow us to compare models based on their p-value distribution. When the p-values follow the distribution, they will be around the trend line (in red). Observed significant p-values should have an expected ${-log10(pval) > 1}$, and will deviate from the trend line. If the whole p-value distribution is over or under the red line, we can say that there is inflation or deflation of p-values respectively.
+
+The function `comp.QQ()` can be used to generate QQ-plots of one or multiple vectors of p-values. Each vector of p-values can be given as a column in a matrix or as an element of a list. The number of p-values in each vector will not matter. A single set of p-values can also be provided.
+
+```{r qq_plot}
+pvals <- lapply(1:5,function(i){
+    pnorm(rnorm(100*i,0,3))
+})
+QQ.plot(pvals,
+        main="Example QQ-plot")
+```
+
+A *legend* is automatically added, but can be deactivated using the argument `plot_legend = F`, and the legend names are extracted from the column names or list element names. In case no names are provided, they're labelled as "pval 1", "pval 2", etc. This can also be changed with the argument `legname` and giving a vector of names.
+
+#### Skyline plot
+
+Probably the most relevant plot for QTL mapping is the "Manhattan plot", named as such due to its structure, which can remind of the skyline of of the famous skyscraper district of New York. In this package, we have opted to name the function `skyplot()`, following the visual metaphor. 
+
+A Manhattan plot visualizes the $-log10(pval)$ values distributed at genetic distances. Thus, the regions with higher significance (and lower pvalues) are displayed as peaks in the plot. To generate the visualization two sets of data must be provided.The `skyplot()` function has the following arguments:
+
+* `pval`: vector of pvalues. Importantly, the -log10(pval) must be performed by the user. This has been done on purpose, as we might want to plot other kind of score values with this function that do not require the -log10 transformation.
+* `map`: a genetic map data.frame with at least columns "position" and "chromosome"
+* `threshold`: numeric, optional value to draw a threshold line
+* `chrom`: numeric or character vector. If provided, it is used to select the p-values based on the "chromosome" column of map.
+* `small`: logical, should the cM scale be drawn? By default it will only be drawn if only two or a single chromosome are plotted, otherwise it is too crowded and barely legible.
+* `...`: other parameters can be passed to the `plot()` function. The most relevant are probably `main` for the title, `ylab` for the label on the y axis and `xlab` for the label of the x axis.
+
+```{r skyplot}
+#Just a skyline plot
+skyplot(-log10(pv),map = map,main="Example Skyline plot")
+
+#We want to focus on chromosome 1
+skyplot(-log10(pv),map,chrom = 1,main ="Skyline lot of chromosome 1",threshold = 3.6)
+
+#The "chromosomes" can also be expressed as characters
+map_letters <- map
+map_letters$chromosome <- LETTERS[map_letters$chromosome + 1]
+skyplot(-log10(pv),map_letters,main="Skyline plot where chromosomes are characters",
+        chrom = c("A","C","E"),small = T)
+
+```
+ 
+For our research, we wanted to compare the skyline plots of multiple models, namely the haplotype-based and dosage-based models. For that reason, another skyline plot function was developed: `comp.skplot()`. The function is used in a very similar fashion, with two main differences:
+
+* `pval`: each p-value vector must be provided as a column in a matrix or a vector in a list. 
+* `map`: a map must be provided for each set of p-values. If a single map is provided, it will be assumed that all p-value vectors correspond to the same map. For the moment, we have not tested what happens if each map has a different set of chromosomes (i.e. map1 has chromosomes 1, 2 and 3 and map2 has chromosomes 1, 2 and 4), that might cause conflicts.
+* `chrom`: similarly, we have not tested what would happen if chromosomes are selected that are present only in one of the two maps. This will be looked into.
+* `legnames`: a vector of names for the legend elements. If not provided, it will be read from the pvalue list, and if the list has no names, it will be simply labelled pval 1, pval 2, etc.
+
+```{r comp_skyplot}
+pv2 <- data$result2$pheno1$pval
+
+comp.skyplot(list(-log10(pv),-log10(pv2)),map,main = "Comparison of two p-value distributions")
+```
+
+## Principal Coordinate plots
+
+In order to visualize the genetic structure in a population dosages (or haplotypes) can be used to create genetic distance matrices. Since these matrices have many dimensions (as many as individuals) it is hard to visualize them directly. For that reason, Principal Coordinate Plots can be used. PCoA plots are very similar to PCA plots, with the difference being that PCA plots *always use correlation matrices* as the basis for the plot, while the PCoA method is more general and allows for any type of distance matrix. In any case, their interpretation is very similar: those points that appear closer are more similar, and those that appear further away are more different. 
+
+In the `mpQTL` package we have included a function named `calc.K()` which produces a similarity matrix of individuals. For a PCoA analysis, a similarity or distance matrix are equivalent, and will provide very similar results (as we will see). We can use the result of `calc.K()` and provide it to the function `pcoa.plot()` to generate our visualization. Other distance measures are implemented in R through the function `dist()`, which includes multiple methods. We will also see how to use this function with `pcoa.plot()`. The arguments of `pcoa.plot()` include:
+
+* `K`: any distance matrix
+* `comp`: numeric vector of length 2. The components that are to be used for plotting. A PCoA generates as many components as dimensions had the original distance matrix. They are ordered by their explanatory value (components 1 and 2 will always be the most explanatory). The amount of explained variance of each is always present in the `xlab` and `ylab` of the plot.
+* `col`: unlike in most functions, in this case the parameter `col` is expected to be a vector with values (categorical or numeric) that will be used to plot colours upon the scatter plot. For instance, if 5 observations are provided, one can provide a col vector that defines to which population each individual belongs (e.g. c("pop1","pop1","pop2","pop2","pop3")) in which case three colours will be chosen and applied to the points. If a numerical variable is used, a similar process will be followed, obtaining a gradient of colour for the variable. 
+* `plot_legend`: logical, whether the legend should be plotted.
+* `legpos`: character vector similar to `x` argument in the `legend()` function. The location is specified by setting `x` to a single keyword from the list "bottomright", "bottom", "bottomleft", "left", "topleft", "top", "topright", "right" and "center".
+* `legname`: the legend names for the colours chosen, automatically taken from `col` if not specified.
+
+```{r pcoa}
+K <- calc.K(t(dos))
+
+#We must transform the result of dist into a matrix to use it with pcoa.plot()
+euc <- as.matrix(dist(t(dos),method = "euclidean"))
+
+pop <- c(rep("parents",10),rep("AxA",150),rep("AxB",150),rep("AxC",150))
+
+pcoa.plot(K,col = pop,legpos = "topright",
+          pch=19,main="PCoA plot of K (similarity)")
+
+pcoa.plot(1-K,col = pop,legpos = "bottomleft",
+          pch=19,main="PCoA plot of 1-K (distance)")
+
+pcoa.plot(euc,col = pop,legpos = "bottomleft",
+          pch=19,main="PCoA plot of Euclidean distance")
+
+#If we want to, we can choose different components of the PCoA, for instance the
+#second and third
+pcoa.plot(K,col = pop,legpos = "bottomright",comp = c(2,3),
+          pch=19,main="PCoA plot of K (similarity)")
+```
+
+## Phenotype boxplot
+
+It is useful to correlate the dosage of a single marker with the value of a phenotype, as sometimes that can reveal "dosage effects", as was seen for instance in the work of Giorgio Tumino and petal number in rose with the locus ... In order to simplify the process of generating such boxplots, we have created a wrapper that generates these boxplots using dosages, or even using haplotypes, let us see how. 
+
+There is a single function, `pheno_box()` that can use two different methods, either for dosages or for haplotypes, by changing the parameter `haplotype` (False by default). Some parameters behave identically no matter what the value of `haplotype` is:
+
+* `phe`: is a numerical vector of phenotypes
+* `draw.points`: is a logical that indicates whether points should be drawn.
+* `...`: further arguments to be passed to `plot()`
+
+When `haplotype = F`, that is, for dosages:
+
+* `gen`: is a numeric vector of dosages with a single observation per individual. 
+
+When `haplotype = T`, that is, for haplotypes:
+
+* `gen`: is a vector with $p$ numeric/character observations per individual where $p$ is the ploidy, and each observation is a haplotype class (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...)
+* `ploidy`: is an integer indicating the ploidy
+* `hap.select`: is a vector of numeric/character indicating which haplotypes should be plotted.
+
+```{r phe_box}
+pheno_box(phe,unlist(dos[4,]),xlab="Dosage",ylab="phenotype",main="A boxplot of dosages")
+
+#But now there are too many things plotted and I can't see anything
+pheno_box(phe,unlist(hap[4,]),haplotype = T,ploidy = 4,
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages")
+
+#This is better but still too many boxes
+pheno_box(phe,unlist(hap[4,]),haplotype = T,ploidy = 4,draw.points = F,
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages (no points)")
+
+#This is better
+pheno_box(phe,unlist(hap[4,]),haplotype = T,ploidy = 4, hap.select = c(5,15,69,108),
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of some haplotype dosages")
+```
+
+## LD decay plots
+
+LD decay is a measure of how linked markers are within a population. 
+
+```{r ld_decay}
+LD <- LD_decay(
+  dos,
+  map,
+  win_size = 0.5,
+  max_dist = 50,
+  per_chr = F)
+
+plot(LD)
+
+LD <- LD_decay(
+  dos,
+  map,
+  win_size = 0.5,
+  max_dist = 50,
+  per_chr = T)
+
+for(ld in LD){
+  plot(ld,max_dist = 50)
+}
+
+```
+
+## Colour choice
+
+The colour system of the visualization functions in the mpQTL package is a bit different than the default methods that most R plots include. To perform colour choice we use the package `colorspace`, which uses the HCL (hue, color tone; chrome, coloyr intensity; and luminance, colour lightness) system to define colour. This package has been designed with data visualization in mind and offers great functionalities for intelligent and effective colour choice. If you are interested, I highly recommend visiting their [web page](http://colorspace.r-forge.r-project.org/), where they explain the package and many important concepts of colour theory and design. 
+
+For our purposes, there are two main types of colour palettes we can make: **qualitative** or **sequential**. The first type of palette chooses different *hues* of colour (red, green, blue...) while the second one chooses different *luminances* (from dark to light) of the same hue. Additionally, **divergent** colour palettes can be used, which set middle values to white and extreme values to two opposing hues, allowing us to highlight extreme values. Which palette type whe choose will depend on the data we try to visualize:
+
+* In *categorical variables* all categories are of equal importance, and thus a *qualitative* palette will be most useful. However, if there are more than 7 categories, it is advised to avoid qualitative palettes with many hues and instead use *sequential* palettes, since with 8 or more colours it is hard to keep track of all categories and distinguish all hues.
+
+* With *numerical variables* that are ordered, *sequential* palettes, are the most useful. Our eyes will instinctively give the most importance to the darker colours, and thus these palettes are useful to highlight very high or very low values. Also, when there are many categories, sequential palettes can be used to avoid having many colours. If we are using values that can be very negative or very positive (like temperatures), *divergent* palettes might be the most useful.
+
+There are other types of palettes that can be useful, but we will not discuss them here. 
+
+#### Colour parameters
+
+In all plotting functions, two extra parameters can be chosen: 
+
+* `coltype`: standing for colour palette type, we can choose between "sequential", "qualitative", "divergent" or "rainbow". 
+* `h`: one or two numerical values, standing for hue. The values are degrees within the colour wheel, and thus values between 0 and 360 are recommended, where 0 and 360 are the same. For a colour reference you can use `hue_wheel()` which produces the plot below.
+* `l`: one (for qualitative) or two (for sequential) numerical values. This controls the lightness of the colours, by default set to 60. Values should be between 20 and 100, below or above the results will be unexpected.
+```{r hue_wheel,echo=F,fig.height=7,fig.width=7}
+hue_wheel()
+```
+
+With this system, changing the colours of any plot is pretty straight-forward. You can specify a different pair of values for `h`, to create a gradient between these two colours (in qualitative palettes) or a single `h` for sequential palettes. To switch between sequential and qualitative palettes simply change the `coltype` parameter. If you would like a stronger light-dark contrast in sequential palettes, choose more extreme `l` values, `c(20,90)` by default, or if you would like less contrast, choose closer values. For qualitative palettes, you can use this parameter to obtain lighter, or darker colours. 
+
+As a final note, since the colours are expressed in degrees, 0, 360, 720 and 1080 all refer to the same hue: red. If you set a qualitative gradient between 0 and 10, the palette will start at red and end at a very similar red (so all colours will be very similar). If, instead, you give 0 and 370 as the `h` value, the colours will start and end at these reds, but going through the whole colour wheel, giving a sort-of rainbow palette. 
+
