@@ -316,7 +316,7 @@ map.QTL<-function(
 
       ## mantain the usual output structure in case of error
       if (class(solveout) == "try-error") {
-        write(solveout, file="mm.solve_errors.txt", append = T)
+        write(solveout, file="lm_compare_errors.txt", append = T)
         solveout <- list(list(
           beta = NA,
           Fstat = NA,
@@ -1170,11 +1170,29 @@ thr.LiJi <- function(m,
   return(list(threshold=alpha.adj, Meff=Meff))
 }
 
-LD_decay <- function(dos,map,win_size = 0.1,max_dist = NULL,per_chr = F){
+LD_decay <- function(
+  dos,
+  map,
+  win_size = 0.1,
+  max_dist = NULL,
+  per_chr = F
+  ){
 
   #First we split dosages per chromosome and calculate correlations
   #only within chromosomes
-  dos_per_chr <- split(dos,map$chromosome)
+  non_segregant <- apply(dos,1,function(d) length(unique(d)) == 1)
+  dos <- dos[!non_segregant,]
+  map <- map[!non_segregant,]
+
+  dos_per_chr <- split(1:nrow(dos),map$chromosome)
+  dos_per_chr <- lapply(dos_per_chr,function(x) dos[x,])
+
+  if(as.character(0) %in% names(dos_per_chr)){
+    non <- which(names(dos_per_chr) == as.character(0))
+    dos_per_chr <- dos_per_chr[-non]
+    map <- map[map$chromosome != 0,]
+  }
+
   LD <- lapply(dos_per_chr,function(g){
     ld <- cor(t(g))
     not_dup <- lower.tri(ld,diag=F)
@@ -1195,12 +1213,12 @@ LD_decay <- function(dos,map,win_size = 0.1,max_dist = NULL,per_chr = F){
     LD <- do.call(c,LD)
     dis <- do.call(c,dis)
 
-    if(is.null(max_dist)) max_dist <- max(dis)
+    if(is.null(max_dist)) max_dist <- max(dis,na.rm=T)
 
     windows <- seq(0,max_dist,win_size)
     ld_estimates <- t(sapply(seq_along(windows),function(w){
       sel <- dis >= windows[w] & dis < windows[w] + win_size
-      return(quantile(LD[sel],c(0.5,0.8,0.9,0.95)))
+      return(quantile(LD[sel],c(0.5,0.8,0.9,0.95),na.rm = T))
     }))
 
     #We calculate the background correlation between chromosomes
@@ -1208,24 +1226,24 @@ LD_decay <- function(dos,map,win_size = 0.1,max_dist = NULL,per_chr = F){
     dos_sample <- do.call(rbind,dos_sample)
     back_ld <- cor(t(dos_sample))^2
     back_ld <- back_ld[lower.tri(back_ld,diag=F)]
-    back_ld <- quantile(back_ld,c(0.5,0.8,0.9,0.95))
+    back_ld <- quantile(back_ld,c(0.5,0.8,0.9,0.95),na.rm = T)
 
     #We add some extra features
     res <- list(LD = data.frame(ld_estimates,
                                 distance = windows),
                 background = back_ld)
-    attr(res,"max_dist") <- max(dis,na.rm=T)
+    attr(res,"max_dist") <- max_dist
     attr(res,"class") <- c("LD","list")
 
   }else{
-    res <- lapply(1:length(unique(map$chromosome)),function(i){
+    res <- lapply(1:length(dos_per_chr),function(i){
       ld <- LD[[i]]
       d <- dis[[i]]
 
       windows <- seq(0,max(d,na.rm=T),win_size)
       ld_estimates <- t(sapply(seq_along(windows),function(w){
         sel <- d > windows[w] & d < windows[w] + win_size
-        return(quantile(ld[sel],c(0.5,0.8,0.9,0.95)))
+        return(quantile(ld[sel],c(0.5,0.8,0.9,0.95),na.rm=T))
       }))
 
       back_ld <- quantile(ld[d > max(d,na.rm=T)*0.9],c(0.5,0.8,0.9,0.95))
@@ -1235,9 +1253,10 @@ LD_decay <- function(dos,map,win_size = 0.1,max_dist = NULL,per_chr = F){
                   background = back_ld)
       attr(res,"max_dist") <- max(d,na.rm=T)
       attr(res,"class") <- c("LD","list")
+
       return(res)
     })
-
+    names(res) <- names(LD)
   }
 
   return(res)
