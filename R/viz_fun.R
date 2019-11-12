@@ -91,7 +91,7 @@ select.col <- function(
   if(all(is.null(h))){
     if(coltype == "qualitative"){
       if(n < 7){
-        h <- c(0,360)
+        h <- c(140,500)
         extra <- T}
       else h <- c(120,240)
     }
@@ -248,6 +248,7 @@ skyplot<-function(
   col = NULL,
   h = NULL,
   l = NULL,
+  pch = NULL,
   ...
 ){
   #In case the markers are not in order
@@ -279,10 +280,11 @@ skyplot<-function(
   if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
   if(is.null(xlab)) xlab <- "Chromosome"
 
+  if(is.null(pch)) pch <- 19
   plot(new_map$axis,pval,
        ylim=ylim,axes=F,
        ylab=ylab,xlab=xlab,
-       pch=19,col=col,...)
+       pch=pch,col=col,...)
 
   #Y axis
   at <- axisTicks(round(ylim),log = F); axis(2,at)
@@ -357,16 +359,14 @@ comp.skyplot<-function(
   map,
   threshold=NULL,
   chrom = NULL,
-
   ylim=NULL,
   ylab = NULL,
   xlab = NULL,
-
   legnames = NULL,
-
   coltype=NULL,
   h = NULL,
   l = NULL,
+  pch = NULL,
   ...
 ){
   n <- length(pval)
@@ -425,6 +425,7 @@ comp.skyplot<-function(
 
   plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = F,xlab=xlab,...)
 
+  if(is.null(pch)) pch <- 19
   for(i in 1:n){
     pv <- pval[[i]]
     mp <- new_maps[[i]]
@@ -545,7 +546,7 @@ pcoa.plot <- function(
   if(is.null(col)){
     cols <- "black"
   }else{
-    if(length(col) != dim(K)[1]){
+    if(length(col) != ncol(K)){
       stop("col length and number of individuals do not match")}
     n <- length(unique(col))
     cols <- select.col(n,coltype=coltype,h=h,l=l)
@@ -561,7 +562,7 @@ pcoa.plot <- function(
          xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
 
   if(plot_legend){
-    if(length(col)==dim(K)[1]){
+    if(length(col)== ncol(K)){
       if(is.null(legname)) legname <- sort(unique(col))
 
       legend(legpos,legend = legname,
@@ -769,7 +770,7 @@ plot.LD <- function(
 
   }
   legend("topright",pch=19,
-         legend=paste(c("50th","80th","90th","95th")," ld1/2=",halflife)
+         legend=paste(names(LD$background)," ld1/2=",halflife)
          ,col=cols,bty="n")
 
 }
@@ -898,7 +899,9 @@ tick_wheel <- function(n,cen = c(0,0),r=1){
 hue_wheel <- function(l = NULL){
   opar <- par(no.readonly = T)
   par(mar = c(3,3,3,3))
-  colour_wheel(1200,xlab="",ylab="",main="Hue wheel",l=l)
+  if(is.null(l)) l<-60
+  main <- paste("Hue wheel l =",l)
+  colour_wheel(1200,xlab="",ylab="",main=main,l=l)
   axis_wheel(18)
   tick_wheel(360)
   par(opar)

@@ -1175,7 +1175,8 @@ LD_decay <- function(
   map,
   win_size = 0.1,
   max_dist = NULL,
-  per_chr = F
+  per_chr = F,
+  percentile = c(0.5,0.8,0.9,0.95)
   ){
 
   #First we split dosages per chromosome and calculate correlations
@@ -1218,7 +1219,7 @@ LD_decay <- function(
     windows <- seq(0,max_dist,win_size)
     ld_estimates <- t(sapply(seq_along(windows),function(w){
       sel <- dis >= windows[w] & dis < windows[w] + win_size
-      return(quantile(LD[sel],c(0.5,0.8,0.9,0.95),na.rm = T))
+      return(quantile(LD[sel],percentile,na.rm = T))
     }))
 
     #We calculate the background correlation between chromosomes
@@ -1226,7 +1227,7 @@ LD_decay <- function(
     dos_sample <- do.call(rbind,dos_sample)
     back_ld <- cor(t(dos_sample))^2
     back_ld <- back_ld[lower.tri(back_ld,diag=F)]
-    back_ld <- quantile(back_ld,c(0.5,0.8,0.9,0.95),na.rm = T)
+    back_ld <- quantile(back_ld,percentile,na.rm = T)
 
     #We add some extra features
     res <- list(LD = data.frame(ld_estimates,
@@ -1243,10 +1244,10 @@ LD_decay <- function(
       windows <- seq(0,max(d,na.rm=T),win_size)
       ld_estimates <- t(sapply(seq_along(windows),function(w){
         sel <- d > windows[w] & d < windows[w] + win_size
-        return(quantile(ld[sel],c(0.5,0.8,0.9,0.95),na.rm=T))
+        return(quantile(ld[sel],percentile,na.rm=T))
       }))
 
-      back_ld <- quantile(ld[d > max(d,na.rm=T)*0.9],c(0.5,0.8,0.9,0.95))
+      back_ld <- quantile(ld[d > max(d,na.rm=T)*0.9],percentile)
 
       #We add some extra features
       res <- list(LD = data.frame(ld_estimates,distance = windows),
