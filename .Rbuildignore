@@ -1,8 +1,8 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^\R\haplo_fun.R$
-^\R\pedsim_fun.R$
-^\R\pheno_fun.R$
-^\test\*$
-^\reserach\*$
-
+^R/haplo_fun\.R$
+^R/pedsim_fun\.R$
+^R/pheno_fun\.R$
+^devtest$
+^research$
+^data$
