@@ -18,4 +18,5 @@ devtest/devdatasets/
 *.RDS
 *.rds
 *.rda
+*test.R
 #Exceptions
