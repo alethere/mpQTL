@@ -289,10 +289,10 @@ map.QTL<-function(
     #First set up cluster
 
     cluster <- parallel::makeCluster(no_cores)
-    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare") #gt
+    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo") #gt
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
-      cat("Linear model will be used")
+      cat("Linear model will be used.\n")
     }else{
       # export<-c("phenotypes","genotypes","dosage.X","Q")
       cat("Linear model with Q correction will be used.\n")
@@ -306,19 +306,19 @@ map.QTL<-function(
 
     #Testing
     result <- parallel::parLapply(cluster,1:nrow(genotypes),function(k){
-      X <- dosage.X(genotypes[k,],ploidy = 4,haplotype = F,normalize = F)
-
+      X <- dosage.X(genotypes[k,],ploidy = 4,haplotype = haplo,normalize = F)
+      if(haplo) X <- X[,-ncol(X)]
       #We create the naive and full matrices. The naive
       #model only includes Q, C and an intercept
       N <- cbind(matrix(1,nrow=nrow(X)),Q,C) #naive model
       X <- cbind(1,Q,C,X) #total model
-      solveout <- try(lm_compare(X,N,y),silent = T)
+      solveout <- try(lm_compare(X,N,phenotypes),silent = T)
 
       ## mantain the usual output structure in case of error
       if (class(solveout) == "try-error") {
         write(solveout, file="lm_compare_errors.txt", append = T)
         solveout <- list(list(
-          beta = NA,
+          beta = matrix(NA),
           Fstat = NA,
           pval = NA,
           se = NA
@@ -333,6 +333,7 @@ map.QTL<-function(
 
     #Reformatting of results so that they fit standard output
     result <- lapply(1:ncol(phenotypes),function(w){
+
       res <- lapply(result,function(r) lapply(r,function(e){
         if(is.matrix(e)) return(e[,w])
         return(e[w])
@@ -340,7 +341,7 @@ map.QTL<-function(
 
       res <- do.call(mapply,c(list,res))
       res <- as.list(as.data.frame(res))
-      for(r in 2:length(res)) res[[r]] <- do.call(c,res[[r]])
+      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
       return(res)
     })
@@ -350,7 +351,6 @@ map.QTL<-function(
     }else{
       names(result) <- paste0("pheno",1:ncol(phenotypes))
     }
-    return(result)
 
   }else{ #Ergo, K must be defined, we must use Mixed Models
 
@@ -450,9 +450,10 @@ map.QTL<-function(
       res<-as.list(as.data.frame(res))
       #All columns are turned into vectors except the beta column
 
-      for(r in 2:length(res)) res[[r]] <- do.call(c,res[[r]])
+      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
-
+      res$residual <- split(res$residual,rep(1:nrow(genotypes),each=length(phenotypes)))
+      names(res$residual) <- markers
       ## for permuted phenotypes store the minimum pvalue only
       if (w > npheno) {
         res <- min(res$pval, na.rm = T)
@@ -470,10 +471,12 @@ map.QTL<-function(
   }else{
     names(result) <- paste0("pheno",1:ncol(phenotypes))
   }
+
+
   cat("Association completed.\n")
 
-
   if (!is.null(permutation)) {
+    cat("Permutation threshold will now be calculated.\n")
     minpval <- sapply(result[(npheno+1):length(result)], function(x) x)
     minpvalMat <- matrix(minpval, ncol = npheno, byrow = T)
     maxlogpvalMat <- -log10(minpvalMat)
@@ -494,7 +497,7 @@ map.QTL<-function(
   }
 
   return(result)
-  }
+}
 
 
 # Calculation functions -------------------
