@@ -855,7 +855,7 @@ axis_wheel <- function(res, cen = c(0,0),r=1,...){
   angles <- seq(0,2*pi,length.out = res +1)[-(res+1)]
   loc <- angle2coord(angles,cen,r)
 
-  text(loc*1.2,labels = paste0(angles*360/(2*pi),"º"),xpd = T)
+  text(loc*1.2,labels = paste0(angles*360/(2*pi),"deg"),xpd = T) # something wrong with the symbol for degree, when building the3 package
   ticks <- cbind(loc*1.05,loc*1.1)
   segments(ticks[,1],ticks[,2],ticks[,3],ticks[,4],...)
   circle(r = 1.05)
