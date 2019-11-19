@@ -88,6 +88,7 @@ select.col <- function(
 
   extra <- F
   if(is.null(coltype)) coltype <- "qualitative"
+
   if(all(is.null(h))){
     if(coltype == "qualitative"){
       if(n < 7){
@@ -101,6 +102,7 @@ select.col <- function(
     if(coltype == "divergent") h <- c(240,20)
   }
 
+  if(length(h) >1) if(h[1] == abs(h[2]-360)) extra <- T
 
   if(all(is.null(l))){
     if(coltype == "qualitative") l <- 60
@@ -539,6 +541,7 @@ pcoa.plot <- function(
   l=NULL,
   legpos="topright",
   legname = NULL,
+  pch=19,
   ...
 ){
   pc <- prcomp(K)
@@ -558,15 +561,26 @@ pcoa.plot <- function(
   var.pc <- paste0("PC",1:length(pc$sdev),"  ",
                  round(pc$sdev^2/sum(pc$sdev^2)*100,2),"% variance")
 
-  plot(pc$rotation[,comp],col=cols,...,
+  if(length(pch) == 1){
+    pch <- rep(pch,ncol(K))
+  }else{
+    pch <- rep(pch,ncol(id))
+    pch <- pch[id %*% 1:ncol(id)]
+  }
+
+  plot(pc$rotation[,comp],col=cols,pch=pch,...,
          xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
 
   if(plot_legend){
     if(length(col)== ncol(K)){
       if(is.null(legname)) legname <- sort(unique(col))
 
-      legend(legpos,legend = legname,
-             col = unique(cols)[order(unique(col))],bty="n",pch=19)
+      pch_1 <- pch[!duplicated(col)][order(unique(col))]
+
+      legend(legpos,
+             legend = legname,
+             col = unique(cols)[order(unique(col))],bty="n",
+             pch = pch_1)
 
     }
   }
@@ -632,7 +646,7 @@ pheno_dosage <- function(
 
   if(draw.points){
     set.seed(7)
-    points(jitter(gen+1,amount = 0.25)-min(gen),
+    points(jitter(unlist(gen)+1,amount = 0.25)-min(gen),
            phe,col=col[gen-min(gen)+1],
            pch=19,cex=0.85)
   }

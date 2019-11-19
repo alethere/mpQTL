@@ -1,7 +1,7 @@
 #Creating a sample dataset for mpQTL package
 
 
-map<-data.table::fread("PedigreeSim/Potato.map")
+map <- data.table::fread("PedigreeSim/Potato.map")
 less.markers<-map$chromosome==1|map$chromosome==2
 
 dosage<-data.table::fread("../mpQTL/PedigreeSIM/NAM_crosses/3_ancestral/cross200_alleledose.dat")
@@ -58,17 +58,17 @@ cofactors<-cbind(
 #5% of missing markers
 genotype<-geno
 na.matrix<-function(dosage,genotype,miss=0.05,ploidy=4){
-  
+
   #How many markers should be missing?
   reps<-round(length(dosage)*miss)
-  
+
   d<-dim(dosage)
   miss.geno<-genotype
   miss.dosage<-dosage
   missAB<-c()
-  
+
   for(i in 1:reps){
-    
+
     repeat{
       A<-sample(1:d[1],1)
       B<-sample(1:d[2],1)
@@ -76,12 +76,12 @@ na.matrix<-function(dosage,genotype,miss=0.05,ploidy=4){
       if(!AB%in%missAB) break
     }
     missAB[i]<-AB
-    
+
     miss.dosage[A,B]<-NA
     anc.B<-(B*ploidy-(ploidy-1)):(B*ploidy)
     miss.geno[A,anc.B]<-NA
   }
-  
+
   return(list(na.geno=miss.geno,
               na.dosage=miss.dosage))
 }

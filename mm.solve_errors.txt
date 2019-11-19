@@ -199,3 +199,123 @@ Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y wa
 Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
   argumento tiene longitud cero
 
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 4.11404e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 6.31373e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 8.58566e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 2.44988e-18
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 2.59959e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 4.042e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 4.042e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 6.07755e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 1.32241e-16
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 1.44689e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 1.44689e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 2.4033e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 7.06824e-18
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 3.2265e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 3.2265e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 2.40679e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 2.20558e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 3.87142e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 3.87142e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
