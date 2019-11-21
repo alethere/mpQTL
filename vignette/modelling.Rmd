@@ -3,7 +3,7 @@ title: "Modelling with mpQTL"
 author: "Alejandro Thérèse Navarro"
 output: 
   html_document:
-    theme: journal
+    theme: lumen
     toc: true
     number_sections: true
     toc_float:
@@ -14,13 +14,13 @@ output:
 ```{r data_load,echo=F}
 source("../R/viz_fun.R")
 source("../R/mapQTL_fun.R")
-data <- readRDS("../devtest/test_data.RDS")
+data <- readRDS("workshop_data.RDS")
 map <- data$map
 phe <- data$pheno
 dos <- as.matrix(data$dosage)
-hap <- as.matrix(data$hap)
-pv <- data$result$pheno1$pval
-wald <- data$result$pheno1$wald
+hap <- as.matrix(data$founder)
+pv <- data$result[[1]]$pval
+wald <- data$result[[1]]$wald
 ```
 
 
@@ -111,8 +111,8 @@ result <- map.QTL(phenotypes = phe,
         ploidy = 4,
         map = map)
 
-str(result,max.level = 2)
-str(result$pheno1$beta[1:10])
+str(result[1:3],max.level = 2)
+str(result[[1]]$beta[1:10])
 ```
 
 The results are provided in form of a nested list. Firstly, there is an element for each phenotype, and within a phenotype, we find a list with the following elements:
@@ -143,7 +143,7 @@ The best method to correct for structure using a linear model is to apply the $Q
 To add fixed effects, one can add a vector that identifies the group to which each individual belongs. This will automatically create a set of fixed effects for each population level.
 
 ```{r}
-pop <- c(rep("parents",10),rep(paste0("C",1:9),each=50))
+pop <- substr(rownames(phe),1,2)
 
 result <- map.QTL(phenotypes = phe,
         genotypes = dos,
@@ -155,7 +155,16 @@ result <- map.QTL(phenotypes = phe,
 
 Note that the fixed effects provided for $Q$ are
 
-However, sometimes it's not simple to decide to which population an individual belongs. An alternative method is to use the Kinship matrix and PCoA to obtain a set of factors to identify individuals. This way, an automated set of fixed factors is defined. By 
+However, sometimes it's not simple to decide to which population an individual belongs. An alternative method is to use the Kinship matrix and PCoA to obtain a set of factors to identify individuals. This way, an automated set of fixed factors based on the genetic structure is defined. We can activate this behaviour by setting `Q = T`. We can choose the number of fixed factors to use with the parameter `Qpco`, which defaults to 2.
+
+```{r}
+result <- map.QTL(phenotypes = phe,
+        genotypes = dos,
+        ploidy = 4,
+        map = map,
+        Q = T)
+```
+
 
 ## Mixed model
 

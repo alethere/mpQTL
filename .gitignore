@@ -6,6 +6,7 @@
 .Ruserdata
 #Files
 PedigreeSim.7z
+PedigreeSim.jar
 #Folders
 research/PedigreeSim/
 research/Plots/
@@ -20,3 +21,4 @@ devtest/devdatasets/
 *.rda
 *test.R
 #Exceptions
+!vignette/workshop_data.RDS

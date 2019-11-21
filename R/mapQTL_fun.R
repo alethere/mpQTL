@@ -334,6 +334,7 @@ map.QTL<-function(
     #Reformatting of results so that they fit standard output
     result <- lapply(1:ncol(phenotypes),function(w){
 
+      #Separates results from each phenotype
       res <- lapply(result,function(r) lapply(r,function(e){
         if(is.matrix(e)) return(e[,w])
         return(e[w])
@@ -341,7 +342,7 @@ map.QTL<-function(
 
       res <- do.call(mapply,c(list,res))
       res <- as.list(as.data.frame(res))
-      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
+      for(r in 2:length(res)) res[[r]] <- as.vector(res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
       return(res)
     })
@@ -386,7 +387,7 @@ map.QTL<-function(
     cl<-parallel::makeCluster(no_cores)
     #atn: added object ploidy
     export<-c("phenotypes","Z","K","Hinv","genotypes","ploidy","haplo","npheno",
-              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec") #gt
+              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec","w") #gt
 
     #extra functions need to be exproted
     #if we don't want to use P3D approximation
