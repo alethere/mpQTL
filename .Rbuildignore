@@ -3,6 +3,7 @@
 ^R/haplo_fun\.R$
 ^R/pedsim_fun\.R$
 ^R/pheno_fun\.R$
+^R/Sample_dataset\.R$
 ^devtest$
 ^research$
 ^data$

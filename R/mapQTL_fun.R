@@ -100,7 +100,7 @@ map.QTL<-function(
   no_cores=parallel::detectCores()-1,
   approximate = T,
   permutation = NULL, #permutation strategy: "pop" or "fam"
-  nperm = NULL, #number of permutations
+  nperm = 1000, #number of permutations
   alpha = 0.95,
   impute=T,
   k=20,
@@ -265,6 +265,7 @@ map.QTL<-function(
   # Prepare permuted phenotypes ------------------------
   npheno <- ncol(phenotypes)
   if (!is.null(permutation)) {
+    if (is.null(nperm)) stop("nperm is NULL. Provide the number of permutations.")
     nind <- nrow(phenotypes)   #number of individuals
     if (permutation=="pop") { #permutation over the whole population
       permid <- cbind(1:nind,
@@ -292,7 +293,7 @@ map.QTL<-function(
     export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare") #gt
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
-      cat("Linear model will be used")
+      cat("Linear model will be used.\n")
     }else{
       # export<-c("phenotypes","genotypes","dosage.X","Q")
       cat("Linear model with Q correction will be used.\n")
@@ -312,17 +313,17 @@ map.QTL<-function(
       #model only includes Q, C and an intercept
       N <- cbind(matrix(1,nrow=nrow(X)),Q,C) #naive model
       X <- cbind(1,Q,C,X) #total model
-      solveout <- try(lm_compare(X,N,y),silent = T)
+      solveout <- try(lm_compare(X,N,y="phenotypes"),silent = T)
 
       ## mantain the usual output structure in case of error
       if (class(solveout) == "try-error") {
         write(solveout, file="lm_compare_errors.txt", append = T)
-        solveout <- list(list(
-          beta = NA,
+        solveout <- list(
+          beta = matrix(NA),
           Fstat = NA,
           pval = NA,
           se = NA
-        ))
+        )
       }
 
       return(solveout)
@@ -342,15 +343,13 @@ map.QTL<-function(
       res <- as.list(as.data.frame(res))
       for(r in 2:length(res)) res[[r]] <- do.call(c,res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
+
+      ## for permuted phenotypes store the minimum pvalue only
+      if (w > npheno) {
+        res <- min(res$pval, na.rm = T)
+      }
       return(res)
     })
-
-    if(!is.null(colnames(phenotypes))){
-      names(result) <- make.names(colnames(phenotypes),unique=T)
-    }else{
-      names(result) <- paste0("pheno",1:ncol(phenotypes))
-    }
-    return(result)
 
   }else{ #Ergo, K must be defined, we must use Mixed Models
 
@@ -430,7 +429,7 @@ map.QTL<-function(
         if (class(solveout) == "try-error") {
           write(solveout, file="mm.solve_errors.txt", append = T)
           solveout <- list(list(
-            beta = NA,
+            beta = matrix(NA),
             Fstat = NA,
             residual = rep(NA,nrow(X)),
             pval = NA,
@@ -463,6 +462,7 @@ map.QTL<-function(
     #Here we obtain a list of df, each df containing all results
     parallel::stopCluster(cl)
   }
+
   #The results are given phenotype names
   #We obtain the structure we talked about
   if(!is.null(colnames(phenotypes))){
