@@ -452,7 +452,8 @@ map.QTL<-function(
 
       for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
-      res$residual <- split(res$residual,rep(1:nrow(genotypes),each=length(phenotypes)))
+      res$residual <- split(res$residual,rep(1:nrow(genotypes),
+                                             each=nrow(phenotypes)))
       names(res$residual) <- markers
       ## for permuted phenotypes store the minimum pvalue only
       if (w > npheno) {
@@ -1508,9 +1509,9 @@ inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
 
   # conversion to matrix?
   if(!is.matrix(x)){
-    message("x is not a matrix.")
+    cat("x is not a matrix.")
     if(is.data.frame(x)) {
-      message("I will try to convert it into a matrix.")
+      cat("I will try to convert it into a matrix.")
       # For converting to matrix I am using sapply(x, as.character) instead of
       # as.matrix(x). This is because as.matrix can introduce some extra
       # spaces (by calling format(x, trim=F)). After conversion to numeric
@@ -1529,7 +1530,7 @@ inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
 
   # conversion to numeric?
   if(!is.numeric(x)) {
-    message("\nConversion to numeric.")
+    cat("\nConversion to numeric.")
     u1 <- unique(c(x))
     u2 <- as.numeric(u1)
     d <- is.na(u2)-is.na(u1) # elements coerced to NA
