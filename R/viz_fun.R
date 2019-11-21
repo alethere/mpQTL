@@ -258,7 +258,9 @@ skyplot<-function(
 
   #We filter per chromosome
   if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
+
   chrom_filter <- sapply(map$chromosome,function(x) any(x == chrom))
+
   if(!any(chrom_filter)){
     stop("The specified chrom: ",paste(chrom,collapse=", "),
          "; is not found in the chromosomes of map: ",

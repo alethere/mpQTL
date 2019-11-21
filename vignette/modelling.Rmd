@@ -1,0 +1,258 @@
+---
+title: "Modelling with mpQTL"
+author: "Alejandro Thérèse Navarro"
+output: 
+  html_document:
+    theme: lumen
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+    toc_depth: 3
+---
+
+```{r data_load,echo=F}
+source("../R/viz_fun.R")
+source("../R/mapQTL_fun.R")
+data <- readRDS("workshop_data.RDS")
+map <- data$map
+phe <- data$pheno
+dos <- as.matrix(data$dosage)
+hap <- as.matrix(data$founder)
+pv <- data$result[[1]]$pval
+wald <- data$result[[1]]$wald
+```
+
+
+In this document we will discuss how to use the modelling functions of `map.QTL()` and its behaviour.
+
+# Statistical introduction
+
+The mathematical model behind `mpQTL` is based on a mixed model approach that was described in 2006 as the "Unified Mixed Model" [(Yu et al. 2006)](https://www.nature.com/articles/ng1702). Classical QTL models use biparental populations, where all the alleles are randomly distributed across all the samples. This is not the case in multi-parental and GWAS populations (e.g. alleles from parent 1 are only present in those crosses where parent 1 participated), and classical QTL models do not obtain accurate estimates under this conditions. Thus, this Unified Mixed Model allows us to perform QTL analysis on more complex populations, such as multi-parental populations. Let us briefly discuss what components does this model contain.
+
+
+$$
+y = \mu + X\beta + Qv + Cw + \underline{Zu} + \underline{\varepsilon} 
+\\
+var(\underline{u}) \sim K\sigma^2_G \\
+var(\underline{\varepsilon}) \sim R\sigma^2_\varepsilon
+
+
+$$
+
+The equations above describe the general structure of the models implemented in `map.QTL()`. We use a phenotype $y$, and we try to explain it using an intercept $\mu$; a **genetic matrix** $X\beta$ (containing dosages or haplotypes), a **family-based correction** matrix $Qv$; an optional set of **cofactors**, modelled by $Cw$; a random term that models **kinship** using $K$ as the variance structure, and a normal error term $\varepsilon$. We can also talk of this parameters referring to the "genetic term" ($X\beta$), the "genetic structure correction" terms ($Qv$ and $var(\underline{u}) \sim K\sigma^2_G $) and the cofactors ($Cw$). 
+
+## Genetic component
+
+In a QTL analysis, we will use this model accross the genome, creating a new $X\beta$ matrix for each marker, and noting down which of the markers provides a more explanatory model. One of the novelties in `mpQTL` is its ability to use either SNP dosages or *haplotype dosages* to construct the $X\beta$ matrices along the genome. 
+
+To determine whether it should run the SNP dosage or the haplotype model, `map.QTL()` will check the number of phenotypes (one per sample) and the number of genotypes provided. If there are as many genotypes as phenotypes, there is a single score per individual, and SNP dosages are assumed. If $p$ genotypes per sample are provided, where $p$ is the ploidy level, then the haplotype model will be used. 
+
+## Genetic structure correction
+
+For a full explanation of how the unified mixed model deals with structure correction refer to the paper by [Yu et al. (2006)](https://www.nature.com/articles/ng1702). To summarize very briefly, this model and our program includes two different methods for structure correction: $Q$ and $K$. Both can be toggled on and off, which in fact has a big impact on the underlying model. 
+
+* No correction: a *linear model* is applied, where it is assumed that all samples are equally related to each other and all alleles are homogeneously distributed accross the population.
+* $Q$ correction: a *linear model* is applied with the same assumptions as above, but allowing for population-specific effects. This can allow to tackle situations wehre parts of the total population display systematic increase/decrease in their phenotypes.
+* $K$ correction: a *mixed model* is applied, where the similarity between samples is modelled using a kinship matrix. In our research, this seems the simplest and most robust model to deal with complex genetic structures.
+* $K+Q$ correction: a *mixed model* is applied, where both kinship matrix and population-based correction are applied. In our research, it seems that the $K$ matrix is enough to detect population-based structure and thus there is no meaningful difference between using $K$ or $K + Q$.
+
+The most important here is to realize that without $K$ correction a linear model is used, while with $K$ correction, a mixed model is used. This has implications in the type of output that we receive, and how the p-values are calculated.  
+
+## Cofactors
+
+There are cases where, aside genetic variation, other known factors might be impacting the phenotypes. Some common examples are those of location, day of measurement, treatment... In order to make `map.QTL()` more flexible, we included the possibility to add cofactors into the model, to help explain the variation. We accept both **qualitative** and **quantitative** cofactors. 
+
+There cofactor functionalities can be quite useful to dissect QTLs, and we will see how that can be applied further on. 
+
+# Data
+
+The visualization functions are based on different data structures that are also used in the rest of the mpQTL package. In order to introduce these data structures, we will use a sample dataset from a simulated tetraploid population.
+
+*Dosage scores* are represented using a matrix of $markers \times individuals$ so that there are $m$ rows, equal to the number of markers and $n$ columns, equal to the number of individuals. *Haplotype data* is expressed in a similar fashion, with the difference that each each individual is represented by $p$ number of columns, where $p$ is the ploidy. That is, for a tetraploid, each individual has four consecutive columns containing the haplotype type. Haplotypes can be expressed using numeric or character values (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...). All functions have been tested and developed so that missing values in any of the two matrices can be handled without problems.
+```{r gen_tables,echo=F}
+rownames(dos) <- map$marker
+tab <- knitr::kable(dos[1:10,1:8],format = "html",caption = "Dosages of 8 individuals")
+kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
+
+tab <- knitr::kable(hap[1:10,1:8],format = "html",caption = "Haplotypes of 2 individuals")
+kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
+```
+
+With any genotypic data (dosages or haplotypes), an adequate genetic map must be provided. Such map is expressed using a simple `data.frame` that must contain at least three columns, "marker" with a marker name; "chromosome" with the chromosome name or number; and "position", with the genetic position of each marker, preferably in cM (although any unit will work). Most functions will assume that the genetic map and the genotypic data are in the same order, that is, that the marker of the first row of the map is the marker of the first row if the genotypic data. 
+
+Unmapped markers can also be included in this map by indicating that they belong to *chromosome 0*. Importantly, they should be given a position as well, the simplest option is to give the first unmapped marker position 1, the second position 2, and so on. 
+
+```{r map_table,echo=F}
+tab <- knitr::kable(map[1:10,],format = "html",caption = "Genetic map of the first ten markers")
+kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
+```
+
+*Phenotypes* can be expressed either as a numeric vector or a numeric matrix, where each column is a different phenotype. With both formats the phenotypes can be passed to `map.QTL()` to generate the QTL mapping results. There are many outputs in such results, but for the purpose of this tutorial we will focus only on the *p-value vector*, which contains a p-value score for each marker, again in the same order as the rows of dosage and haplotype matrix and the genetic map.
+
+Lastly, a visualization function has been included for *distance matrices* (such as the K matrix, that we will introduce later). These are based on the genotypic data and can be generated through a multitude of methods (euclidean distance, Nei's...). These square matrices assign a numeric value to the "genetic distance" between two individuals for each pair of individuals in the population, and thus are usually symmetric. Within `mpQTL` a single measure has been included, but any type of distance matrix can be used in the visualization function we will explain below.
+
+# Running `map.QTL()`
+
+## Linear model
+
+There are a few parameters in `map.QTL()`, the basic ons are four:
+
+* `phenotypes`: a vector or matrix with a column for each phenotype. 
+* `genotypes`: either a dosage or a haplotype matrix, as explained above in the "Data" section.
+* `ploidy`: an integer indicating the ploidy of the organism.
+* `map`: a genetic map with the columns "marker", "chromosome", and "position".
+
+The simplest QTL model that `map.QTL()` provides is a linear model with no Q + K correction. In this case, the p-values originate from an F-test. 
+
+```{r}
+result <- map.QTL(phenotypes = phe,
+        genotypes = dos,
+        ploidy = 4,
+        map = map)
+
+str(result[1:3],max.level = 2)
+str(result[[1]]$beta[1:10])
+```
+
+The results are provided in form of a nested list. Firstly, there is an element for each phenotype, and within a phenotype, we find a list with the following elements:
+
+* `beta`: a list containing the fixed effects of the model (in this order: intercept, cofactors, structure terms, genetic factors). There is a set of estimates for each marker.
+* `Ftest`: a vector containing the Ftest results for the genetic component of each model.
+* `pval`: a vector containing the p-values of the genetic model at each marker.
+* `se`: a vector containing the standard error of the estimates.
+
+If instead of dosages, we provide a haplotype matrix, the result is identical, except that instead of two elements at each element of `beta`, we obtain as many estimates as haplotypes at each marker, plus the intercept:
+
+```{r}
+result <- map.QTL(phenotypes = phe,
+        genotypes = hap,
+        ploidy = 4,
+        map = map)
+
+str(result,max.level = 2)
+str(result$pheno1$beta[1:10])
+```
+
+Calculations using the haplotype model are somewhat slower, thus for the rest of this vignette we will use dosages instead, but unless the contrary is specified, both dosages and haplotypes can be used in any situation.
+
+### $Q$ population matrix
+
+The best method to correct for structure using a linear model is to apply the $Q$ matrix method, in which a set of fixed effects are added per population. See the section [genetic structure correction](#Genetic structure correction). 
+
+To add fixed effects, one can add a vector that identifies the group to which each individual belongs. This will automatically create a set of fixed effects for each population level.
+
+```{r}
+pop <- substr(rownames(phe),1,2)
+
+result <- map.QTL(phenotypes = phe,
+        genotypes = dos,
+        ploidy = 4,
+        map = map,
+        Q = pop)
+
+```
+
+Note that the fixed effects provided for $Q$ are
+
+However, sometimes it's not simple to decide to which population an individual belongs. An alternative method is to use the Kinship matrix and PCoA to obtain a set of factors to identify individuals. This way, an automated set of fixed factors based on the genetic structure is defined. We can activate this behaviour by setting `Q = T`. We can choose the number of fixed factors to use with the parameter `Qpco`, which defaults to 2.
+
+```{r}
+result <- map.QTL(phenotypes = phe,
+        genotypes = dos,
+        ploidy = 4,
+        map = map,
+        Q = T)
+```
+
+
+## Mixed model
+
+To use the mixed model functionality one must provide the model with a kinship matrix. That can be achieved by setting `K = T` (which uses the internal kinship calculation, see below), or providing a kinship matrix `K = matrix`. It can also be achieved by setting `linear = F`.
+
+Importantly, K is calculated using a *sample of markers* across the genome, rather than all markers. This prevents that regions where marker density is higher contribute more to the genetic kinship than regions that are less dense. By default, 1 marker per cM, when possible, is used. This can be changed with the parameter `cM`.
+
+```{r}
+result <- map.QTL(phenotypes = phe,
+        genotypes = hap,
+        ploidy = 4,
+        map = map,
+        K = T)
+
+str(result,max.level = 2)
+```
+
+The result structure looks know somewhat different. Since the mixed model is solved somewhat differently than a linear model, in fact, p-values and F statistic values are *approximated* from the `wald` test values. The `real.df` gives us an indication of how approximate are we to the true p-values.
+
+### Kinship matrix
+
+The main feature of the unified mixed model is to include the kinship matrix $K$ in the model. To calculate K, we have included the function `calc.K()`. The result obtained has values that can go below 0 and over 1. Although this scale is somewhat strange, it allows for a very fast calculation of kinship. The interpretation of the measure is that 0 is the average relatedness between individuals in the population, and 1 is the average relatedness of an individual with itself. The parameters are:
+
+* `matrix`: either a dosage matrix (markers in columns and individuals in rows), or a haplotype matrix ($p$ rows per individual, where $p$ is ploidy).
+* `haplotypes`: logical, are haplotypes present? Defaults to False.
+* `ploidy`: integer indicating ploidy. Only used if `haplotypes = T`
+
+```{r}
+Kd <- calc.K(t(dos))
+Kh <- calc.K(t(hap),haplotypes = T, ploidy = 4)
+
+heatmap(Kd, Colv = NA, Rowv = NA, main = "Dosage matrix")
+heatmap(Kh, Colv = NA, Rowv = NA, main = "Haplotype matrix")
+```
+
+Although the values within each matrix are somewhat different, the overall structure estimated with the matrices is equivalent. 
+
+Alternatively, other types of kinship/distance matrices can be provided to the mixed model, in case `calc.K()` does not provide satisfactory results
+
+## Permutation threshold
+
+In order to calculate a significance threshold, a permutation test has been added. This tests allow us to find what is the "average"" level of significance in this dataset by permuting phenotypes and genotypes. All significances above this threshold are more likely than random. Since to obtain the threshold, essentially the mapping process is repeated, the calculation takes quite some time. With a few permutations we can already obtain a decent estimate, but generally, the more permutations the more accurate. 
+
+There are three parameters for threshold calculation:
+
+* `nperm`: integer, the number of permutations. 
+* `permutation`: either "pop" or "fam", determines the permutation strategy. If "pop", it permutes over the whole population, and if "fam", only within families. If there is a strong family structure, the "fam" strategy will produce more accurate thresholds.
+* `alpha`: number between 0 and 1, indicating for which probability should the threshold be calculated. Defaults to 0.95 (i.e. a maximum of 5% of false positives).
+
+```{r}
+result <- map.QTL(phenotypes = phe,
+        genotypes = dos,
+        ploidy = 4,
+        map = map,
+        nperm = 10)
+
+str(result,max.level = 2)
+```
+
+Now a permutation threshod (`perm.thr`) is included in the output and can be used to determine significant markers.
+
+## Imputation of missing values
+
+In general, few missing values should be included both in phenotypes and genotypes. The functions, however, are well adapted to some missing values. Part of this adaption is the possibility of imputing genotypes using a k-nearest neighbours (knn) approach. That is, for each missing value, the $k$ most correlated individuals at that genetic region are taken, and a consensus genotype is obtained to fill in the missing data. If nothing is specified, `map.QTL()` will try to impute the missing genotypes, although in some cases it might decide it does not have enough information to reach a genotype.  
+
+To control the behaviour of the imputator use:
+
+* `impute`: logical, should missing genotypes be imputed?
+* `k`: integer, how many neighbours should be used for imputation? Defaults to 20.
+
+```{r}
+dos_NA <- dos
+dos_NA[sample(1:length(dos),2000)] <- NA
+result <- map.QTL(phenotypes = phe,
+        genotypes = dos_NA,
+        ploidy = 4,
+        map = map,
+        nperm = 10)
+
+str(result,max.level = 2)
+```
+
+## Advanced features
+
+Some extra parameters allow to modify the behaviour of certain parts of `map.QTL()`. These parameters include:
+
+* `no_cores`: integer specifying the number of cores to use for parallel computing. Defaults to 1 - number of cores in the machine. If running on a server or computer cluster, this parameter should be specified to avoid asking for too many cores.
+* `approximate`: by default, the **mixed model** solution is achieved using an algorith called P3D or EMMAX, which essentially approximates part of the calculation which is very similar, but not identical, between markers. By doing that, the speed of computation is greatly increased, at a practically null cost of accuracy. If that needs to be deactivated, one can set `approximate = F`.
+* `K_identity`: logical. If True, it forces to use a mixed model that **does not** correct for genetic structure, but where the K matrix is used for other purposes.  
+
+

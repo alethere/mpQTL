@@ -290,7 +290,7 @@ map.QTL<-function(
     #First set up cluster
 
     cluster <- parallel::makeCluster(no_cores)
-    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare") #gt
+    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo") #gt
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
       cat("Linear model will be used.\n")
@@ -307,13 +307,13 @@ map.QTL<-function(
 
     #Testing
     result <- parallel::parLapply(cluster,1:nrow(genotypes),function(k){
-      X <- dosage.X(genotypes[k,],ploidy = 4,haplotype = F,normalize = F)
-
+      X <- dosage.X(genotypes[k,],ploidy = 4,haplotype = haplo,normalize = F)
+      if(haplo) X <- X[,-ncol(X)]
       #We create the naive and full matrices. The naive
       #model only includes Q, C and an intercept
       N <- cbind(matrix(1,nrow=nrow(X)),Q,C) #naive model
       X <- cbind(1,Q,C,X) #total model
-      solveout <- try(lm_compare(X,N,y="phenotypes"),silent = T)
+      solveout <- try(lm_compare(X,N,phenotypes),silent = T)
 
       ## mantain the usual output structure in case of error
       if (class(solveout) == "try-error") {
@@ -334,6 +334,8 @@ map.QTL<-function(
 
     #Reformatting of results so that they fit standard output
     result <- lapply(1:ncol(phenotypes),function(w){
+
+      #Separates results from each phenotype
       res <- lapply(result,function(r) lapply(r,function(e){
         if(is.matrix(e)) return(e[,w])
         return(e[w])
@@ -341,7 +343,7 @@ map.QTL<-function(
 
       res <- do.call(mapply,c(list,res))
       res <- as.list(as.data.frame(res))
-      for(r in 2:length(res)) res[[r]] <- do.call(c,res[[r]])
+      for(r in 2:length(res)) res[[r]] <- as.vector(res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
 
       ## for permuted phenotypes store the minimum pvalue only
@@ -350,6 +352,7 @@ map.QTL<-function(
       }
       return(res)
     })
+
 
   }else{ #Ergo, K must be defined, we must use Mixed Models
 
@@ -385,7 +388,7 @@ map.QTL<-function(
     cl<-parallel::makeCluster(no_cores)
     #atn: added object ploidy
     export<-c("phenotypes","Z","K","Hinv","genotypes","ploidy","haplo","npheno",
-              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec") #gt
+              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec","w") #gt
 
     #extra functions need to be exproted
     #if we don't want to use P3D approximation
@@ -449,9 +452,11 @@ map.QTL<-function(
       res<-as.list(as.data.frame(res))
       #All columns are turned into vectors except the beta column
 
-      for(r in 2:length(res)) res[[r]] <- do.call(c,res[[r]])
+      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
-
+      res$residual <- split(res$residual,rep(1:nrow(genotypes),
+                                             each=nrow(phenotypes)))
+      names(res$residual) <- markers
       ## for permuted phenotypes store the minimum pvalue only
       if (w > npheno) {
         res <- min(res$pval, na.rm = T)
@@ -470,10 +475,12 @@ map.QTL<-function(
   }else{
     names(result) <- paste0("pheno",1:ncol(phenotypes))
   }
+
+
   cat("Association completed.\n")
 
-
   if (!is.null(permutation)) {
+    cat("Permutation threshold will now be calculated.\n")
     minpval <- sapply(result[(npheno+1):length(result)], function(x) x)
     minpvalMat <- matrix(minpval, ncol = npheno, byrow = T)
     maxlogpvalMat <- -log10(minpvalMat)
@@ -494,7 +501,7 @@ map.QTL<-function(
   }
 
   return(result)
-  }
+}
 
 
 # Calculation functions -------------------
@@ -1505,9 +1512,9 @@ inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
 
   # conversion to matrix?
   if(!is.matrix(x)){
-    message("x is not a matrix.")
+    cat("x is not a matrix.")
     if(is.data.frame(x)) {
-      message("I will try to convert it into a matrix.")
+      cat("I will try to convert it into a matrix.")
       # For converting to matrix I am using sapply(x, as.character) instead of
       # as.matrix(x). This is because as.matrix can introduce some extra
       # spaces (by calling format(x, trim=F)). After conversion to numeric
@@ -1526,7 +1533,7 @@ inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
 
   # conversion to numeric?
   if(!is.numeric(x)) {
-    message("\nConversion to numeric.")
+    cat("\nConversion to numeric.")
     u1 <- unique(c(x))
     u2 <- as.numeric(u1)
     d <- is.na(u2)-is.na(u1) # elements coerced to NA

@@ -3,7 +3,7 @@ title: "Visualization functions"
 author: "Alejandro Thérèse Navarro"
 output: 
   html_document:
-    theme: journal
+    theme: lumen
     toc: true
     toc_float:
       collapsed: false
@@ -24,13 +24,13 @@ Before, however, let us discuss the data structures required in mpQTL.
 ```{r data_load,echo=F}
 source("../R/viz_fun.R")
 source("../R/mapQTL_fun.R")
-data <- readRDS("../devtest/test_data.RDS")
+data <- readRDS("workshop_data.RDS")
 map <- data$map
 phe <- data$pheno
 dos <- as.matrix(data$dosage)
-hap <- as.matrix(data$hap)
-pv <- data$result$pheno1$pval
-wald <- data$result$pheno1$wald
+hap <- as.matrix(data$founder)
+pv <- data$result[[1]]$pval
+wald <- data$result[[1]]$wald
 ```
 
 
@@ -95,20 +95,20 @@ K <- calc.K(t(dos))
 #We must transform the result of dist into a matrix to use it with pcoa.plot()
 euc <- as.matrix(dist(t(dos),method = "euclidean"))
 
-pop <- c(rep("parents",10),rep("AxA",150),rep("AxB",150),rep("AxC",150))
+pop <- substr(colnames(K),1,2)
 
-pcoa.plot(K,col = pop,legpos = "topright",
+pcoa.plot(K,col = pop,legpos = "topright",xlim = c(-0.12,0.12),
           pch=19,main="PCoA plot of K (similarity)")
 
-pcoa.plot(1-K,col = pop,legpos = "bottomleft",
+pcoa.plot(1-K,col = pop,legpos = "topright",xlim = c(-0.12,0.12),
           pch=19,main="PCoA plot of 1-K (distance)")
 
-pcoa.plot(euc,col = pop,legpos = "bottomleft",
+pcoa.plot(euc,col = pop,legpos = "topright",xlim = c(-0.12,0.12),
           pch=19,main="PCoA plot of Euclidean distance")
 
 #If we want to, we can choose different components of the PCoA, for instance the
 #second and third
-pcoa.plot(K,col = pop,legpos = "bottomright",comp = c(1,3),
+pcoa.plot(K,col = pop,legpos = "topright",xlim = c(-0.12,0.12),comp = c(1,3),
           pch=19,main="PCoA plot of K (similarity)")
 ```
 
@@ -125,7 +125,7 @@ The first three graphs show the result of three different types of genetic dista
 The last graph, however, is very different! We chose to plot components 1 and 3. Component 1 is very informative, but component 3 very little (only 0.68% of the total variance). Thus the spread along the y-axis is, in fact, not very informative. We do see some seemingly interesting patterns in this plot, but they are not trustworthy. PCoA's are tricky to interpret because in many instances they will generate pattern-looking clouds, which might harbour very little actual meaning and just reflect some systematic noise. To look at a more extreme example, let's look at the following graph, where we take PCs 3 and 4:
 
 ```{r}
-pcoa.plot(K,col = pop,legpos = "bottomright",comp = c(3,4),
+pcoa.plot(K,col = pop,legpos = "topright",xlim = c(-0.16,0.14),comp = c(4,5),
           pch=19,main="PCoA plot of K (similarity)")
 ```
 
@@ -206,8 +206,9 @@ skyplot(-log10(pv),map,chrom = 1,main ="Skyline lot of chromosome 1",threshold =
 #The "chromosomes" can also be expressed as characters
 map_letters <- map
 map_letters$chromosome <- LETTERS[map_letters$chromosome + 1]
+
 skyplot(-log10(pv),map_letters,main="Skyline plot where chromosomes are characters",
-        chrom = c("A","C","E"),small = T)
+        chrom = sample(unique(map_letters$chromosome),2),small = T)
 
 ```
  
@@ -219,7 +220,7 @@ For our research, we wanted to compare the skyline plots of multiple models, nam
 * `legnames`: a vector of names for the legend elements. If not provided, it will be read from the pvalue list, and if the list has no names, it will be simply labelled pval 1, pval 2, etc.
 
 ```{r comp_skyplot}
-pv2 <- data$result2$pheno1$pval
+pv2 <- data$result[[2]]$pval
 
 comp.skyplot(list(-log10(pv),-log10(pv2)),map,main = "Comparison of two p-value distributions",threshold = 4)
 ```
@@ -253,19 +254,19 @@ When `haplotype = T` other parameters can be used:
 gen_dos <- unlist(dos[4,])
 gen_hap <- unlist(hap[4,])
 
-pheno_box(phe,gen_dos,
+pheno_box(phe[,1],gen_dos,
           xlab="Dosage",ylab="phenotype",main="A boxplot of dosages")
 
 #But now there are too many things plotted and I can't see anything
-pheno_box(phe,gen_hap,haplotype = T,ploidy = 4,
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,
           xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages")
 
 #This is better but still too many boxes
-pheno_box(phe,gen_hap,haplotype = T,ploidy = 4,draw.points = F,
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,draw.points = F,
           xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages (no points)")
 
 #This is better
-pheno_box(phe,gen_hap,haplotype = T,ploidy = 4, hap.select = c(5,15,69,108),
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4, hap.select = c(50,10,77,45),
           xlab="Haplotypes",ylab="phenotype",main="A boxplot of some haplotype dosages")
 ```
 
