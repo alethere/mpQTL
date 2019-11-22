@@ -331,7 +331,7 @@ map.QTL<-function(
     })
 
     parallel::stopCluster(cluster)
-
+    return(result) #gt: just for debugging purpose (REMOVE IT LATER!!!)
     #Reformatting of results so that they fit standard output
     result <- lapply(1:ncol(phenotypes),function(w){
 
@@ -343,7 +343,7 @@ map.QTL<-function(
 
       res <- do.call(mapply,c(list,res))
       res <- as.list(as.data.frame(res))
-      for(r in 2:length(res)) res[[r]] <- as.vector(res[[r]])
+      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]]) #gt: convert to vectors Fstat, pval and se (not beta)
       for(r in 1:length(res)) names(res[[r]]) <- markers
 
       ## for permuted phenotypes store the minimum pvalue only
@@ -388,7 +388,7 @@ map.QTL<-function(
     cl<-parallel::makeCluster(no_cores)
     #atn: added object ploidy
     export<-c("phenotypes","Z","K","Hinv","genotypes","ploidy","haplo","npheno",
-              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec","w") #gt
+              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec") #gt
 
     #extra functions need to be exproted
     #if we don't want to use P3D approximation
