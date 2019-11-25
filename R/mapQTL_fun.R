@@ -336,6 +336,7 @@ map.QTL<-function(
     })
 
     parallel::stopCluster(cluster)
+    return(result)
     #Reformatting of results so that they fit standard output
     result <- lapply(1:ncol(phenotypes),function(w){
 
