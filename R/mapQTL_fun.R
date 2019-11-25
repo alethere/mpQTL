@@ -290,7 +290,8 @@ map.QTL<-function(
     #First set up cluster
 
     cluster <- parallel::makeCluster(no_cores)
-    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo") #gt: w is created within the cluster
+    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo")
+
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
       cat("Linear model will be used.\n")
