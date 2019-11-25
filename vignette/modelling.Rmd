@@ -40,7 +40,7 @@ var(\underline{\varepsilon}) \sim R\sigma^2_\varepsilon
 
 $$
 
-The equations above describe the general structure of the models implemented in `map.QTL()`. We use a phenotype $y$, and we try to explain it using an intercept $\mu$; a **genetic matrix** $X\beta$ (containing dosages or haplotypes), a **family-based correction** matrix $Qv$; an optional set of **cofactors**, modelled by $Cw$; a random term that models **kinship** using $K$ as the variance structure, and a normal error term $\varepsilon$. We can also talk of this parameters referring to the "genetic term" ($X\beta$), the "genetic structure correction" terms ($Qv$ and $var(\underline{u}) \sim K\sigma^2_G $) and the cofactors ($Cw$). 
+The equations above describe the general structure of the models implemented in `map.QTL()`. We use a phenotype $y$, and we try to explain it using an intercept $\mu$; a **genetic matrix** $X\beta$ (containing dosages or haplotypes), a **family-based correction** matrix $Qv$; an optional set of **cofactors**, modelled by $Cw$; a random term that models **kinship** using $K$ as the variance structure, and a normal error term $\varepsilon$. We can also talk of this parameters referring to the "genetic term" ($X\beta$), the "genetic structure correction" terms ($Qv$ and $var(\underline{u}) \sim K\sigma^2_G$ ) and the cofactors ($Cw$). 
 
 ## Genetic component
 
@@ -72,10 +72,10 @@ The visualization functions are based on different data structures that are also
 *Dosage scores* are represented using a matrix of $markers \times individuals$ so that there are $m$ rows, equal to the number of markers and $n$ columns, equal to the number of individuals. *Haplotype data* is expressed in a similar fashion, with the difference that each each individual is represented by $p$ number of columns, where $p$ is the ploidy. That is, for a tetraploid, each individual has four consecutive columns containing the haplotype type. Haplotypes can be expressed using numeric or character values (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...). All functions have been tested and developed so that missing values in any of the two matrices can be handled without problems.
 ```{r gen_tables,echo=F}
 rownames(dos) <- map$marker
-tab <- knitr::kable(dos[1:10,1:8],format = "html",caption = "Dosages of 8 individuals")
+tab <- knitr::kable(dos[1:10,1:4],format = "html",caption = "Dosages of 4 individuals")
 kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
 
-tab <- knitr::kable(hap[1:10,1:8],format = "html",caption = "Haplotypes of 2 individuals")
+tab <- knitr::kable(hap[1:10,1:4],format = "html",caption = "Haplotypes of 1 individual")
 kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
 ```
 
@@ -242,7 +242,8 @@ result <- map.QTL(phenotypes = phe,
         genotypes = dos_NA,
         ploidy = 4,
         map = map,
-        nperm = 10)
+        nperm = 10,
+        permutation = "pop")
 
 str(result,max.level = 2)
 ```

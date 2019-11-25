@@ -100,7 +100,7 @@ pop <- substr(colnames(K),1,2)
 pcoa.plot(K,col = pop,legpos = "topright",xlim = c(-0.12,0.12),
           pch=19,main="PCoA plot of K (similarity)")
 
-pcoa.plot(1-K,col = pop,legpos = "topright",xlim = c(-0.12,0.12),
+pcoa.plot(1-K,col = pop,legpos = "topright",xlim = c(-0.12,0.14),
           pch=19,main="PCoA plot of 1-K (distance)")
 
 pcoa.plot(euc,col = pop,legpos = "topright",xlim = c(-0.12,0.12),
