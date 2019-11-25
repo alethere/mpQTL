@@ -318,11 +318,16 @@ map.QTL<-function(
       ## mantain the usual output structure in case of error
       if (class(solveout) == "try-error") {
         write(solveout, file="lm_compare_errors.txt", append = T)
+
+        #ATN the "original structure" requires iterators with as many elements
+        #as there are phenotypes. That is, NA matrices/ vectors with length =
+        #ncol(phenotypes)
+        miss <- rep(NA,ncol(phenotypes))
         solveout <- list(
-          beta = matrix(NA),
-          Fstat = NA,
-          pval = NA,
-          se = NA
+          beta = matrix(miss,nrow=1),
+          Fstat = miss,
+          pval = miss,
+          se = miss
         )
       }
 
@@ -331,7 +336,6 @@ map.QTL<-function(
     })
 
     parallel::stopCluster(cluster)
-    return(result) #gt: just for debugging purpose (REMOVE IT LATER!!!)
     #Reformatting of results so that they fit standard output
     result <- lapply(1:ncol(phenotypes),function(w){
 
