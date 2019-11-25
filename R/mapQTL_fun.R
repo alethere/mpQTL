@@ -290,7 +290,8 @@ map.QTL<-function(
     #First set up cluster
 
     cluster <- parallel::makeCluster(no_cores)
-    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo") #gt
+    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo",
+                "w") #gt
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
       cat("Linear model will be used.\n")
@@ -306,57 +307,78 @@ map.QTL<-function(
     # environment, clusterExport will search it and will find it in the parent environments
 
     #Testing
-    result <- parallel::parLapply(cluster,1:nrow(genotypes),function(k){
-      X <- dosage.X(genotypes[k,],ploidy = 4,haplotype = haplo,normalize = F)
-      if(haplo) X <- X[,-ncol(X)]
-      #We create the naive and full matrices. The naive
-      #model only includes Q, C and an intercept
-      N <- cbind(matrix(1,nrow=nrow(X)),Q,C) #naive model
-      X <- cbind(1,Q,C,X) #total model
-      solveout <- try(lm_compare(X,N,phenotypes),silent = T)
-
-      ## mantain the usual output structure in case of error
-      if (class(solveout) == "try-error") {
-        write(solveout, file="lm_compare_errors.txt", append = T)
-
-        #ATN the "original structure" requires iterators with as many elements
-        #as there are phenotypes. That is, NA matrices/ vectors with length =
-        #ncol(phenotypes)
-        miss <- rep(NA,ncol(phenotypes))
-        solveout <- list(
-          beta = matrix(miss,nrow=1),
-          Fstat = miss,
-          pval = miss,
-          se = miss
-        )
-      }
-
-      return(solveout)
-
-    })
-
-    parallel::stopCluster(cluster)
-    return(result)
-    #Reformatting of results so that they fit standard output
     result <- lapply(1:ncol(phenotypes),function(w){
+      res <- parallel::parLapply(cluster,1:nrow(genotypes),function(k){
+        X <- dosage.X(genotypes[k,],ploidy = 4,haplotype = haplo,normalize = F)
+        if(haplo) X <- X[,-ncol(X)]
+        #We create the naive and full matrices. The naive
+        #model only includes Q, C and an intercept
+        N <- cbind(matrix(1,nrow=nrow(X)),Q,C) #naive model
+        X <- cbind(1,Q,C,X) #total model
+        y <- phenotypes[,w,drop=F]
+        solveout <- try(lm_compare(X,N,y),silent = T)
 
-      #Separates results from each phenotype
-      res <- lapply(result,function(r) lapply(r,function(e){
-        if(is.matrix(e)) return(e[,w])
-        return(e[w])
-      }))
+        ## mantain the usual output structure in case of error
+        if (class(solveout) == "try-error") {
+          write(solveout, file="lm_compare_errors.txt", append = T)
 
+          #ATN the "original structure" requires iterators with as many elements
+          #as there are phenotypes. That is, NA matrices/ vectors with length =
+          #ncol(phenotypes)
+          miss <- rep(NA,ncol(y))
+          solveout <- list(
+            beta = matrix(miss,nrow=1),
+            Fstat = miss,
+            pval = miss,
+            se = miss
+          )
+        }
+
+        return(solveout)
+
+      })
+
+      #NEW OUTPUT
+      #Create a list of lists from all results.
+      #It's actually just 6 lists with k elements where k is markers
       res <- do.call(mapply,c(list,res))
       res <- as.list(as.data.frame(res))
-      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]]) #gt: convert to vectors Fstat, pval and se (not beta)
+      #All columns are turned into vectors except the beta column
+
+      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
       for(r in 1:length(res)) names(res[[r]]) <- markers
 
       ## for permuted phenotypes store the minimum pvalue only
       if (w > npheno) {
         res <- min(res$pval, na.rm = T)
       }
+
       return(res)
     })
+
+    parallel::stopCluster(cluster)
+
+    return(result)
+    # #Reformatting of results so that they fit standard output
+    # result <- lapply(1:ncol(phenotypes),function(w){
+    #
+    #   #Separates results from each phenotype
+    #   res <- lapply(result,function(r) lapply(r,function(e){
+    #     if(is.matrix(e)) return(e[,w])
+    #     return(e[w])
+    #   }))
+    #
+    #   res <- do.call(mapply,c(list,res))
+    #   res <- as.list(as.data.frame(res))
+    #   for(r in 2:length(res)) res[[r]] <- unlist(res[[r]]) #gt: convert to vectors Fstat, pval and se (not beta)
+    #   for(r in 1:length(res)) names(res[[r]]) <- markers
+    #
+    #   ## for permuted phenotypes store the minimum pvalue only
+    #   if (w > npheno) {
+    #     res <- min(res$pval, na.rm = T)
+    #   }
+    #   return(res)
+    # })
 
 
   }else{ #Ergo, K must be defined, we must use Mixed Models
@@ -944,12 +966,12 @@ lm_compare <- function(X,N,y){
   if(is.vector(y)) y <- matrix(y,ncol=1)
 
   #Process followed by lm ----
-  not_na_y <- rowSums(is.na(phenotypes)) == 0
+  not_na_y <- rowSums(is.na(y)) == 0
   not_na_X <- rowSums(is.na(X)) == 0
   not_na <- not_na_y & not_na_X
   X <- X[not_na,,drop=F]
   N <- N[not_na,,drop=F]
-  y <- phenotypes[not_na,,drop=F]
+  y <- y[not_na,,drop=F]
   y_mean <- colMeans(y)
 
   #Calculations naive ----
