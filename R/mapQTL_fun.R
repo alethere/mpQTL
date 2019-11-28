@@ -116,8 +116,10 @@ map.QTL<-function(
     }
   }
 
-  markers<-rownames(genotypes)
-  phenotypes <- stndrdz.pheno(phenotypes)
+  markers <- map$marker
+
+  std_phe <- stndrdz.pheno(phenotypes)
+  phenotypes <- std_phe$pheno
 
   # Curation of genotype matrix and dosage matrix
   ## check whether genotypes contain snp dosages or haplotypes
@@ -429,16 +431,16 @@ map.QTL<-function(
       result<-parallel::parSapply(cl,1:nrow(genotypes),FUN=function(k){#parallely over markers, calculate the pvalue for each marker
 
         #DEFINITION OF X (matrix of fixed effects)
-        X<-dosage.X(as.matrix(genotypes[k,]),
+        X <- dosage.X(as.matrix(genotypes[k,]),
                     ploidy=ploidy,
                     normalize=T,
                     haplotype = haplo)
 
         if(ncol(X)>1){X<-X[,-1,drop=F]} #when ancestral/parental model we need to prevent singularity
         # if(any(is.na(genotypes[k,]))) X<-X[,-ncol(X)] #Eliminate NA as factor
-        nparX<-ncol(X) #total number of genetic parameters
-        X<-cbind(Q,C,X) #add population and cofactor parameters
-        X<-matrix(as.numeric(X),ncol=ncol(X))
+        nparX <- ncol(X) #total number of genetic parameters
+        X <- cbind(Q,C,X) #add population and cofactor parameters
+        X <- matrix(as.numeric(X),ncol=ncol(X))
         no.test<-ncol(X)-nparX #number of non genetic parameters
 
         #If not P3D/EMMAX, then Hinv will be NULL (and cannot be subindexed)
@@ -523,6 +525,24 @@ map.QTL<-function(
       return(result[[i]])
     })
     names(result) <- phenonames[1:npheno]
+  }
+
+  #To rescale the effects
+  for(i in seq_along(result)){
+    beta <- result[[i]]$beta
+    if(linear){
+      new_beta <- lapply(beta,function(b) {
+        b[1] <- b[1] + std_phe$mean[i]
+        b[-1] <- b[-1]* std_phe$sd[i]
+        return(b)
+      })
+    }else{
+      new_beta <- lapply(beta,function(b) {
+        b* std_phe$sd[i]
+      })
+    }
+
+    result[[i]]$beta <- new_beta
   }
 
   return(result)
@@ -1511,9 +1531,16 @@ stndrdz.pheno <- function(phenotypes) {
     phenotypes <- as.matrix(phenotypes)
   }
 
+  means <- colMeans(phenotypes,na.rm = T)
+  sds <- apply(phenotypes,2,sd,na.rm=T)
+
   phenotypes <- apply(phenotypes,2,function(p){
     (p-mean(p, na.rm = T))/sd(p, na.rm = T)
   })
+
+  return(list(pheno = phenotypes,
+              mean = means,
+              sd = sds))
 }
 
 

@@ -1,5 +1,5 @@
 ---
-title: "Modelling with mpQTL"
+title: "QTL analysis with the R package mpQTL"
 author: "Alejandro Thérèse Navarro"
 output: 
   html_document:
@@ -16,60 +16,60 @@ source("../R/viz_fun.R")
 source("../R/mapQTL_fun.R")
 data <- readRDS("workshop_data.RDS")
 map <- data$map
-phe <- data$pheno
+phe <- data$pheno[,c(3,7)]
+colnames(phe) <- c("phenotype_1","phenotype_2")
 dos <- as.matrix(data$dosage)
 hap <- as.matrix(data$founder)
-pv <- data$result[[1]]$pval
-wald <- data$result[[1]]$wald
+sample_pv <- -log10(data$result[[4]]$pval)
+sample_pv2 <- -log10(data$result[[8]]$pval)
+cof <- data$cofactor
 ```
 
 
-In this document we will discuss how to use the modelling functions of `map.QTL()` and its behaviour.
+In this document we will discuss most of the main functions of the `mpQTL` package, their usage and interpretation as well as some of the statistical theory behind them. Firstly we will introduce some statistical concepts about the model behind `mpQTL` and its main function `map.QTL()`, then we will discuss the features included in `map.QTL()` with a series of examples, and lastly we introduce a series of visualisation functions that will aid us in interpreting our data and the results we obtain from it.
 
-# Statistical introduction
+# Statistical introduction {#stat_intro}
 
-The mathematical model behind `mpQTL` is based on a mixed model approach that was described in 2006 as the "Unified Mixed Model" [(Yu et al. 2006)](https://www.nature.com/articles/ng1702). Classical QTL models use biparental populations, where all the alleles are randomly distributed across all the samples. This is not the case in multi-parental and GWAS populations (e.g. alleles from parent 1 are only present in those crosses where parent 1 participated), and classical QTL models do not obtain accurate estimates under this conditions. Thus, this Unified Mixed Model allows us to perform QTL analysis on more complex populations, such as multi-parental populations. Let us briefly discuss what components does this model contain.
+The mathematical model behind `mpQTL` is a single-marker test method based on a mixed model approach that was described in 2006 as the "Unified Mixed Model" [(Yu et al. 2006)](https://www.nature.com/articles/ng1702). Classical QTL models are designed for biparental populations, where all the alleles are randomly distributed across all the samples. This is not the case in multi-parental and GWAS populations (e.g. alleles from parent 1 are only present in those crosses where parent 1 participated), and classical QTL models do not obtain accurate estimates under these conditions. Instead, the Unified Mixed Model allows us to perform QTL analysis on more complex populations, such as multi-parental populations. Let us briefly discuss what components does this model contain.
 
 
-$$
-y = \mu + X\beta + Qv + Cw + \underline{Zu} + \underline{\varepsilon} 
+$$y = \mu + X\beta + Qv + Cw + \underline{Zu} + \underline{\varepsilon} 
 \\
 var(\underline{u}) \sim K\sigma^2_G \\
-var(\underline{\varepsilon}) \sim R\sigma^2_\varepsilon
+var(\underline{\varepsilon}) \sim R\sigma^2_\varepsilon$$
 
+The equations above describe the general structure of the models implemented in `map.QTL()`. 
 
-$$
-
-The equations above describe the general structure of the models implemented in `map.QTL()`. We use a phenotype $y$, and we try to explain it using an intercept $\mu$; a **genetic matrix** $X\beta$ (containing dosages or haplotypes), a **family-based correction** matrix $Qv$; an optional set of **cofactors**, modelled by $Cw$; a random term that models **kinship** using $K$ as the variance structure, and a normal error term $\varepsilon$. We can also talk of this parameters referring to the "genetic term" ($X\beta$), the "genetic structure correction" terms ($Qv$ and $var(\underline{u}) \sim K\sigma^2_G$ ) and the cofactors ($Cw$). 
+A phenotype $y$ is modelled using an intercept $\mu$; a **genetic matrix** $X\beta$ (containing dosages or haplotypes), a **family-based correction** matrix $Qv$; an optional set of **cofactors**, modelled by $Cw$; a random term that models **kinship** using $K$ as the variance structure, and a normal error term $\varepsilon$. We can also talk of this parameters referring to the "genetic term" ($X\beta$), the "genetic structure correction" terms ($Qv$ and $var(\underline{u}) \sim K\sigma^2_G$ ) and the cofactors ($Cw$). 
 
 ## Genetic component
 
-In a QTL analysis, we will use this model accross the genome, creating a new $X\beta$ matrix for each marker, and noting down which of the markers provides a more explanatory model. One of the novelties in `mpQTL` is its ability to use either SNP dosages or *haplotype dosages* to construct the $X\beta$ matrices along the genome. 
+The genetic component defines the fixed effects related to the genotype, expressed either as dosages or as haplotypes. Since we use a single-marker model,  we fit a new model at each marker position, creating a new $X\beta$ matrix per marker and storing the significance of the genetic component at each marker. One of the novelties in `mpQTL` is its ability to use either **SNP dosages** or **haplotype dosages** at any ploidy level to construct the $X\beta$ matrices along the genome. 
 
-To determine whether it should run the SNP dosage or the haplotype model, `map.QTL()` will check the number of phenotypes (one per sample) and the number of genotypes provided. If there are as many genotypes as phenotypes, there is a single score per individual, and SNP dosages are assumed. If $p$ genotypes per sample are provided, where $p$ is the ploidy level, then the haplotype model will be used. 
+To determine whether it should run the SNP dosage or the haplotype model, `map.QTL()` will check the number of phenotypes (one per sample) and the number of genotypes provided. If there are as many genotypes as phenotypes, there is a single score per individual, and SNP dosages are assumed. If $p$ genotypes per sample are provided, where $p$ is the ploidy level, then the haplotype model will be used (see [genotypes](#genotypes) for more information). 
 
-## Genetic structure correction
+## Genetic structure correction {#gen_structure}
 
-For a full explanation of how the unified mixed model deals with structure correction refer to the paper by [Yu et al. (2006)](https://www.nature.com/articles/ng1702). To summarize very briefly, this model and our program includes two different methods for structure correction: $Q$ and $K$. Both can be toggled on and off, which in fact has a big impact on the underlying model. 
+For a full explanation of how the unified mixed model deals with structure correction refer to the paper by [Yu et al. (2006)](https://www.nature.com/articles/ng1702). To summarize very briefly, this model and our program include two different methods for structure correction: $Q$ and $K$. Both can be toggled on and off, creating a total of four types of models. 
 
 * No correction: a *linear model* is applied, where it is assumed that all samples are equally related to each other and all alleles are homogeneously distributed accross the population.
-* $Q$ correction: a *linear model* is applied with the same assumptions as above, but allowing for population-specific effects. This can allow to tackle situations wehre parts of the total population display systematic increase/decrease in their phenotypes.
+* $Q$ correction: a *linear model* is applied with the same assumptions as above, but allowing for population-specific effects. This can allow to tackle situations wehre parts of the total population display systematic increase/decrease in their phenotypes. For simple structures, this method can provide a good enough correction.
 * $K$ correction: a *mixed model* is applied, where the similarity between samples is modelled using a kinship matrix. In our research, this seems the simplest and most robust model to deal with complex genetic structures.
 * $K+Q$ correction: a *mixed model* is applied, where both kinship matrix and population-based correction are applied. In our research, it seems that the $K$ matrix is enough to detect population-based structure and thus there is no meaningful difference between using $K$ or $K + Q$.
 
-The most important here is to realize that without $K$ correction a linear model is used, while with $K$ correction, a mixed model is used. This has implications in the type of output that we receive, and how the p-values are calculated.  
+The most important here is to realize that without $K$ correction a linear model is used, while with $K$ correction, a mixed model is used. This has implications in the type of output that we receive, and how the p-values are calculated. For more information see [the linear model](#linear) and [mixed model](#mixed) descriptions. 
 
-## Cofactors
+## Cofactors {#cofactor}
 
-There are cases where, aside genetic variation, other known factors might be impacting the phenotypes. Some common examples are those of location, day of measurement, treatment... In order to make `map.QTL()` more flexible, we included the possibility to add cofactors into the model, to help explain the variation. We accept both **qualitative** and **quantitative** cofactors. 
+There are cases where, aside genetic variation, other known factors might be impacting the phenotypes. Some common examples are those of location, day of measurement, treatment... In order to make `map.QTL()` more flexible, we included the possibility to add cofactors into the model, to help explain the variation. We accept both **qualitative** and **quantitative** cofactors (for more information [see covariate and cofactor section](#cov_and_cof)). 
 
-There cofactor functionalities can be quite useful to dissect QTLs, and we will see how that can be applied further on. 
+# Data {#data}
 
-# Data
+The `mpQTL` package requires specific data structures used across all functions. Before explaining the different functionalities of the package let us briefly introduce them.
 
-The visualization functions are based on different data structures that are also used in the rest of the mpQTL package. In order to introduce these data structures, we will use a sample dataset from a simulated tetraploid population.
+## Genotypes {#genotypes}
 
-*Dosage scores* are represented using a matrix of $markers \times individuals$ so that there are $m$ rows, equal to the number of markers and $n$ columns, equal to the number of individuals. *Haplotype data* is expressed in a similar fashion, with the difference that each each individual is represented by $p$ number of columns, where $p$ is the ploidy. That is, for a tetraploid, each individual has four consecutive columns containing the haplotype type. Haplotypes can be expressed using numeric or character values (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...). All functions have been tested and developed so that missing values in any of the two matrices can be handled without problems.
+*Dosage scores* are represented using a matrix of $markers \times individuals$ so that there are $m$ rows, equal to the number of markers and $n$ columns, equal to the number of individuals. *Haplotype data* is expressed in a similar fashion, with the difference that each each individual is represented by $p$ number of columns, where $p$ is the ploidy. That is, for a tetraploid, each individual has four consecutive columns containing the haplotype type. Haplotypes can be expressed using numeric or character values (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...) and the phase of the genotypes *does not matter* (i.e. it is not taken into account which genotypes are in the same columns). All functions have been tested and developed so that missing values in any of the two matrices can be handled without problems.
 ```{r gen_tables,echo=F}
 rownames(dos) <- map$marker
 tab <- knitr::kable(dos[1:10,1:4],format = "html",caption = "Dosages of 4 individuals")
@@ -78,6 +78,8 @@ kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condense
 tab <- knitr::kable(hap[1:10,1:4],format = "html",caption = "Haplotypes of 1 individual")
 kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
 ```
+
+## Genetic map
 
 With any genotypic data (dosages or haplotypes), an adequate genetic map must be provided. Such map is expressed using a simple `data.frame` that must contain at least three columns, "marker" with a marker name; "chromosome" with the chromosome name or number; and "position", with the genetic position of each marker, preferably in cM (although any unit will work). Most functions will assume that the genetic map and the genotypic data are in the same order, that is, that the marker of the first row of the map is the marker of the first row if the genotypic data. 
 
@@ -88,125 +90,221 @@ tab <- knitr::kable(map[1:10,],format = "html",caption = "Genetic map of the fir
 kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
 ```
 
-*Phenotypes* can be expressed either as a numeric vector or a numeric matrix, where each column is a different phenotype. With both formats the phenotypes can be passed to `map.QTL()` to generate the QTL mapping results. There are many outputs in such results, but for the purpose of this tutorial we will focus only on the *p-value vector*, which contains a p-value score for each marker, again in the same order as the rows of dosage and haplotype matrix and the genetic map.
+## Phenotypes
 
-Lastly, a visualization function has been included for *distance matrices* (such as the K matrix, that we will introduce later). These are based on the genotypic data and can be generated through a multitude of methods (euclidean distance, Nei's...). These square matrices assign a numeric value to the "genetic distance" between two individuals for each pair of individuals in the population, and thus are usually symmetric. Within `mpQTL` a single measure has been included, but any type of distance matrix can be used in the visualization function we will explain below.
+Lastly, *phenotypes* can be expressed either as a numeric vector or a numeric matrix, where each column is a different phenotype. With both formats the phenotypes can be passed to `map.QTL()` to generate the QTL mapping results.
 
 # Running `map.QTL()`
 
-## Linear model
+The main function of `mpQTL` is `map.QTL()`, a wrapper that helps build the required model matrices, implements parallelized computation, chooses between linear or mixed modelling, can impute missing genotype values and can calculate a significance threshold based on a permutation test. Since this wrapper has many parameters, we will introduce the different features separately.
 
-There are a few parameters in `map.QTL()`, the basic ons are four:
+## Linear model {#linear}
+
+The basic and mandatory four parameters of `map.QTL()` are:
 
 * `phenotypes`: a vector or matrix with a column for each phenotype. 
-* `genotypes`: either a dosage or a haplotype matrix, as explained above in the "Data" section.
+* `genotypes`: either a dosage or a haplotype matrix, as explained in the [genotypes](#genotypes) section.
 * `ploidy`: an integer indicating the ploidy of the organism.
 * `map`: a genetic map with the columns "marker", "chromosome", and "position".
 
 The simplest QTL model that `map.QTL()` provides is a linear model with no Q + K correction. In this case, the p-values originate from an F-test. 
 
-```{r}
-result <- map.QTL(phenotypes = phe,
+```{r dosage}
+result_dos <- map.QTL(phenotypes = phe,
         genotypes = dos,
         ploidy = 4,
         map = map)
 
-str(result[1:3],max.level = 2)
-str(result[[1]]$beta[1:10])
+str(result_dos,max.level = 2, give.attr = F)
 ```
 
-The results are provided in form of a nested list. Firstly, there is an element for each phenotype, and within a phenotype, we find a list with the following elements:
+The results are provided in form of a nested list. Firstly, there is an element for each phenotype, and within each phenotype there are four elements:
 
-* `beta`: a list containing the fixed effects of the model (in this order: intercept, cofactors, structure terms, genetic factors). There is a set of estimates for each marker.
-* `Ftest`: a vector containing the Ftest results for the genetic component of each model.
-* `pval`: a vector containing the p-values of the genetic model at each marker.
+* `beta`: a list containing the fixed effects of the model (in this order: intercept, cofactors, structure terms, genetic term). There is a set of estimates for each marker.
+* `Ftest`: a vector containing the Ftest results *only* for the genetic component of each model.
+* `pval`: a vector containing the p-values *only* of the genetic model at each marker.
 * `se`: a vector containing the standard error of the estimates.
 
-If instead of dosages, we provide a haplotype matrix, the result is identical, except that instead of two elements at each element of `beta`, we obtain as many estimates as haplotypes at each marker, plus the intercept:
+It is important to realize that the p-values indicate the significance of the genetic model only (p-value for the hypothesis that a marker is associated with a phenotype) and thus does not reflect the usefulness of any other parameters of the model (like structure terms or cofactors).
+
+In this case the model only contains an **intercept** and a **dosage effect**, thus the beta contains only two parameters per marker.
+```{r}
+result_dos[[1]]$beta[1:3]
+```
+
+We can take a look at the distribution of pvalues using the `skyplot()` function (see [the function description](#skyplot) for more information).
 
 ```{r}
-result <- map.QTL(phenotypes = phe,
+#We get the p-values from the results
+pv <- -log10(result_dos$phenotype_1$pval)
+skyplot(pv,map,main="QTL detection with linear model using dosages")
+```
+
+We see that due to the structure present in this dataset, the p-values using a simple linear model are not sufficient: structure corrections are needed. We will see how to implement them using [Q matrix](#q_pop) and [K matrix](#k_mat). 
+
+If instead of dosages, we provide a **haplotype matrix**, the structure of the result is identical, except that instead of two elements at each element of `beta`, we obtain as many estimates as haplotypes at each marker, plus the intercept:
+
+```{r haplo}
+result_hap <- map.QTL(phenotypes = phe,
         genotypes = hap,
         ploidy = 4,
         map = map)
 
-str(result,max.level = 2)
-str(result$pheno1$beta[1:10])
+str(result_hap,max.level = 2, give.attr = F)
+result_hap$pheno1$beta[1:3]
 ```
 
-Calculations using the haplotype model are somewhat slower, thus for the rest of this vignette we will use dosages instead, but unless the contrary is specified, both dosages and haplotypes can be used in any situation.
-
-### $Q$ population matrix
-
-The best method to correct for structure using a linear model is to apply the $Q$ matrix method, in which a set of fixed effects are added per population. See the section [genetic structure correction](#Genetic structure correction). 
-
-To add fixed effects, one can add a vector that identifies the group to which each individual belongs. This will automatically create a set of fixed effects for each population level.
+If we look at the p-value distribution we see that there is still a problem with the p-value calculation due to not accounting for genetic structure.
 
 ```{r}
-pop <- substr(rownames(phe),1,2)
+pv <- -log10(result_hap$phenotype_1$pval)
+skyplot(pv,map,main="QTL detection with linear model using haplotypes")
+```
 
-result <- map.QTL(phenotypes = phe,
+Calculations using the haplotype model are somewhat slower, thus for the rest of this vignette we will use dosages instead, but unless the contrary is specified, both dosages and haplotypes can be used in any of the situations described below.
+
+### $Q$ population matrix {#q_pop -}
+
+The best method to correct for structure *using a linear model* is to apply the $Q$ matrix method, in which a set of fixed effects are added which account for "population effects". See the section on [genetic structure correction](#gen_structure) for more information about this. 
+
+To include a $Q$ matrix in the model we can use the parameter `Q`. When a vector is provided to this parameter, it will automatically create a set of fixed effects using the different levels on this vector. For instance:
+
+```{r Q_pop}
+pop <- substr(rownames(phe),1,2)
+table(pop)
+```
+
+In this case, there are 12 different levels, depending on the ancestral group of the parents (A1, A2, A3) or the cross to which an individual belongs (C1 to C9). These identifiers group individuals based on their genetic similarity, and thus allow us to estimate effects that account for the genetic structure. 
+
+```{r}
+result_Q <- map.QTL(phenotypes = phe,
         genotypes = dos,
         ploidy = 4,
         map = map,
         Q = pop)
 
+result_Q$phenotype_1$beta[1]
 ```
 
-Note that the fixed effects provided for $Q$ are
-
-However, sometimes it's not simple to decide to which population an individual belongs. An alternative method is to use the Kinship matrix and PCoA to obtain a set of factors to identify individuals. This way, an automated set of fixed factors based on the genetic structure is defined. We can activate this behaviour by setting `Q = T`. We can choose the number of fixed factors to use with the parameter `Qpco`, which defaults to 2.
+Note that the fixed effects provided for $Q$ are added after the intercept and before the genetic effect(s).
 
 ```{r}
-result <- map.QTL(phenotypes = phe,
+pv <- -log10(result_Q$phenotype_1$pval)
+skyplot(pv,map,main="QTL detection with linear model and Q correction")
+```
+
+This time the manhattan plot looks way better, thanks to the structure correction.
+
+However, sometimes it's not simple to obtain a set of population identifiers that matches well with the genetic structure in our population. An alternative method is to use the kinship matrix $K$ and PCoA to obtain a set of factors to identify individuals. This way, an automated set of fixed factors based on the genetic structure is defined (to know more about PCoA see [introduction to PCoA](#intro_pcoa). We can activate this behaviour by setting `Q = T`. We can choose the number of fixed factors to use with the parameter `Qpco`, which defaults to 2.
+
+```{r Qpco}
+result_Qpco <- map.QTL(phenotypes = phe,
         genotypes = dos,
         ploidy = 4,
         map = map,
-        Q = T)
+        Q = T,
+        Qpco = 2)
+
+result_Qpco$phenotype_1$beta[1]
 ```
 
-
-## Mixed model
-
-To use the mixed model functionality one must provide the model with a kinship matrix. That can be achieved by setting `K = T` (which uses the internal kinship calculation, see below), or providing a kinship matrix `K = matrix`. It can also be achieved by setting `linear = F`.
-
-Importantly, K is calculated using a *sample of markers* across the genome, rather than all markers. This prevents that regions where marker density is higher contribute more to the genetic kinship than regions that are less dense. By default, 1 marker per cM, when possible, is used. This can be changed with the parameter `cM`.
+In this case there are four effects: intercept, Q1, Q2 and dosage effect.
 
 ```{r}
-result <- map.QTL(phenotypes = phe,
-        genotypes = hap,
-        ploidy = 4,
-        map = map,
-        K = T)
-
-str(result,max.level = 2)
+pv <- -log10(result_Qpco$phenotype_1$pval)
+skyplot(pv,map,main="QTL detection with linear model and Qpco correction")
 ```
 
-The result structure looks know somewhat different. Since the mixed model is solved somewhat differently than a linear model, in fact, p-values and F statistic values are *approximated* from the `wald` test values. The `real.df` gives us an indication of how approximate are we to the true p-values.
+If we look at the manhattan plot obtained with this method, we see that it's very similar to the one above! This reflects the usefulness of the "Qpco" method.
 
-### Kinship matrix
+## Mixed model {#mixed}
 
-The main feature of the unified mixed model is to include the kinship matrix $K$ in the model. To calculate K, we have included the function `calc.K()`. The result obtained has values that can go below 0 and over 1. Although this scale is somewhat strange, it allows for a very fast calculation of kinship. The interpretation of the measure is that 0 is the average relatedness between individuals in the population, and 1 is the average relatedness of an individual with itself. The parameters are:
+An alternative method of accounting for genetic structure is the use of mixed models, in which a kinship matrix $K$ takes into account the genetic structure.
+
+To use the mixed model functionality one must provide the model with a kinship matrix. That can be achieved by setting `K = T` (which uses the internal kinship calculation, see [below](#k_mat)), or providing a kinship matrix `K = matrix`. 
+
+One can also force the program to use a mixed mode by setting `linear = F`.
+
+Importantly, K is calculated using a *sample of markers* across the genome, rather than all markers. This prevents that regions where marker density is higher to contribute more to the kinship than regions that are less dense. By default, 1 marker per cM, when possible, is used. This can be changed with the parameter `cM`.
+
+```{r mixed}
+result_mix <- map.QTL(phenotypes = phe,
+        genotypes = dos,
+        ploidy = 4,
+        map = map,
+        K = T,
+        cM = 1)
+
+str(result_mix,max.level = 2, give.attr = F)
+
+pv <- -log10(result_mix$phenotype_1$pval)
+skyplot(pv,map,main="QTL detection with mixed model")
+```
+
+The result structure looks now somewhat different. Besides the results obtained before, we see a `wald` result and a `real.df`, these relate to the fact that p-values in mixed models are obtained via an *approximation* using Wald tests and realized degrees of freedom. Additionally, the `residuals` have been included for each test.
+
+```{r}
+result_mix$phenotype_1$beta[1:3]
+```
+
+Not also that in the mixed model **no intercept is calculated** and thus the effects can be interpreted as differences with the general mean. 
+
+### $K$ kinship matrix {#k_mat -}
+
+The main feature of the unified mixed model is to include the kinship matrix $K$. To calculate K, we have included the function `calc.K()`. The result obtained has values that can go below 0 and over 1. Although this scale is somewhat strange, it allows for a very fast calculation of kinship. The interpretation of the measure is that 0 is the average relatedness between individuals in the population, and 1 is the average relatedness of an individual with itself. The parameters are:
 
 * `matrix`: either a dosage matrix (markers in columns and individuals in rows), or a haplotype matrix ($p$ rows per individual, where $p$ is ploidy).
 * `haplotypes`: logical, are haplotypes present? Defaults to False.
 * `ploidy`: integer indicating ploidy. Only used if `haplotypes = T`
 
-```{r}
+```{r kinship}
 Kd <- calc.K(t(dos))
 Kh <- calc.K(t(hap),haplotypes = T, ploidy = 4)
 
+#We can visualize the matrices using heatmaps
 heatmap(Kd, Colv = NA, Rowv = NA, main = "Dosage matrix")
 heatmap(Kh, Colv = NA, Rowv = NA, main = "Haplotype matrix")
+
+#Or a bit more clearly using PCoA plots
+pcoa.plot(Kd,col = pop, main = "Dosage matrix")
+pcoa.plot(Kh,col = pop, main = "Haplotype matrix")
 ```
 
-Although the values within each matrix are somewhat different, the overall structure estimated with the matrices is equivalent. 
+Although the values within each matrix are somewhat different, we can see using heatmaps and PCoA plots that the overall structure estimated with the matrices is equivalent. For more information on the PCoA plots see [the function description](#pcoa) 
 
-Alternatively, other types of kinship/distance matrices can be provided to the mixed model, in case `calc.K()` does not provide satisfactory results
+If it is desired, other types of kinship/distance matrices can be provided to the mixed model, in case `calc.K()` does not provide satisfactory results. To do so, it is sufficient to indicate `K = matrix` in the `map.QTL()` parameters.
+
+## Covariates and cofactors {#cov_and_cof}
+
+Sometimes extra variables might help us explain the phenotypic variation in our datasets. Depending on whether they are *numerical* or *categorical* variables, they can be called *covariates* or *cofactors*, respectively. In the `map.QTL()` function we have included the possibility of adding additional variables to the model through the parameters:
+
+* `cofactor`: a vector or matrix where each column is a cofactor/covariate.
+* `cofactor.type`: vector with one character string per column in the cofactor matrix, containing either "numerical" or "categorical". If numerical, the variable is used as a regressor in the model and a single extra effect will be added, thus the covariate must be numerical. If categorical, an incidence matrix is created using each unique value of the categorical variable, thus the cofactor can be numerical/character. 
+
+In our dataset we have a phenotype with a categorical cofactor effect. We can see the usefulness of including such parameter to the QTL analysis by looking at the differences in p-values.
+
+```{r cofactor}
+table(cof)
+
+result_cof <- map.QTL(phenotypes = phe,
+        genotypes = dos,
+        ploidy = 4,
+        map = map,
+        K = T,
+        cofactor = cof,
+        cofactor.type = "categorical")
+
+without_cofactor <- -log10(result_mix$phenotype_2$pval)
+with_cofactor <- -log10(result_cof$phenotype_2$pval)
+comp.skyplot(list(without_cofactor,with_cofactor),map,legnames = c("No cofactor","Cofactor"),
+             main = "QTL detection with and without cofactor")
+```
+
+To see how to create comparative skyplots see the [`comp.skyplot()` function](#compskyplot)
 
 ## Permutation threshold
 
-In order to calculate a significance threshold, a permutation test has been added. This tests allow us to find what is the "average"" level of significance in this dataset by permuting phenotypes and genotypes. All significances above this threshold are more likely than random. Since to obtain the threshold, essentially the mapping process is repeated, the calculation takes quite some time. With a few permutations we can already obtain a decent estimate, but generally, the more permutations the more accurate. 
+In order to calculate a significance threshold, a permutation test can be performed which allows us to find what is the "average"" level of significance in this dataset by permuting phenotypes and genotypes. To obtain the threshold the QTL mapping process is repeated multiple times, which takes quite some time. For our example we will use only 10 permutations, but generally, the more permutations the higher the accuracy.
 
 There are three parameters for threshold calculation:
 
@@ -214,46 +312,307 @@ There are three parameters for threshold calculation:
 * `permutation`: either "pop" or "fam", determines the permutation strategy. If "pop", it permutes over the whole population, and if "fam", only within families. If there is a strong family structure, the "fam" strategy will produce more accurate thresholds.
 * `alpha`: number between 0 and 1, indicating for which probability should the threshold be calculated. Defaults to 0.95 (i.e. a maximum of 5% of false positives).
 
-```{r}
-result <- map.QTL(phenotypes = phe,
+```{r perm}
+result_perm <- map.QTL(phenotypes = phe,
         genotypes = dos,
         ploidy = 4,
         map = map,
-        nperm = 10)
+        Q = T,
+        permutation = "pop",
+        nperm = 10,
+        alpha = 0.95)
 
-str(result,max.level = 2)
+str(result_perm,max.level = 2,give.attr = F)
 ```
 
-Now a permutation threshod (`perm.thr`) is included in the output and can be used to determine significant markers.
+Now a permutation threshod (`perm.thr`) is included in the output and can be used to determine significant markers. We can use it and plot it in the `skyplot()` as well.
+
+```{r}
+pv <- -log10(result_perm$phenotype_1$pval)
+thr <- result_perm$phenotype_1$perm.thr
+
+skyplot(pv,map,threshold = thr,main = "QTL detection with permutation test")
+```
+
 
 ## Imputation of missing values
 
-In general, few missing values should be included both in phenotypes and genotypes. The functions, however, are well adapted to some missing values. Part of this adaption is the possibility of imputing genotypes using a k-nearest neighbours (knn) approach. That is, for each missing value, the $k$ most correlated individuals at that genetic region are taken, and a consensus genotype is obtained to fill in the missing data. If nothing is specified, `map.QTL()` will try to impute the missing genotypes, although in some cases it might decide it does not have enough information to reach a genotype.  
+In general, few missing values should be included both in phenotypes and genotypes. The functions, however, are well adapted to handle missing values. Part of this adaption is the possibility of imputing genotypes using a [k-nearest neighbours (knn) approach](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm). That is, for each missing value, the $k$ most correlated individuals at that genetic region are taken, and a consensus genotype is obtained to fill in the missing data. If nothing is specified, `map.QTL()` will try to impute the missing genotypes, although in some cases it might decide it does not have enough information to accurately impute a genotype.  
 
 To control the behaviour of the imputator use:
 
 * `impute`: logical, should missing genotypes be imputed?
 * `k`: integer, how many neighbours should be used for imputation? Defaults to 20.
 
-```{r}
+```{r imputation}
 dos_NA <- dos
 dos_NA[sample(1:length(dos),2000)] <- NA
-result <- map.QTL(phenotypes = phe,
+result_NA <- map.QTL(phenotypes = phe,
         genotypes = dos_NA,
         ploidy = 4,
         map = map,
-        nperm = 10,
-        permutation = "pop")
+        Q = T)
 
-str(result,max.level = 2)
+str(result_NA,max.level = 2,give.attr = F)
 ```
+
+We see that the calculations have worked well and the skyplot looks good as well.
+
+```{r}
+pv <- -log10(result_NA$phenotype_1$pval)
+skyplot(pv,map,main = "QTL detection with missing genotypes")
+```
+
 
 ## Advanced features
 
 Some extra parameters allow to modify the behaviour of certain parts of `map.QTL()`. These parameters include:
 
-* `no_cores`: integer specifying the number of cores to use for parallel computing. Defaults to 1 - number of cores in the machine. If running on a server or computer cluster, this parameter should be specified to avoid asking for too many cores.
-* `approximate`: by default, the **mixed model** solution is achieved using an algorith called P3D or EMMAX, which essentially approximates part of the calculation which is very similar, but not identical, between markers. By doing that, the speed of computation is greatly increased, at a practically null cost of accuracy. If that needs to be deactivated, one can set `approximate = F`.
-* `K_identity`: logical. If True, it forces to use a mixed model that **does not** correct for genetic structure, but where the K matrix is used for other purposes.  
+* `no_cores`: integer specifying the number of cores to use for parallel computing. Defaults to number of cores in the machine - 1. If running on a server or computer cluster, this parameter should be specified to avoid asking for too many cores.
+* `approximate`: by default, the **mixed model** solution is achieved using an algorith presented paralelly as [P3D](https://www.nature.com/articles/ng.546) or [EMMAX](https://www.nature.com/articles/ng.548), which essentially approximates part of the calculation between markers which is very similar, but not identical. By doing that, the speed of computation is greatly increased, at a practically null cost of accuracy. If this approximation needs to be deactivated, one can set `approximate = F`.
+* `K_identity`: logical. If True, it forces to use a mixed model that **does not** correct for genetic structure, but where the K matrix is used for other purposes (NA imputation, Qpco...).  
+
+# Visualisation
+
+Let us now discuss the visualization functions included in `mpQTL` as well as their interpretations. The visualizations provided include:
+
+1. Principal Coordinate Analysis (PCoA) plots 
+2. Quantile-quantile plots (QQ-plots)
+3. Manhattan plots (labelled as skyline plots)
+4. Phenotype boxplots based on SNP or haplotype dosage
+
+We can distinguish betwen those visualizations useful **before** the QTL analysis (1), those useful to **understand** the QTL analysis (2 and 3), and finally those that help us **dissect** the results of the QTL analysis (4).
+
+## Principal Coordinate Analysis 
+
+### Introduction to PCoA {#intro_pcoa -}
+
+How does one plot multidimensional data in a 2D space? The answer is simple: multidimensional scaling (MDS)! The definition of MDS, however, is not so simple, so let us not focus on the maths behind it but on their interpretation. MDS methods are a family of scaling procedures that allow to reorganize the variance of a matrix. The most widely known of these methods is Principal Coordinate Analysis (PCoA), of which Principal Component Analysis (PCA) is a special case. We will focus on PCoA for our purposes.
+
+PCoA can intuitively be understood. Each vector in a matrix provides an amount of information that relates to the variance of that vector. However, if two vectors are correlated, they are providing the same information twice, thus, they are not adding more variance to the data matrix. However, there are mathematical procedures (*matrix decomposition*) that allow us to obtain uncorrelated vectors (named *principal components, PC*) from a matrix of correlated vectors. Thus, these methods allow us to obtain a matrix where each vector provides unique information. Furthermore, we can calculate the amount of original information that each vector represents (*percentage of explained variance*). This measure is then used to order the PCs, so that the first component, PC1, is the one containing the most information, followed by the second, etc. 
+
+So, from a complex matrix where each vector has some degree of correlation with the other vectors, we can obtain a PC matrix where each vector is uncorrelated and contains as much of the original information as is possible. Thus, if the first 2 components contain, together, 60% of the total variance, we can visualize most of the information in the original matrix in a 2D space!
+
+#### PCoA for genetic data {-}
+
+The genetic similarity between individuals can be expressed with a $n \times n$ distance matrix. For each pair of individuals $i$ and $j$ we can calculate a similarity or distance measure and store it in the $d_{ij}$ cell of the matrix (and also at $d_{ji}$). Distances are larger the more *different* two individuals are, while similarities are larger the more *similar* two individuals are. However, for the purposes of PCoA, using one or the other measure does not affect the outcome.
+
+There exist multiple methods for calculating genetic distances/similarities, but in the `mpQTL` package we have included a function named `calc.K()` which produces a similarity matrix of individuals. Other distance measures are implemented in R through the function `dist()`, which includes multiple methods. Once the distance/similarity matrix is obtained, by calculating its principal components, we can visualize the structure (if there is any) within the population.
+
+### The function {#pcoa -}
+
+We have included a function, `pcoa.plot()` that calculates the principal components and variance percentages (using R's own `prcomp()` function) and uses them to plot whatever components are desired (1 and 2 by default). It also includes a little function to add colour to these plots to help dissect the structure. The arguments of `pcoa.plot()` include:
+
+* `K`: any distance/similarity matrix.
+* `comp`: numeric vector of length 2. The principle components to be used for plotting. A PCoA generates as many components as dimensions had the original distance matrix. They are ordered by their explanatory value (components 1 and 2 will always be the most explanatory). The amount of explained variance of each is always present in the `xlab` and `ylab` of the plot.
+* `col`: unlike in most functions, in this case the parameter `col` is expected to be a vector with values (categorical or numeric) that will be used to plot colours upon the scatter plot. For instance, if 5 observations are provided, one can provide a col vector that defines to which population each individual belongs (e.g. c("pop1","pop1","pop2","pop2","pop3")) in which case three colours will be chosen and applied to the points. If a numerical variable is used, a similar process will be followed, obtaining a gradient of colour for the variable. 
+* `plot_legend`: logical, whether the legend should be plotted.
+* `legspace`: numeric, indicating the amount of space to leave for the legend. In case a grouping is provided, a legend will be plotted to the right of the plot. In order not to overlap with the plot, additional space is added to the right of the plot. The parameter `legspace` controls the amount of space left as a proportion to the range of x values. By default, it takes the value of 0.1 (10% of extra space).
+* `legname`: the legend names for the colours chosen, automatically taken from `col` if not specified.
+
+```{r pcoa}
+#calculate the similarity matrix K
+K <- calc.K(t(dos))
+
+#We must transform the result of dist into a matrix to use it with pcoa.plot()
+euc <- as.matrix(dist(t(dos),method = "euclidean"))
+
+pop <- substr(colnames(K),1,2)
+
+pcoa.plot(K,col = pop,
+          pch=19,main="PCoA plot of K (similarity)", h = c(0,360))
+
+pcoa.plot(1-K,col = pop,
+          pch=19,main="PCoA plot of 1-K (distance)", h = c(0,360))
+
+pcoa.plot(euc,col = pop,
+          pch=19,main="PCoA plot of Euclidean distance", h = c(0,360))
+
+#If we want to, we can choose different components of the PCoA, for instance the
+#second and third
+pcoa.plot(K,col = pop,comp = c(5,6),
+          pch=19,main="PCoA plot of K (similarity)", h = c(0,360))
+```
+
+### Interpreting PCoA {-}
+
+PCoA plots are interesting but tricky to interpret, let's have a look at them.
+
+A PCoA plot contains a single point for each individual, and *generally* the closer two points are, the more similar these individuals are. Generally, the sign and dimensions of the axis are meaningless, so there is no need to worry about them. That also means that two mirrored images in a PCoA are equivalent. It is crucial, as well, to look carefully at the percentage of explained variance of each PC, as this is an indication of the relative importance of that axis in comparison to the original matrix. Let's look at the PCoA plots above. 
+
+All plots show results of a PCoA obtained from the same dosage matrix (`dos`). This dosage matrix contains information about 459 individuals of which 9 are parents and 450 are offspring between pairs of parents. Moreover, this 9 parents originate, in fact, from 3 different natural populations (labelled A1, A2 and A3). Additionally, the offspring of each cross has been labelled as C1 to C9. We see how all siblings end together in the plot, while the parents are separated from each other. Although it is hard to see from these plots, each offspring is situated between its two parents, indicating that, genetically, they are a "middle point" between the two. 
+
+The first three graphs show the result of three different types of genetic distance/similarity measures, and highlight that the three provide equivalent (yet not exactly the same) results. The graphs cover aproximately 73%, 73% and 65% of the total variance respectively, and thus represent very well the whole distance/similarity matrix. Note that here we have unusually high variance components because we are using **simulated data**, normally we would expect somewhere between 20-40% of explained variance in total. All plots show the same structure, even though the orientation might change between them. 
+
+The last graph, however, is very different! We chose to plot components 5 and 6. Together, they explain roughly 3% of the variance. Nevertheless, there seems to be some patterns in the plot, suggesting some similarities between crosses due to overlapped clouds, but these patterns *are not* trustworthy. PCoA's are tricky to interpret because in many instances they will generate pattern-looking clouds, and we, as humans, are very good at finding patterns even in random noise, especially if we are trying to find something. However, in this case, the percentage of explained variance is so small, that the distribution of points in this plane is likely to be meaningless. 
+
+Although this might seem obvious here, there are many scientific papers where, aiming to support their original hypothesis, very unclear PCoA plots are over-interpreted without any statistical solidity, leading to weakly supported claims. A good rule of thumb for PCoA plots then, is to always look for high variance components and for **clear patterns**, rather than obscure interpretations of abstract shapes. 
+
+## P-value visualization
+
+In a QTL analysis some type of significance score is obtained along the genome, either continuously (typically LOD scores) or at discrete marker positions (typically a p-value). In the model implemented in `mpQTL`, significances are expressed as p-values, discretely along the genome. We can study the p-values in two different ways: looking at their overall distribution using Quantile-Quantile plots (QQ-plot) or plotting the significance scores along the genomic map (Manhattan plot, skyline plot in `mpQTL`).
+
+### Quantile-Quantile plot {-}
+
+QQ-plots are useful for determining whether the p-value distribution of a QTL analysis (y axis) follows the expected distribution (x axis). In this case, the expected distribution corresponds to a null hypothesis where there are **no truly significant markers** (there are only a few false positives). This expectation can be seen in the plot with a red diagonal line. 
+
+#### The function {-}
+
+The function `comp.QQ()` can be used to generate QQ-plots of one or multiple vectors of p-values. Each vector of p-values can be given as a column in a matrix or as an element of a list. The number of p-values in each vector does not matter. A single set of p-values can also be provided.
+
+```{r qq_plot}
+#The p-values are from 500 random normal values
+not_sig <- pnorm(rnorm(500),lower.tail = F)
+
+#The p-values are from some random normal values and some non-random
+some_sig <- pnorm(c(rnorm(450),rnorm(50,mean = 3)),lower.tail = F)
+
+#The p-values are all too significant
+high_sig <- pnorm(rnorm(500,mean=3),lower.tail = F)
+
+#The p-values are all too non-significant
+low_sig <- pnorm(rnorm(500),sd = 3,lower.tail = F)
+
+pvals <- list(not_sig,some_sig,high_sig,low_sig)
+QQ.plot(pvals,main="Example QQ-plot",
+        legnames = c("Not significant",
+                     "Good significant",
+                     "Overestimated",
+                     "Underestimated"))
+```
+
+A *legend* is automatically added, but can be deactivated using the argument `plot_legend = F`, and the legend names are extracted from the column names or list element names. In case no names are provided, they're labelled as "pval 1", "pval 2", etc. This can also be changed with the argument `legname` and giving a vector of names.
+
+#### Interpreting QQ plots {-}
+
+Our aim when looking at a QQ plot is to evaluate whether the p-values follow an expected p-value distribution, and if they don't, evaluate whether the deviations are due to modelling problems or the detection of a QTL. Above we have plotted four situations, let's have a look at them:
+
+1. **Not significant**: the p-values follow the trend line, there are no more significant tests than expected by chance.
+2. **Good significant**: the p-values follow the trend line for most of the points (these points correspond to non-significant markers), except at the tail, where it goes above the trend line (very significant markers). This indicates that most markers are behaving according to the null hypothesis (no QTL), and only some deviate, and they deviate more than just by chance. 
+3. **Overestimation**: in some cases due to modelling problems (data is not good, genotyping is biased...) the p-values might be systematically **too significant**. In this case we will see the p-value distribution go above the expectation line for most of the plot. This indicates a high chance of false positives and overestimation of significance (i.e. detected QTLs are likely to be false positives).
+4. **Underestimation**: in some cases our modelling approach might produce p-values that are systematically **too low**. In this case we will see the p-value distribution go below the expectation line. This indicates a high chance of false negatives and underestimation of significance (i.e. QTLs might exist but will not be detected). 
+
+Lastly, we might be able to apply multiple models to the same data (for instance, including extra cofactors), producing different results. We are then forced to choose which model to trust, which might be difficult if there are no obvious differences between the models suitability. We might then use QQ plots to compare the distributions of multiple models to evaluate whether we are in one of the previously described scenarios with any of the models. 
+
+### Skyline plot {#skyplot -}
+
+Probably the most relevant plot for QTL mapping is the "Manhattan plot", named as such due to its structure, which can remind of the skyline of of the famous skyscraper district of New York. In this package, we have opted to name the function `skyplot()`, following the visual metaphor. 
+
+A Manhattan plot is a form of marker significance visualization that helps us recognise regions where multiple significant markers co-locate around a region, defining a QTL location. On the x-axis the marker's position in the genome (physical or genetic) and on the y-axis, the marker's significance. Generally, significance is expressed as $-log10(pval)$, but any other score will do, as long as it follows that more significant markers have higher scores, and less significant markers have lower scores (for instance a Wald score or F-test). 
+
+#### The function {-}
+
+To generate the visualization one must provide both p-values and a genetic/physical map. The `skyplot()` function has the following arguments:
+
+* `pval`: vector of pvalues. Importantly, the function `-log10()` must be performed by the user. This has been done on purpose, as we might want to plot other kind of score values with this function that do not require the -log10 transformation.
+* `map`: a genetic map data.frame with at least columns "position" and "chromosome".
+* `threshold`: numeric, optional value to draw a threshold line.
+* `chrom`: numeric or character vector. If provided, it is used to select the p-values based on the "chromosome" column of `map`.
+* `small`: logical, should the cM scale be drawn? By default it will only be drawn if only two or a single chromosome are plotted, otherwise it is too crowded and barely legible.
+* `...`: other parameters can be passed to the `plot()` function. The most relevant is probably `main` for the plot title.
+
+```{r skyplot}
+#Just a skyline plot
+skyplot(sample_pv,map = map,main="Example Skyline plot")
+
+#We want to focus on chromosome 2
+skyplot(sample_pv,map,chrom = 2,main ="Skyline lot of chromosome 2",threshold = 3.6)
+
+#The "chromosomes" can also be expressed as characters
+map_letters <- map
+map_letters$chromosome <- LETTERS[map_letters$chromosome]
+
+skyplot(sample_pv,map_letters,main="Skyline plot where chromosomes are characters",
+        chrom = c("B","D"),small = T)
+
+```
+
+#### Comparative skyline {#compskyplot}
+For our research, we wanted to compare the skyline plots of multiple models, namely the haplotype-based and dosage-based models. For that reason, another skyline plot function was developed: `comp.skplot()`. The function is used in a very similar fashion, with some differences:
+
+* `pval`: each p-value vector must be provided as a column in a matrix or a vector in a list. 
+* `map`: a map must be provided for each set of p-values. If a single map is provided, it will be assumed that all p-value vectors correspond to the same map. For the moment, we have not tested what happens if each map has a different set of chromosomes (i.e. map1 has chromosomes 1, 2 and 3 and map2 has chromosomes 1, 2 and 4), that might cause conflicts.
+* `chrom`: similarly, we have not tested what would happen if chromosomes are selected that are present only in one of the two maps. 
+* `legnames`: a vector of names for the legend elements. If not provided, it will be read from the pvalue list, and if the list has no names, it will be simply labelled pval 1, pval 2, etc.
+
+```{r comp_skyplot}
+comp.skyplot(list(sample_pv,sample_pv2),map,main = "Comparison of two p-value distributions",threshold = 4)
+```
+
+#### Interpreting skyline plots {-}
+
+Skyline plots are very easy to interpret since they are so intuitively eloquent. The higher the peak, the more significant a marker/region is, the stronger the QTL effect must be on the trait in question. 
+
+To define a **QTL region** we use a threshold, which for the moment we are calculating using a permutation threshold, which accounts for multiple testing. All markers above the threshold should be considered significant, and thus we can define a QTL region in every place where a series of close markers are above the threshold. 
+
+One can **compare skyline plots** between different phenotypes to see if the same or similar region are detected using different phenotypes, since that might indicate that a single QTL has effect on both traits. 
+
+## Phenotype boxplot
+
+It is useful to correlate the dosage of a single marker with the value of a phenotype, as sometimes that can reveal "dosage effects". In order to simplify the process of generating such boxplots, we have created a wrapper that makes them using dosages or haplotypes. Let us see how. 
+
+### The function {-}
+
+There is a single function, `pheno_box()` that can use two different methods, either for dosages or for haplotypes, by changing the parameter `haplotype` (False by default). Some parameters behave identically no matter what the value of `haplotype` is:
+
+* `phe`: is a numerical vector of phenotypes
+* `gen`: if `haplotype = F`, `gen` should be a numeric vector of dosages with a single observation per individual. `If haplotype = T`, `gen` should be a vector with $p$ numeric/character observations per individual where $p$ is the ploidy, and each observation is a haplotype class (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...).
+* `draw.points`: is a logical that indicates whether points should be drawn.
+* `...`: further arguments to be passed to `plot()`
+
+When `haplotype = T` other parameters can be used:
+* `ploidy`: is an integer indicating the ploidy.
+* `hap.select`: is a vector of numeric/character indicating which haplotypes should be plotted.
+
+```{r phe_box}
+#We choose 1134 because it's the most significant marker in our QTL analysis
+gen_dos <- unlist(dos[1134,])
+gen_hap <- unlist(hap[1134,])
+
+pheno_box(phe[,1],gen_dos,
+          xlab="Dosage",ylab="phenotype",main="A boxplot of dosages")
+
+#But now there are too many things plotted and I can't see anything
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages")
+
+#This is better but still too many boxes
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,draw.points = F,
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages (no points)")
+
+#This is better
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4, hap.select = c(57,37,69,46,23),
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of some haplotype dosages")
+```
+
+## Colour choice
+
+The colour system of the visualization functions in the mpQTL package is a bit different than the default methods that most R plots include. To perform colour choice we use the package `colorspace`, which uses the HCL (hue, colour tone; chroma, colour intensity; and luminance, colour lightness) system to define colour. This package has been designed with data visualization in mind and offers great functionalities for intelligent and effective colour choice. If you are interested, I highly recommend visiting their [web page](http://colorspace.r-forge.r-project.org/), where they explain the package and many important concepts of colour theory and design. 
+
+For our purposes, there are two main types of colour palettes we can make: **qualitative** or **sequential**. The first type of palette chooses different *hues* of colour (red, green, blue...) while the second one chooses different *luminances* (from dark to light) of the same hue. Additionally, **divergent** colour palettes can be used, which set middle values to white and extreme values to two opposing hues, allowing us to highlight extreme values. Which palette type whe choose will depend on the data we try to visualize:
+
+* In *categorical variables* all categories are of equal importance, and thus a *qualitative* palette will be most useful. However, if there are more than 7 categories, it is advised to avoid qualitative palettes with many hues and instead use *sequential* palettes, since with 8 or more colours it is hard to keep track of all categories and distinguish all hues.
+
+* With *numerical variables* that are ordered, *sequential* palettes, are the most useful. Our eyes will instinctively give the most importance to the darker colours, and thus these palettes are useful to highlight very high or very low values. Also, when there are many categories, sequential palettes can be used to avoid having many colours. If we are using values that can be very negative or very positive (like temperatures), *divergent* palettes might be the most useful.
+
+There are other types of palettes that can be useful, but we will not discuss them here. 
+
+### The function {-}
+
+In all plotting functions, two extra parameters can be chosen: 
+
+* `coltype`: standing for colour palette type, we can choose between "sequential", "qualitative", "divergent" or "rainbow". 
+* `h`: one or two numerical values, standing for hue. The values are degrees within the colour wheel, and thus values between 0 and 360 are recommended, where 0 and 360 are the same. For a colour reference you can use `hue_wheel()` which produces the plot below.
+* `l`: one (for qualitative) or two (for sequential) numerical values. This controls the lightness of the colours, by default set to 60. Values should be between 20 and 100, below or above the results will be unexpected.
+
+```{r hue_wheel,echo = F,fig.show="hold",fig.height=5,fig.width=5,out.width=340}
+for(l in c(40,60,80,100)){
+  hue_wheel(l=l)
+}
+```
+
+With this system, changing the colours of any plot is pretty straight-forward. You can specify a different pair of values for `h`, to create a gradient between these two colours (in qualitative palettes) or a single `h` for sequential palettes. To switch between sequential and qualitative palettes simply change the `coltype` parameter. If you would like a stronger light-dark contrast in sequential palettes, choose more extreme `l` values, `c(20,90)` by default, or if you would like less contrast, choose closer values. For qualitative palettes, you can use this parameter to obtain lighter, or darker colours. 
+
+As a final note, since the colours are expressed in degrees, 0, 360, 720 and 1080 all refer to the same hue: red. If you set a qualitative gradient between 0 and 10, the palette will start at red and end at a very similar red (so all colours will be very similar). If, instead, you give 0 and 370 as the `h` value, the colours will start and end at these reds, but going through the whole colour wheel, giving a sort-of rainbow palette. 
 
 

@@ -435,9 +435,9 @@ comp.skyplot<-function(
     mp <- new_maps[[i]]
     col <- cols[i]
 
-    lightcol <- lighten(col)
-    chrom_col <- sapply(mp$chromosome,function(m) which(m == unique(mp$chromosome)))
-    col <- c(lightcol,col)[chrom_col%%2+1]
+    # lightcol <- lighten(col)
+    # chrom_col <- sapply(mp$chromosome,function(m) which(m == unique(mp$chromosome)))
+    # col <- c(lightcol,col)[chrom_col%%2+1]
 
     points(mp$axis,pv,pch=19,col = col)
   }
@@ -524,8 +524,9 @@ draw_chrom_axis <- function(ch_start,ch_end,chrom,small=F){
 #' @param add Logical, whether to add the points to the current plot (using points()),
 #' or make a new plot.
 #' @param legend Logical, whether legend should be plotted.
-#' @param legpos Text string indicating the position of the legend. "topright",
-#' "topleft", "centre"... See \code{legend} for more information.
+#' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
+#' to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
+#' names are very long, increase this number to tweak the amount of space left to the right.
 #' @param ... Additional parameters to be passed to the \code{plot()} or \code{points()}
 #' method.
 #'
@@ -541,7 +542,7 @@ pcoa.plot <- function(
   coltype=NULL,
   h=NULL,
   l=NULL,
-  legpos="topright",
+  legspace = 0.1,
   legname = NULL,
   pch=19,
   ...
@@ -570,7 +571,12 @@ pcoa.plot <- function(
     pch <- pch[id %*% 1:ncol(id)]
   }
 
-  plot(pc$rotation[,comp],col=cols,pch=pch,...,
+  if(!plot_legend) legspace <- 0
+
+  xlim <- range(pc$rotation[,comp[1]])
+  xlim[2] <- xlim[2] + legspace*(xlim[2] - xlim[1])
+
+  plot(pc$rotation[,comp],col=cols,pch=pch,...,xlim = xlim,
          xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
 
   if(plot_legend){
@@ -579,7 +585,7 @@ pcoa.plot <- function(
 
       pch_1 <- pch[!duplicated(col)][order(unique(col))]
 
-      legend(legpos,
+      legend("topright",
              legend = legname,
              col = unique(cols)[order(unique(col))],bty="n",
              pch = pch_1)
@@ -713,7 +719,7 @@ pheno_haplo <- function(
   #We draw the boxplots
   boxplot(boxlist,at = at,outline = F,
           border = col,axes = F,
-          ylim=range(pretty(range(phe))),...)
+          ylim=range(phe),...)
 
   #We add the observation points
   if(draw.points){
@@ -857,7 +863,7 @@ axis_wheel <- function(res, cen = c(0,0),r=1,...){
   angles <- seq(0,2*pi,length.out = res +1)[-(res+1)]
   loc <- angle2coord(angles,cen,r)
 
-  text(loc*1.2,labels = paste0(angles*360/(2*pi),"deg"),xpd = T) # something wrong with the symbol for degree, when building the3 package
+  text(loc*1.2,labels = paste0(angles*360/(2*pi)),xpd = T) # something wrong with the symbol for degree, when building the3 package
   ticks <- cbind(loc*1.05,loc*1.1)
   segments(ticks[,1],ticks[,2],ticks[,3],ticks[,4],...)
   circle(r = 1.05)
