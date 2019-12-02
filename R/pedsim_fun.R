@@ -5,7 +5,7 @@
 #' program using R-style programming, a series of functions have
 #' been developed.
 #'
-#' Developed by Alejandro Thérèse Navarro
+#' Developed by Alejandro Therese Navarro
 #' October 2019
 
 makedir <- function(folder){if(!dir.exists(folder)){dir.create(folder)}}

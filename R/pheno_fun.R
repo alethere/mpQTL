@@ -6,7 +6,7 @@
 #'  - Applying these effects to obtain heretability-controlled phenotypes and rescaled
 #'    effects.
 #'
-#'  Developed by Alejandro Thérèse Navarro
+#'  Developed by Alejandro Therese Navarro
 #'  October 2019
 
 link_NAM <- function(#function to connect ancestral founder alleles and NAM alleles

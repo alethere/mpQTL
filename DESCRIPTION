@@ -19,7 +19,7 @@ Description: mpQTL offers a suite of functions to perform QTL analysis using
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.0
+RoxygenNote: 7.0.1
 Imports:
     colorspace (>= 1.4),
     parallel

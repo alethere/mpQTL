@@ -1,23 +1,27 @@
 # QTL mapping functions ---------------------
 
-#' This file includes functions for mapping QTLs using GWAS association model.
-#' The association model has been adapted to use in different ploidies, and can
-#' use SNP-dosage matrix or haplotype matrices to perform the GWAS analysis.
-#' The GWAS model is implemented both as a linear and mixed model, with the
-#' approximation known as P3D/EMMAX, which greatly reduces time usage.
-#' Additionally, the program can easily handle cofactors and various
-#' parameter specifications. Inspirations for this program include:
-#'   - Unified mixed model (Yu et al 2006)
-#'   - GWASpoly (Rosyara et al 2012)
-#'   - mppR (Vincent Garin 2019)
-#'
-#' Developed by Alejandro Thérèse Navarro & Giorgio Tumino
-#' October 2019
+# This file includes functions for mapping QTLs using GWAS association model.
+# The association model has been adapted to use in different ploidies, and can
+# use SNP-dosage matrix or haplotype matrices to perform the GWAS analysis.
+# The GWAS model is implemented both as a linear and mixed model, with the
+# approximation known as P3D/EMMAX, which greatly reduces time usage.
+# Additionally, the program can easily handle cofactors and various
+# parameter specifications. Inspirations for this program include:
+#   - Unified mixed model (Yu et al 2006)
+#   - GWASpoly (Rosyara et al 2012)
+#   - mppR (Vincent Garin 2019)
+#
+# Developed by Alejandro Therese Navarro & Giorgio Tumino
+# October 2019
 
 #Main wrapper -------------------------
 
 
 #' QTL mapping of a matrix of phenotypes
+#'
+#' @description Main function and wrapper for QTL analysis in polyploids using
+#' biallelic or multiallelic markers. For a full description of the function please
+#' see the official vignette.
 #'
 #' @param phenotypes A numeric matrix of phenotypes,
 #' rows are individuals and columns are different phenotypes.
@@ -73,7 +77,7 @@
 #' needs to be improved and with few missing values it has a small effect
 #' on QTL detection)
 #' @param nperm number of permutations, if \code{permutation} is not null.
-#' @param k Number of neighbours to use in \code{\link{impute.knn}}
+#' @param k Number of neighbours to use in the internal function \code{impute.knn}
 #' @param linear logical. If True, linear model (without structure correction)
 #' is applied. If False, mixed model (with structure correction) is applied. If
 #' not specified, it looks at the value of K, and only applied linear model
@@ -84,29 +88,10 @@
 #' purposes (e.g. imputation of missing genotypes, calculation of the Q matrix)
 #'
 #' @return a pvalue matrix containing the pvalue of each marker with each phenotype passed.
-map.QTL<-function(
-  phenotypes,
-  genotypes, #genotype matrix
-  ploidy,
-  map, #genetic map table
-  K=NULL, #distance matrix
-  Q=NULL, #population effect matrix
-  Z=NULL,
-  cofactor=NULL,
-  cofactor.type=NULL,
-  cM=1, #
-  seed=NULL,
-  Qpco=2, #number of axis used for pco decomposition
-  no_cores=parallel::detectCores()-1,
-  approximate = T,
-  permutation = NULL, #permutation strategy: "pop" or "fam"
-  nperm = 1000, #number of permutations
-  alpha = 0.95,
-  impute=T,
-  k=20,
-  linear = NULL,
-  K_identity = F
-){
+map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, cofactor=NULL,
+                   cofactor.type=NULL, cM=1, seed=NULL, Qpco=2, no_cores=parallel::detectCores()-1,
+                   approximate = T, permutation = NULL, nperm = 100, alpha = 0.95, impute=T, k=20,
+                   linear = NULL, K_identity = F ){
 
   if(is.null(linear)){
     if(is.null(K)){
@@ -554,13 +539,16 @@ map.QTL<-function(
 
 #' Calculation of realized distance matrix (K)
 #'
-#' @description Using dosage scores, a distance matrix is calculated
+#' @description Using dosage or haplotype scores, a distance matrix is calculated
 #' such that the average distance of an individual with itself is 1, and
 #' the average with an unrelated individual is 0. Based on the "Realized
-#' Relationship" model found in \href{https://dl.sciencesocieties.org/publications/tpg/abstracts/9/2/plantgenome2015.08.0073}
-#' {Rosyara et al. 2016}
+#' Relationship" model found in \href{https://dl.sciencesocieties.org/publications/tpg/abstracts/9/2/plantgenome2015.08.0073}{Rosyara et al. 2016}
 #'
 #' @param matrix Numeric matrix with individuals on rows and markers on columns.
+#' @param haplotypes logical, whether haplotypes are present in the matrix. If T,
+#' a matrix is expected to have p columns per individual, where p is ploidy.
+#' @param ploidy integer, the ploidy number p of all individuals. Only used if
+#' haplotypes = T.
 #'
 #' @return A numeric matrix nxn where n is the number of rows.
 #' @export
@@ -572,13 +560,13 @@ map.QTL<-function(
 #' #Put them in a matrix or data.frame with individuals in rows
 #' geno <- do.call(rbind,inds)
 #'
+#' #K matrix of 10 individuals (each row is one individual)
 #' K<-calc.K(geno)
 #'
-calc.K<-function(
-  matrix,
-  haplotypes=F,
-  ploidy=NULL
-){
+#' #K matrix of 2 individuals (every 5 rows is one individual)
+#' K <- calc.K(geno, haplotye = T, ploidy = 5)
+#'
+calc.K <- function(  matrix,  haplotypes=F,  ploidy=NULL){
   #When haplotypes are given we can still perform K!
   if(haplotypes){
     if(is.null(ploidy))
@@ -604,21 +592,17 @@ calc.K<-function(
 
 #' Calculate a Q design matrix based on a vector
 #'
-#' @description Using a vector of values as input, it creates a cofactor
+#' @description Using a vector of values as input, it creates a normalized cofactor
 #' design matrix (\eqn{Q}) that identifies each individual as belonging to a group.
 #'
 #' @param pop Vector where each element is a population identifier
 #' @param names Optional. A vector of names for the \eqn{Q} matrix
+#' @keywords internal
 #'
-#' @return A matrix with as many columns as population groups
+#' @return A normalized matrix with as many columns as population groups
 #' [ncol=unique(pop)] identifying each individual belonging to
 #' one population.
-#' @export
-#'
-#' @examples
-calc.Q<-function(
-  pop, #vector identifying a population
-  names=NULL #optionally, a vector defining the names
+calc.Q<-function(pop, names=NULL
 ){
   match <- 1*sapply(unique(na.omit(pop)),function(x) x==pop)
 
@@ -629,22 +613,31 @@ calc.Q<-function(
   return(match[,-1]) #we take out the first column, to avoid singularity
 }
 
-#' Calculates design matrix of X
+#' X matrix calculator
 #'
-#' @param genotypes vector of dosages per individual, or matrix of genotypes per
-#' chromosome at one single marker
-#' @param ploidy integer indicating ploidy. Defaults to 4.
+#' @description Using a vector of dosages per individual, or p haplotypes per
+#' individual (where p is ploidy), it creates a design matrix X, with or without
+#' normalization.
 #'
-#' @return if genotypes is vector, a matrix will be returned with first column having an
-#' intercept (all 1's), second column having the dosages. If genotype is a matrix,
-#' a design matrix is return with ncol=unique()
+#' @param genotypes vector of dosages per individual, or p haplotypes per individual
+#' (where p is ploidy).
+#' @param ploidy integer indicating ploidy.
+#' @param haplotype logical, whether the vector contains haplotype or genotype data
+#' @param normalize logical, should the X matrix be normalized?
+#'
+#' @return if haplotypes = F, a matrix is returned whith a single column
+#' containing the same values that were provided. If haplotypes = T, a design matrix
+#' is created with ncol = number of haplotypes and nrow = number of individuals.
 #' @export
 #'
 #' @examples
-dosage.X <- function(genotypes,
-                     haplotype=F,
-                     ploidy=NULL,
-                     normalize = F) {
+#'
+#' dos <- round(runif(100,0,4))
+#' dosage.X(dos)
+#'
+#' hap <- round(sample(400,1:20))
+#' dosage.X(haplotype,haplotype = T, ploidy = 4)
+dosage.X <- function(genotypes, haplotype=F, ploidy=NULL, normalize = F ){
 
   if(!haplotype){
     alcount <- matrix(genotypes,ncol=1)
@@ -667,7 +660,7 @@ dosage.X <- function(genotypes,
 
     #we count the number of each allele for each individual
     #For haplotypes we need to combine ploidy columns into one count
-    n<-length(genotypes)/ploidy
+    n <- length(genotypes)/ploidy
     alcount <- t(sapply(1:n, function(x){
       colSums(match[1:ploidy + (x - 1) * ploidy, ,drop=F])
     }))
@@ -711,22 +704,13 @@ dosage.X <- function(genotypes,
 #' @param bounds Bounds of the Ridge Regression parameter
 #' @param method "REML" or "ML". If "ML", \eqn{H^-1} is calculated using maximum likelihood
 #' equations. If REML, Restricted Maximum Likelihood.
+#' @keywords internal
 #'
 #' @return Returns a list \eqn{H^-1},
 #' where each element corresponds to the \eqn{H^-1} of each column of y. An
 #' attribute "lambda" is included in each \eqn{H^-1} matrix that contains the optimization
 #' paramater of ridge regression.
-#' @export
-#'
-#' @examples
-calc.Hinv<-function(
-  y,
-  X,
-  Z,
-  K=NULL,
-  bounds=c(1e-09,1e+09),
-  method="REML"
-){
+calc.Hinv<-function( y, X, Z, K=NULL, bounds=c(1e-09,1e+09), method="REML" ){
 
   #Obtain the results without NA's at y or X
   #K should probably be recalculated for each y,
@@ -832,6 +816,7 @@ calc.Hinv<-function(
 #' and one genotype column. If we wish to investigate the effect of the genotype
 #' only, no.test should take value 4. If we would set \code{no.test} to 1, the p-value
 #' would reflect whether the cofactors have any influence on the response \eqn{y}.
+#' @keywords internal
 #'
 #' @return a data.frame where each column corresponds to a column of \eqn{y}. There are six
 #' rows on the df: beta (estimates of parameters), Fstat (approximation of
@@ -839,18 +824,8 @@ calc.Hinv<-function(
 #' wald (Wald test values), and real.df (realized degrees of freedom, df approximation).
 #' If \code{random} is set to \code{True} an extra row "random" is added, containing the
 #' random terms -at the cost of computational efficiency.
-#' @export
 #'
-#' @examples
-mm.solve <- function(
-  y,
-  X,
-  Z,
-  K,
-  Hinv = NULL,
-  random = F,
-  no.test = 0
-){
+mm.solve <- function( y,  X, Z, K, Hinv = NULL, random = F, no.test = 0){
 
   #Obtain the results without NA's at y or X
   #K should probably be recalculated for each y,
@@ -973,13 +948,12 @@ mm.solve <- function(
 #' @param X matrix of fixed effects in the full model
 #' @param N matrix of fixed effects in the naive model
 #' @param y matrix or vector of phenotypes
+#' @keywords internal
 #'
 #' @return list with beta (fixed effects), Ftest (F statistic)
-#' pval (p-value of the difference between models), se (standard error
+#' pval (p-value of the difference between models) and se (standard error
 #' of fixed effect estimates)
-#' @export
 #'
-#' @examples
 lm_compare <- function(X,N,y){
 
   if(is.vector(y)) y <- matrix(y,ncol=1)
@@ -1034,9 +1008,7 @@ lm_compare <- function(X,N,y){
 #' @param ploidy numeric indicating the ploidy level.
 #'
 #' @return pooled correlation
-#' @export
-#'
-#' @examples
+#' @keywords internal
 rpool <- function(A,B,ploidy) {
 
   A <- t(A)
@@ -1074,9 +1046,7 @@ rpool <- function(A,B,ploidy) {
 #' @param ploidy numeric indicating the ploidy level.
 #'
 #' @return a correlation matrix between multiallelic markers
-#' @export
-#'
-#' @examples
+#' @keywords internal
 pairwise_rpool <- function(hapdos,
                            ploidy) {
 
@@ -1098,7 +1068,7 @@ pairwise_rpool <- function(hapdos,
 
 #' Li and Ji method for significance level in multiple testing
 #'
-#' @description This function implements a method to adjust the significance
+#' This function implements a method to adjust the significance
 #' level for multiple testing, as proposed by Li and Ji (Li and Ji, 2005, Heredity).
 #' The Bonferroni adjusted threshold is obtained dividing a significance level
 #' by the number of tests, assuming tests are independent to each other.
@@ -1110,11 +1080,11 @@ pairwise_rpool <- function(hapdos,
 #' with markers (or haplotypes) in rows and individuals in columns.
 #' No missing values are allowed. No monomorphic markers are allowed.
 #' @param chrom a vector defining to which chromosome markers belong.
-#' @param alpha significance level (use 0.05 for 5% significance).
+#' @param alpha significance level (use 0.05 for 5\% significance).
 #' @param ploidy numeric indicating the ploidy level.
 #'
 #' @return value of adjusted alpha.
-#' @export
+#' @keywords internal
 thr.LiJi <- function(m,
                      chrom,
                      alpha,
@@ -1223,6 +1193,38 @@ thr.LiJi <- function(m,
   return(list(threshold=alpha.adj, Meff=Meff))
 }
 
+#' LD decay calculation
+#'
+#' @description Calculation of linkage disequilibrium per windows across
+#' the genome can help paint a picture of the distribution of recombinations
+#' in a population. This function, provided a set of dosages and a genetic
+#' map, is able to obtain LD estimates for any percentile, by default
+#' at 50%, 80% 90% and 95%. It also calculates the background LD (between unlinked
+#' markers) and can be performed over the whole genome, or per chromosome.
+#'
+#' @param dos integer matrix with markers on rows and individuals in columns
+#' @param map data.frame genetic map with columns "chromosome" "marker" and "position"
+#' @param win_size numeric indicating the window size to calculate LD estimates.
+#' Must be in the same unit as the "position" column of map.
+#' @param max_dist numeric, maximum distance to consider between markers. Usually, beyond
+#' 50 cM the estimates are not informative.
+#' @param per_chr logical, whether the estimations should be performed per chromosome
+#' @param percentile numeric vector, which percentiles to calculate?  By default
+#' 0.5, 0.8, 0.9 and 0.95. Any value between 0 and 1 is allowed.
+#'
+#' @return If per_chr = F, an LD object (list with LD estimates dataframe and
+#' background LD for each percentile); if per_chr = T a list of LD objects, one
+#' per chromosome.
+#'
+#' @export
+#'
+#' @examples
+#'
+#' dosage <- sapply(1:50,function() sample(100,0:4,replace = T))
+#' map <- data.frame(marker = paste0("marker",1:100),
+#'                   chromosome = c(rep(1,30),rep(2,40),rep(3,30)),
+#'                   position = c(1:30,1:40,1:30))
+#' LD <- LD_decay(dosage,map,win_size = 0.5)
 LD_decay <- function(
   dos,
   map,
@@ -1328,15 +1330,15 @@ LD_decay <- function(
 #' \eqn{K} is a square matrix of \eqn{n*n} and Z is a matrix of
 #' \eqn{k*n}.
 #'
-#' @param y
-#' @param X
-#' @param K
-#' @param Z
+#' This internal function is not intended for general use.
 #'
-#' @return
-#' @export
+#' @param y matrix of response y
+#' @param X matrix of fixed effects X
+#' @param K matrix of variance structure K
+#' @param Z matrix of random effects Z
+#' @keywords internal
 #'
-#' @examples
+#' @return a list of dimension-compatible matrices without missing values.
 test.compatibility<-function(
   y,
   X,
@@ -1423,20 +1425,19 @@ test.compatibility<-function(
 
 #' Original order
 #'
-#' calc.Hinv calculates Hinv for every set of different dimensions
+#' @description calc.Hinv calculates Hinv for every set of different dimensions
 #' that are present in the data to improve speed (certain calculations
 #' only depend on the dimensionality of the data). As a result, the Hinv
 #' matrices are returned in an order that does not correspond the phenotype
 #' order that is provided, causing incompatibilities later. This function
 #' returns an index vector that can be used to reorder the Hinv matrix list.
 #'
-#' @param y
-#' @param X
+#' @param y phenotype matrix
+#' @param X dosage matrix
+#' @keywords internal
 #'
-#' @return
-#' @export
+#' @return a vector that can be used to reorder the output of test.compatibility()
 #'
-#' @examples
 original_order <- function(y,X){
   #With the lines below we obtain how many types of
   #missing matrices we have in our data
@@ -1463,6 +1464,7 @@ original_order <- function(y,X){
 
 
 #' Sample markers every X centimorgans
+#'
 #' @description Obtains a subset of markers homogeneously distributed across
 #' a genetic map based on a cM distance. For instance, if cM=1, will get 1 marker
 #' for every 1 cM window if it can. Markers added on chromosome 0 are not returned
@@ -1478,8 +1480,6 @@ original_order <- function(y,X){
 #' @return A table as genotypes, with as many rows as can be obtained by sampling
 #' markers every X centimorgans.
 #' @export
-#'
-#' @examples
 sample.cM<-function(
   genotypes,
   map,
@@ -1524,6 +1524,14 @@ sample.cM<-function(
   return(result)
 }
 
+#' Standaridze phenotypes
+#'
+#' @description Given a matrix of numeric values, returns a list with
+#' the mean and sd per column as well as standaridzed matrix
+#'
+#' @param phenotypes numeric matrix
+#'
+#' @keywords internal
 stndrdz.pheno <- function(phenotypes) {
   if(is.vector(phenotypes)) {
     phenotypes <- matrix(phenotypes, ncol=1,
@@ -1558,9 +1566,8 @@ stndrdz.pheno <- function(phenotypes) {
 #' provided, the function will check whether all the data fit with that ploidy.
 #'
 #' @return a matrix
-#' @export
 #'
-#' @examples
+#' @keywords internal
 inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
 
   # conversion to matrix?
@@ -1648,6 +1655,7 @@ inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
 #' missing values by a number.
 #'
 #' @return a matrix with no missing values.
+#' @keywords internal
 imputeNA <- function(m,
                      miss = NULL) {
 
@@ -1664,23 +1672,21 @@ imputeNA <- function(m,
 
 #' KNN genotype imputator
 #'
-#' @description K-Nearest Neighbour imputation algorithms are useful for
+#' K-Nearest Neighbour imputation algorithms are useful for
 #' imputing missing data. In this function, we use the kinship matrix
-#' calculated with \code\link{calc.K} to determine the most similar
+#' calculated with \code{\link{calc.K}} to determine the most similar
 #' individuals, and substitute the missing values of one individual with
 #' the most common dosage/haplotype of its nearest neighbours.
 #'
 #' @param geno Haplotype (accepts characters) or Dosage matrix
 #' @param ploidy Ploidy of the organism
-#' @param map Optional, genetic map used in \code\link{sample.cM}.
+#' @param map Optional, genetic map used in \code{\link{sample.cM}}.
 #' Improves efficiency
 #' @param kneighbors Number of nearest neighbours to use in the imputation. Default is 20.
 #' @param K Optionally, provide the similarity matrix (K) directly.
 #'
 #' @return A Haplotype or Dosage matrix without missing values.
-#' @export
 #'
-#' @examples
 impute.knn <- function(
   geno,
   ploidy,
@@ -1853,9 +1859,9 @@ impute.knn <- function(
 #' @return Matrix of logical values indicating whether the values of vec1
 #' and vec2 are equal. Columns correspond to elements
 #' of vec1 and rows to elements of vec2.
-#' @export
 #'
-#' @examples
+#' @keywords internal
+#'
 comp.vec <- function(vec1, vec2) {
   mat <- sapply(vec1, function(x)
     x == vec2)
