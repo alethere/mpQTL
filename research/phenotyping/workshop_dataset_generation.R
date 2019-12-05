@@ -236,6 +236,7 @@ plotly::plot_ly(x = pc$rotation[,1], y = pc$rotation[,2], z = pc$rotation[,3],
                 mode = "marker")
 
 
+
 # Phenotyping ---------------
 source("R/pheno_fun.R")
 found <- link_NAM(loc("cross_workshop_founderalleles.dat"),
@@ -348,7 +349,92 @@ cofa <- apply(cof_mat,1,which)
 phe <- phe[,c(3,7)]
 colnames(phe) <- paste0("phenotype",1:2)
 
-#4 Data saving -------------------
+
+
+#4 Haplotyping ----------------
+
+#4.1 make haploblocks ------------------------------
+# names(wdata)
+# map <- wdata$map
+sapply(map, typeof)
+# map[1:5,]
+# dim(map)
+unique(map$chromosome)
+tapply(map$position, map$chromosome, range)
+
+## sliding window
+hb_list1 <- map2blocks(map=map[map$chromosome != 0,],
+                       winsize=1,
+                       sldpace=1)
+
+length(hb_list1)
+table(sapply(hb_list1, length))
+names(hb_list1)[1:20]
+tail(names(hb_list1))
+
+set.seed(3)
+hb_list <- refineBlocks(hb_list1,  # haploblock list
+                        nmrk=2:7,  # numeric vector with block length
+                        method="random",
+                        nrand = 2)
+
+names(hb_list)[1:20]
+table(sapply(hb_list, length))
+rm(hb_list1)
+
+## hap map
+hapmap <- t(sapply(1:length(hb_list), function(i) {
+  c(names(hb_list)[i],
+    unique(map$chromosome[map$marker %in% hb_list[[i]]]),
+    round(mean(map$position[map$marker %in% hb_list[[i]]], na.rm = T),2))
+}))
+hapmap <- data.frame(marker = hapmap[,1],
+                     chromosome = hapmap[,2],
+                     position = as.numeric(hapmap[,3]), stringsAsFactors = F)
+hapmap[1:5,]
+
+
+#4.2 get true haplotypes per block ----------------------------------
+
+## phased genotypes
+phgeno <- read.delim(paste0("research/PedigreeSim/Workshop_data/","cross_workshop_genotypes.dat"),
+                   row.names = 1, check.names = F, stringsAsFactors = F)
+phgeno[1:5,1:5]
+dim(phgeno)
+
+phgeno <- phgeno[rownames(phgeno) %in% map$marker[map$chromosome != 0],]
+
+## true haplotypes
+truehapres <- TrueGeno2TrueHap(phgeno, hb_list)
+truehapres[1:5,1:20]
+
+## checks
+namrk <- apply(truehapres, 1, function(x) sum(is.na(x))/length(x))
+plot(sort(namrk))
+mono <- apply(truehapres, 1, function(x) length(unique(x)) )
+sort(mono)[1:10]
+
+## restructure so that is similar to the PolyHaplotyper output
+truehapdose <- HapnameToHapdose(truehapres)
+truehapdose$chr1_1.1[,1:9]
+
+PolyHap_res <- lapply(1:length(truehapdose), function(i) {
+  list(hapdos=truehapdose[[i]],
+       mrkdids=NULL,
+       markers=hb_list[[i]],
+       F1sFit=NULL,
+       F1sMessages=NULL,
+       F1sPval=NULL,
+       message=NULL)
+})
+names(PolyHap_res) <- names(truehapdose)
+
+PolyHap_res$chr1_1.1$hapdos[,1:9]
+PolyHap_res$chr1_1.1$markers
+
+
+
+#5 Data saving -------------------
 res <- map.QTL(phe,genotypes =  geno[,-1],map = map,ploidy = 4,K = T)
 data <- list(pheno = phe,
              map = map,
@@ -359,6 +445,7 @@ data <- list(pheno = phe,
 saveRDS(data,"vignette/workshop_data.RDS")
 
 new_res <- map.QTL(phe,genotypes =  new_geno[,-1],map = new_map,ploidy = 4,K = T)
+# new_data <- c(wdata, PolyHap_res=list(PolyHap_res), hapmap=list(hapmap))
 new_data <- list(pheno = phe,
              map = new_map,
              snp = new_geno[,-1],
