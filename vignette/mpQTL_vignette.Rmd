@@ -14,14 +14,13 @@ output:
 ```{r data_load,echo=F}
 source("../R/viz_fun.R")
 source("../R/mapQTL_fun.R")
-data <- readRDS("workshop_data.RDS")
+data <- readRDS("new_workshop_data.RDS")
 map <- data$map
-phe <- data$pheno[,c(3,7)]
-colnames(phe) <- c("phenotype_1","phenotype_2")
+phe <- data$pheno
 dos <- as.matrix(data$dosage)
 hap <- as.matrix(data$founder)
-sample_pv <- -log10(data$result[[4]]$pval)
-sample_pv2 <- -log10(data$result[[8]]$pval)
+sample_pv <- -log10(data$result[[1]]$pval)
+sample_pv2 <- -log10(data$result[[2]]$pval)
 cof <- data$cofactor
 ```
 
@@ -96,7 +95,7 @@ Lastly, *phenotypes* can be expressed either as a numeric vector or a numeric ma
 
 # Running `map.QTL()`
 
-The main function of `mpQTL` is `map.QTL()`, a wrapper that helps build the required model matrices, implements parallelized computation, chooses between linear or mixed modelling, can impute missing genotype values and can calculate a significance threshold based on a permutation test. Since this wrapper has many parameters, we will introduce the different features separately.
+The main function of `mpQTL` is `map.QTL()`, a wrapper that 1) helps build the required model matrices, 2) implements parallelized computation, 3) chooses between linear or mixed modelling, 4) can impute missing genotype values and can 5) calculate a significance threshold based on a permutation test. Since this wrapper has many parameters, we will introduce the different features separately.
 
 ## Linear model {#linear}
 
@@ -136,7 +135,7 @@ We can take a look at the distribution of pvalues using the `skyplot()` function
 
 ```{r}
 #We get the p-values from the results
-pv <- -log10(result_dos$phenotype_1$pval)
+pv <- -log10(result_dos$phenotype1$pval)
 skyplot(pv,map,main="QTL detection with linear model using dosages")
 ```
 
@@ -151,13 +150,13 @@ result_hap <- map.QTL(phenotypes = phe,
         map = map)
 
 str(result_hap,max.level = 2, give.attr = F)
-result_hap$pheno1$beta[1:3]
+result_hap$phenotype1$beta[1:3]
 ```
 
 If we look at the p-value distribution we see that there is still a problem with the p-value calculation due to not accounting for genetic structure.
 
 ```{r}
-pv <- -log10(result_hap$phenotype_1$pval)
+pv <- -log10(result_hap$phenotype1$pval)
 skyplot(pv,map,main="QTL detection with linear model using haplotypes")
 ```
 
@@ -183,14 +182,14 @@ result_Q <- map.QTL(phenotypes = phe,
         map = map,
         Q = pop)
 
-result_Q$phenotype_1$beta[1]
+result_Q$phenotype1$beta[1]
 ```
 
 Note that the fixed effects provided for $Q$ are added after the intercept and before the genetic effect(s).
 
 ```{r}
-pv <- -log10(result_Q$phenotype_1$pval)
-skyplot(pv,map,main="QTL detection with linear model and Q correction")
+pvQ <- -log10(result_Q$phenotype1$pval)
+skyplot(pvQ,map,main="QTL detection with linear model and Q correction")
 ```
 
 This time the manhattan plot looks way better, thanks to the structure correction.
@@ -205,17 +204,23 @@ result_Qpco <- map.QTL(phenotypes = phe,
         Q = T,
         Qpco = 2)
 
-result_Qpco$phenotype_1$beta[1]
+result_Qpco$phenotype1$beta[1]
 ```
 
 In this case there are four effects: intercept, Q1, Q2 and dosage effect.
 
 ```{r}
-pv <- -log10(result_Qpco$phenotype_1$pval)
-skyplot(pv,map,main="QTL detection with linear model and Qpco correction")
+pvQpco <- -log10(result_Qpco$phenotype1$pval)
+skyplot(pvQpco,map,main="QTL detection with linear model and Qpco correction")
 ```
 
-If we look at the manhattan plot obtained with this method, we see that it's very similar to the one above! This reflects the usefulness of the "Qpco" method.
+If we look at the manhattan plot obtained with this method, we see that it's very similar to the one above! This reflects the usefulness of the "Qpco" method. We can also directly compare the two p-value distributions with the [`comp.skyplot()` function](#compskyplot).
+
+```{r}
+comp.skyplot(list(Q = pvQ,Qpco = pvQpco),map,
+             pch = c(4,1),main="Comparison between Q and Qpco corrections")
+```
+
 
 ## Mixed model {#mixed}
 
@@ -237,14 +242,14 @@ result_mix <- map.QTL(phenotypes = phe,
 
 str(result_mix,max.level = 2, give.attr = F)
 
-pv <- -log10(result_mix$phenotype_1$pval)
+pv <- -log10(result_mix$phenotype1$pval)
 skyplot(pv,map,main="QTL detection with mixed model")
 ```
 
 The result structure looks now somewhat different. Besides the results obtained before, we see a `wald` result and a `real.df`, these relate to the fact that p-values in mixed models are obtained via an *approximation* using Wald tests and realized degrees of freedom. Additionally, the `residuals` have been included for each test.
 
 ```{r}
-result_mix$phenotype_1$beta[1:3]
+result_mix$phenotype1$beta[1:3]
 ```
 
 Not also that in the mixed model **no intercept is calculated** and thus the effects can be interpreted as differences with the general mean. 
@@ -294,8 +299,8 @@ result_cof <- map.QTL(phenotypes = phe,
         cofactor = cof,
         cofactor.type = "categorical")
 
-without_cofactor <- -log10(result_mix$phenotype_2$pval)
-with_cofactor <- -log10(result_cof$phenotype_2$pval)
+without_cofactor <- -log10(result_mix$phenotype2$pval)
+with_cofactor <- -log10(result_cof$phenotype2$pval)
 comp.skyplot(list(without_cofactor,with_cofactor),map,legnames = c("No cofactor","Cofactor"),
              main = "QTL detection with and without cofactor")
 ```
@@ -328,8 +333,8 @@ str(result_perm,max.level = 2,give.attr = F)
 Now a permutation threshod (`perm.thr`) is included in the output and can be used to determine significant markers. We can use it and plot it in the `skyplot()` as well.
 
 ```{r}
-pv <- -log10(result_perm$phenotype_1$pval)
-thr <- result_perm$phenotype_1$perm.thr
+pv <- -log10(result_perm$phenotype1$pval)
+thr <- result_perm$phenotype1$perm.thr
 
 skyplot(pv,map,threshold = thr,main = "QTL detection with permutation test")
 ```
@@ -359,7 +364,7 @@ str(result_NA,max.level = 2,give.attr = F)
 We see that the calculations have worked well and the skyplot looks good as well.
 
 ```{r}
-pv <- -log10(result_NA$phenotype_1$pval)
+pv <- -log10(result_NA$phenotype1$pval)
 skyplot(pv,map,main = "QTL detection with missing genotypes")
 ```
 
@@ -369,6 +374,7 @@ skyplot(pv,map,main = "QTL detection with missing genotypes")
 Some extra parameters allow to modify the behaviour of certain parts of `map.QTL()`. These parameters include:
 
 * `no_cores`: integer specifying the number of cores to use for parallel computing. Defaults to number of cores in the machine - 1. If running on a server or computer cluster, this parameter should be specified to avoid asking for too many cores.
+* `linear`: logical, specifying whether a linear model should be used. If F a mixed model is used. This argument will overrule the automatic behaviour of `map.QTL()`, so it is useful to force linear model behaviour when a custom $K$ matrix wants to be provided (for imputation, or Qpco definition). 
 * `approximate`: by default, the **mixed model** solution is achieved using an algorith presented paralelly as [P3D](https://www.nature.com/articles/ng.546) or [EMMAX](https://www.nature.com/articles/ng.548), which essentially approximates part of the calculation between markers which is very similar, but not identical. By doing that, the speed of computation is greatly increased, at a practically null cost of accuracy. If this approximation needs to be deactivated, one can set `approximate = F`.
 * `K_identity`: logical. If True, it forces to use a mixed model that **does not** correct for genetic structure, but where the K matrix is used for other purposes (NA imputation, Qpco...).  
 
@@ -405,19 +411,49 @@ We have included a function, `pcoa.plot()` that calculates the principal compone
 
 * `K`: any distance/similarity matrix.
 * `comp`: numeric vector of length 2. The principle components to be used for plotting. A PCoA generates as many components as dimensions had the original distance matrix. They are ordered by their explanatory value (components 1 and 2 will always be the most explanatory). The amount of explained variance of each is always present in the `xlab` and `ylab` of the plot.
-* `col`: unlike in most functions, in this case the parameter `col` is expected to be a vector with values (categorical or numeric) that will be used to plot colours upon the scatter plot. For instance, if 5 observations are provided, one can provide a col vector that defines to which population each individual belongs (e.g. c("pop1","pop1","pop2","pop2","pop3")) in which case three colours will be chosen and applied to the points. If a numerical variable is used, a similar process will be followed, obtaining a gradient of colour for the variable. 
 * `plot_legend`: logical, whether the legend should be plotted.
 * `legspace`: numeric, indicating the amount of space to leave for the legend. In case a grouping is provided, a legend will be plotted to the right of the plot. In order not to overlap with the plot, additional space is added to the right of the plot. The parameter `legspace` controls the amount of space left as a proportion to the range of x values. By default, it takes the value of 0.1 (10% of extra space).
 * `legname`: the legend names for the colours chosen, automatically taken from `col` if not specified.
 
-```{r pcoa}
+For PCoA plots, the most useful is to be able to map categories onto the plot, to assess whether the genetic structure correlates with the distribution of those categories. To achieve that functionality, two common plotting parameters have been modified:
+
+* `col`: instead of expecting a colour definition, `col` expects a vector of values (either categorical or numerical). It will then assign a colour to each unique value and apply it to the PCoA plot (e.g. c("pop1","pop1","pop2","pop2","pop3") will generate three colour categories). With continuous values, this system will not produce ideal results if not all values in a series are present (i.e. works well for contiguous values like 1,2,3,4,5; does not work well for non-contiguous values like 1,5,10,11,46).
+* `pch`: this parameter is used mostly as the classical pch parameter, but if multiple pch values are provided, the first will be applied to the first category, the second to the second category, etc. This might be helpful when there are many categories and only colour differences might not be enough.
+
+Let us see how this colour and point type mapping work. 
+
+```{r pcoa_visualization,fig.height=7,fig.width=9,out.width=700}
 #calculate the similarity matrix K
 K <- calc.K(t(dos))
 
-#We must transform the result of dist into a matrix to use it with pcoa.plot()
+pop <- substr(colnames(K),1,2)
+layout(matrix(1:4,byrow=T,ncol=2))
+par(mar=c(4,4,3,1))
+pcoa.plot(K,main="Default PCoA plot", h = c(0,360))
+
+pcoa.plot(K,col = pop,
+          pch=19,main="Colour mapping", h = c(0,360))
+
+pcoa.plot(K,col = pop,pch = c(15,17,19),
+          main="Different point types", h = c(0,360))
+
+#In this case the legend does not work properly, it's better to turn it off
+pcoa.plot(K,col = 1:nrow(K),plot_legend = F,
+          pch=19,main="One colour per individual", h = c(0,360))
+
+```
+
+### Interpreting PCoA {-}
+
+As mentioned in the introduction, PCoA plots can use both similarity or distance matrices, and any distance or similarity measure can be used. Let's have a look at some examples.
+
+```{r pcoa_interpretation,,fig.height=7,fig.width=9,out.width=700}
+#Other types of distance matrices can also be used
+#we must transform the result of dist into a matrix to use it with pcoa.plot()
 euc <- as.matrix(dist(t(dos),method = "euclidean"))
 
-pop <- substr(colnames(K),1,2)
+layout(matrix(1:4,byrow=T,ncol=2))
+par(mar=c(4,4,3,1))
 
 pcoa.plot(K,col = pop,
           pch=19,main="PCoA plot of K (similarity)", h = c(0,360))
@@ -434,15 +470,11 @@ pcoa.plot(K,col = pop,comp = c(5,6),
           pch=19,main="PCoA plot of K (similarity)", h = c(0,360))
 ```
 
-### Interpreting PCoA {-}
-
-PCoA plots are interesting but tricky to interpret, let's have a look at them.
-
-A PCoA plot contains a single point for each individual, and *generally* the closer two points are, the more similar these individuals are. Generally, the sign and dimensions of the axis are meaningless, so there is no need to worry about them. That also means that two mirrored images in a PCoA are equivalent. It is crucial, as well, to look carefully at the percentage of explained variance of each PC, as this is an indication of the relative importance of that axis in comparison to the original matrix. Let's look at the PCoA plots above. 
+A PCoA plot contains a single point for each individual, and *generally* the closer two points are, the more similar these individuals are. The sign and dimensions of the axis are mostly meaningless, so there is no need to worry about them. That also means that two mirrored images (like the K similarity and 1-K distance PCoA plots above) are equivalent. It is crucial, as well, to look carefully at the percentage of explained variance of each PC, as this is an indication of the relative importance of that axis in comparison to the original matrix. Let's examine the PCoA plots more in detail.
 
 All plots show results of a PCoA obtained from the same dosage matrix (`dos`). This dosage matrix contains information about 459 individuals of which 9 are parents and 450 are offspring between pairs of parents. Moreover, this 9 parents originate, in fact, from 3 different natural populations (labelled A1, A2 and A3). Additionally, the offspring of each cross has been labelled as C1 to C9. We see how all siblings end together in the plot, while the parents are separated from each other. Although it is hard to see from these plots, each offspring is situated between its two parents, indicating that, genetically, they are a "middle point" between the two. 
 
-The first three graphs show the result of three different types of genetic distance/similarity measures, and highlight that the three provide equivalent (yet not exactly the same) results. The graphs cover aproximately 73%, 73% and 65% of the total variance respectively, and thus represent very well the whole distance/similarity matrix. Note that here we have unusually high variance components because we are using **simulated data**, normally we would expect somewhere between 20-40% of explained variance in total. All plots show the same structure, even though the orientation might change between them. 
+The first three graphs show the result of three different types of genetic distance/similarity measures, and highlight that the three provide equivalent (yet not exactly the same) results. The graphs cover aproximately 73%, 73% and 65% of the total variance respectively, and thus represent very well the whole distance/similarity matrix. Note that here we have unusually high variance components because we are using **simulated data**, normally we would expect somewhere between 10-40% of explained variance in a PCoA with the first and second PCs. All plots show the same structure, even though the orientation might change between them. 
 
 The last graph, however, is very different! We chose to plot components 5 and 6. Together, they explain roughly 3% of the variance. Nevertheless, there seems to be some patterns in the plot, suggesting some similarities between crosses due to overlapped clouds, but these patterns *are not* trustworthy. PCoA's are tricky to interpret because in many instances they will generate pattern-looking clouds, and we, as humans, are very good at finding patterns even in random noise, especially if we are trying to find something. However, in this case, the percentage of explained variance is so small, that the distribution of points in this plane is likely to be meaningless. 
 
@@ -483,6 +515,24 @@ QQ.plot(pvals,main="Example QQ-plot",
 
 A *legend* is automatically added, but can be deactivated using the argument `plot_legend = F`, and the legend names are extracted from the column names or list element names. In case no names are provided, they're labelled as "pval 1", "pval 2", etc. This can also be changed with the argument `legname` and giving a vector of names.
 
+We can also compare the different models we have applied to the example data. 
+```{r}
+pvals <- list(lin_dosage = result_dos$phenotype1$pval,
+              lin_hap = result_hap$phenotype1$pval,
+              lin_Q = result_Q$phenotype1$pval,
+              lin_Qpco = result_Qpco$phenotype1$pval,
+              mix = result_mix$phenotype1$pval,
+              lin_Q_NA = result_NA$phenotype1$pval)
+
+QQ.plot(pvals, main = "Model comparison for p-values of pheno1")
+
+#The non-corrected linear models have grossly overestimated p-values
+#Better take them out to compare the other models more clearly
+QQ.plot(pvals[-1:-2], main = "Model comparison for pvalues of pheno1")
+```
+
+We clearly see how the lack of structure correction in the linear models has caused a great inflation of the p-values.
+
 #### Interpreting QQ plots {-}
 
 Our aim when looking at a QQ plot is to evaluate whether the p-values follow an expected p-value distribution, and if they don't, evaluate whether the deviations are due to modelling problems or the detection of a QTL. Above we have plotted four situations, let's have a look at them:
@@ -512,31 +562,42 @@ To generate the visualization one must provide both p-values and a genetic/physi
 * `...`: other parameters can be passed to the `plot()` function. The most relevant is probably `main` for the plot title.
 
 ```{r skyplot}
+pv1 <- -log10(result_mix$phenotype1$pval)
 #Just a skyline plot
-skyplot(sample_pv,map = map,main="Example Skyline plot")
+skyplot(pv1,map = map,main="Example Skyline plot")
 
 #We want to focus on chromosome 2
-skyplot(sample_pv,map,chrom = 2,main ="Skyline lot of chromosome 2",threshold = 3.6)
+skyplot(pv1,map,chrom = 2,main ="Skyline lot of chromosome 2",threshold = 3.6)
 
 #The "chromosomes" can also be expressed as characters
 map_letters <- map
-map_letters$chromosome <- LETTERS[map_letters$chromosome]
+map_letters$chromosome <- LETTERS[map_letters$chromosome+1]
 
-skyplot(sample_pv,map_letters,main="Skyline plot where chromosomes are characters",
-        chrom = c("B","D"),small = T)
-
+skyplot(pv1,map_letters,main="Skyline plot where chromosomes are characters",chrom = c("B","D"),small = T)
 ```
 
-#### Comparative skyline {#compskyplot}
+#### Comparative skyline {#compskyplot -}
 For our research, we wanted to compare the skyline plots of multiple models, namely the haplotype-based and dosage-based models. For that reason, another skyline plot function was developed: `comp.skplot()`. The function is used in a very similar fashion, with some differences:
 
 * `pval`: each p-value vector must be provided as a column in a matrix or a vector in a list. 
 * `map`: a map must be provided for each set of p-values. If a single map is provided, it will be assumed that all p-value vectors correspond to the same map. For the moment, we have not tested what happens if each map has a different set of chromosomes (i.e. map1 has chromosomes 1, 2 and 3 and map2 has chromosomes 1, 2 and 4), that might cause conflicts.
 * `chrom`: similarly, we have not tested what would happen if chromosomes are selected that are present only in one of the two maps. 
 * `legnames`: a vector of names for the legend elements. If not provided, it will be read from the pvalue list, and if the list has no names, it will be simply labelled pval 1, pval 2, etc.
+* `pch`: the usual numeric pch for `plot()`, but each value given will be assigned to each set of p-values. Can help distinguish points when there are many colours. Will be recycled if not enough pch values are provided.
 
 ```{r comp_skyplot}
-comp.skyplot(list(sample_pv,sample_pv2),map,main = "Comparison of two p-value distributions",threshold = 4)
+pv2 <- -log10(result_mix$phenotype2$pval)
+comp.skyplot(list(pv1,pv2),map,main = "Comparison of two p-value distributions",threshold = 4,pch = c(19,17))
+```
+
+We can also use it to compare the results we have been generating.
+
+```{r}
+#Remember skyplot will not tranform values into -log10
+pvals <- lapply(pvals,function(i) -log10(i))
+comp.skyplot(pvals,map)
+#Again the non-corrected models are too outlying
+comp.skyplot(pvals[-1:-2],map,pch = c(15,17,19),main= "Comparison of models on example data")
 ```
 
 #### Interpreting skyline plots {-}
@@ -566,8 +627,9 @@ When `haplotype = T` other parameters can be used:
 
 ```{r phe_box}
 #We choose 1134 because it's the most significant marker in our QTL analysis
-gen_dos <- unlist(dos[1134,])
-gen_hap <- unlist(hap[1134,])
+best_marker <- which.min(result_mix$phenotype1$pval)
+gen_dos <- unlist(dos[best_marker,])
+gen_hap <- unlist(hap[best_marker,])
 
 pheno_box(phe[,1],gen_dos,
           xlab="Dosage",ylab="phenotype",main="A boxplot of dosages")
@@ -581,7 +643,7 @@ pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,draw.points = F,
           xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages (no points)")
 
 #This is better
-pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4, hap.select = c(57,37,69,46,23),
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4, hap.select = c(27,11,15,68,28),
           xlab="Haplotypes",ylab="phenotype",main="A boxplot of some haplotype dosages")
 ```
 

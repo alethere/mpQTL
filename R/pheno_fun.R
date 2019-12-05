@@ -23,7 +23,7 @@ link_NAM <- function(#function to connect ancestral founder alleles and NAM alle
   markers <- data.table::fread(crossfile,select="marker",header=T)
 
   #find genotypes in datafile with true alleles
-  par_founder <- data.table::fread(totallele,select=par_names,header=T)
+  par_founder <- data.table::fread(totallele,select=unname(par_names),header=T)
   par_founder <- as.matrix(par_founder)
 
   if(!parental){

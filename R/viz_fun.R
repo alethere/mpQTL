@@ -186,8 +186,8 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
   qqval <- lapply(pvals,function(p) QQcalc(p))
 
 
-  if(is.null(ylim)) ylim <- c(0,max(-log10(unlist(pvals))))
-  xlim <- range(unlist(sapply(qqval,'[',1)))
+  if(is.null(ylim)) ylim <- c(0,max(-log10(unlist(pvals)),na.rm=T))
+  xlim <- range(unlist(sapply(qqval,'[',1)),na.rm = T)
 
   plot(0,type="l",col="red",
        xlab=expression(Expected~~-log[10](italic(p))),
@@ -230,13 +230,14 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' @param ylim numeric vector of length two, minimum and maximum y axis values
 #' @param small logical, should the small axis (per chromosome) be drawn? By default
 #' T only if number of chromosomes <3.
+#' @param pch numeric indicating the type of point to be passed to plot()
 #'
 #' @inheritParams select.col
 #' @return creates a skyline plot
 #' @export
 #'
 skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=NULL, chrom = NULL,
-                   small = NULL, col = NULL, h = NULL, l = NULL, ...
+                   small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, ...
 ){
   #In case the markers are not in order
   map <- map[with(map,order(map$chromosome,map$position)),]
@@ -270,9 +271,10 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   if(is.null(xlab)) xlab <- "Chromosome"
 
   if(is.null(pch)) pch <- 19
+
   plot(new_map$axis,pval,
        ylim=ylim,axes=F,
-       ylab=ylab,xlab=xlab,col=col,...)
+       ylab=ylab,xlab=xlab,col=col,pch = pch,...)
 
   #Y axis
   at <- axisTicks(round(ylim),log = F); axis(2,at)
@@ -404,8 +406,8 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = F,xlab=xlab,...)
 
   if(is.null(pch)) pch <- 19
-  if(length(pch > n)) warning("More pch values than pvals have been provided, only the first",n,"pch values will be used.")
-  if(length(pch < n)) pch <- rep(pch,n)
+  if(length(pch) > n) warning("More pch values than pvals have been provided, only the first",n,"pch values will be used.")
+  if(length(pch) < n) pch <- rep(pch,n)
 
   for(i in 1:n){
     pv <- pval[[i]]
@@ -523,6 +525,7 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=
 
   if(is.null(col)){
     cols <- "black"
+    plot_legend <- F
   }else{
     if(length(col) != ncol(K)){
       stop("col length and number of individuals do not match")}
@@ -888,14 +891,11 @@ tick_wheel <- function(n,cen = c(0,0),r=1){
 #' hue_wheel() #luminance = 60 by default
 #' hue_wheel(90) #luminance = 90
 hue_wheel <- function(l = NULL){
-  opar <- par(no.readonly = T)
-  par(mar = c(3,3,3,3))
   if(is.null(l)) l<-60
   main <- paste("Hue wheel l =",l)
-  colour_wheel(1200,xlab="",ylab="",main=main,l=l)
+  colour_wheel(1200,xlab="",ylab="",main=main,l=l,asp = 1)
   axis_wheel(18)
   tick_wheel(360)
-  par(opar)
 }
 
 # Miscellaneous ---------------

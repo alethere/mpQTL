@@ -16,6 +16,7 @@ skyplot(
   col = NULL,
   h = NULL,
   l = NULL,
+  pch = NULL,
   ...
 )
 }
@@ -47,6 +48,8 @@ gradient. Otherwise only the first hue will be used. For reference, 0 is red, 14
 is blue 300 is purple and 360 is back to red.}
 
 \item{l}{Value between 0 and 100 (default 60). Represents brightness, or the amount of white}
+
+\item{pch}{numeric indicating the type of point to be passed to plot()}
 
 \item{...}{Other parameters to be passed to plot()}
 }

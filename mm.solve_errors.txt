@@ -1,0 +1,147 @@
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 4.63276e-18
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 1.00333e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 2.33997e-17
+
+Error in solve.default(W) : 
+  sistema es computacionalmente singular: número de condición recíproco = 2.33997e-17
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+

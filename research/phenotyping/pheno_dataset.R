@@ -214,11 +214,11 @@ run.PedigreeSim(loc("NAM_workshop_nopref.par"),"research/PedigreeSim/PedigreeSim
 
 
 
-# 2 Cross analysis ---------------
+# 3 Cross analysis ---------------
 geno <- read.table("research/PedigreeSim/Workshop_data/cross_workshop_alleledose.dat",header = T)
 K <- calc.K(t(geno[,-1]))
 pop <- substr(colnames(geno)[-1],1,2)
-pcoa.plot(K,col=pop,h=c(0,360),legpos="topright")
+pcoa.plot(K,col=pop,h=c(0,360))
 
 id <- sapply(unique(pop),function(p) p == pop)
 pch <- id%*%matrix(1:ncol(id),ncol=1)
@@ -242,6 +242,7 @@ found <- link_NAM(loc("cross_workshop_founderalleles.dat"),
                         totallele = loc("totallele_workshop.dat"),
                         parents = 9,
                         ploidy = 4)
+
 allele_count <- apply(found,1,function(g) length(unique(g)) )
 hist(allele_count,20) #We have a high number of alleles
 
@@ -249,6 +250,16 @@ set.seed(7)
 QTLpos <- sort(sample(1:nrow(map),2))
 map[QTLpos,]
 
+#Take out some markers to put them in "unmapped"
+set.seed(13)
+unmapped <- sample((1:nrow(map))[-QTLpos],150)
+chr_0 <- data.frame(marker = map$marker[unmapped],
+                    chromosome = 0,
+                    position = 1:length(unmapped))
+
+new_map <- rbind(map[-unmapped,],chr_0)
+new_geno <- rbind(geno[-unmapped,],geno[unmapped,])
+new_found <- rbind(found[-unmapped,],found[unmapped,])
 
 #' Creating phenotypes is complicated, because assigning gene effects
 #' is quite arbitrary and can take many forms. If one looks at the prevalence of
@@ -334,16 +345,26 @@ rownames(phenotypes) <- gsub("_$","",rownames(phenotypes))
 
 cofa <- apply(cof_mat,1,which)
 
-res <- map.QTL(phe,genotypes =  geno[,-1],map = map,ploidy = 4,K = T)
+phe <- phe[,c(3,7)]
+colnames(phe) <- paste0("phenotype",1:2)
 
+res <- map.QTL(phe,genotypes =  geno[,-1],map = map,ploidy = 4,K = T)
 data <- list(pheno = phe,
              map = map,
              dosage = geno[,-1],
              founder = found,
              cofactor = cofa,
              result = res)
-
 saveRDS(data,"vignette/workshop_data.RDS")
+
+new_res <- map.QTL(phe,genotypes =  new_geno[,-1],map = new_map,ploidy = 4,K = T)
+new_data <- list(pheno = phe,
+             map = new_map,
+             dosage = new_geno[,-1],
+             founder = new_found,
+             cofactor = cofa,
+             result = new_res)
+saveRDS(new_data,"vignette/new_workshop_data.RDS")
 
 effect_gen <- function(
   gen, #genotypes (per chromosome of individual)
