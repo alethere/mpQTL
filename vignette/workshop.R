@@ -9,7 +9,7 @@ library("mpQTL")
 #the object "data" contains an example dataset
 map <- data$map
 phe <- data$pheno
-dos <- as.matrix(data$dosage)
+snp <- as.matrix(data$snp)
 hap <- as.matrix(data$founder)
 cof <- data$cofactor
 pval <- function(res,n = 1) -log10(res[[n]]$pval)
@@ -19,7 +19,7 @@ pval <- function(res,n = 1) -log10(res[[n]]$pval)
 #Genetic map has three columns, "marker", "position" and "chromosome"
 map[1:20,]
 #SNP dosages matrices are expressed with markers in rows and individuals in columns
-dos[1:20,1:6]
+snp[1:20,1:6]
 #haplotypes are expressed with p columns per individual, where p is ploidy
 hap[1:20,1:8] #8 columns of a tetraploid = 2 individuals
 #phenotypes are expressed as a numeric matrix, with individuals in rows and each trait in a column
@@ -30,7 +30,7 @@ phe[1:20,]
 
 #With dosages
 result_dos <- map.QTL(phenotypes = phe,
-                      genotypes = dos,
+                      genotypes = snp,
                       ploidy = 4,
                       map = map)
 str(result_dos,max.level = 2, give.attr = F)
@@ -57,7 +57,7 @@ pop
 table(pop)
 
 result_Q <- map.QTL(phenotypes = phe,
-                    genotypes = dos,
+                    genotypes = snp,
                     ploidy = 4,
                     map = map,
                     Q = pop)
@@ -69,7 +69,7 @@ skyplot(pvQ,map,main="QTL detection with linear model and Q correction")
 
 #1.3 Linear + Qpco ----------------
 result_Qpco <- map.QTL(phenotypes = phe,
-                       genotypes = dos,
+                       genotypes = snp,
                        ploidy = 4,
                        map = map,
                        Q = T,
@@ -88,7 +88,7 @@ comp.skyplot(list(Q = pvQ,Qpco = pvQpco),map,
 
 #2.1 Mixed -------------
 result_mix <- map.QTL(phenotypes = phe,
-                      genotypes = dos,
+                      genotypes = snp,
                       ploidy = 4,
                       map = map,
                       K = T,
@@ -102,7 +102,7 @@ skyplot(pv,map,main="QTL detection with mixed model")
 result_mix$phenotype1$beta[1:3]
 
 #2.2 Kinship matrix ------------------
-Kd <- calc.K(t(dos))
+Kd <- calc.K(t(snp))
 Kh <- calc.K(t(hap),haplotypes = T, ploidy = 4)
 
 #We can visualize the matrices using heatmaps
@@ -117,7 +117,7 @@ pcoa.plot(Kh,col = pop, main = "Haplotype matrix")
 table(cof)
 
 result_cof <- map.QTL(phenotypes = phe,
-                      genotypes = dos,
+                      genotypes = snp,
                       ploidy = 4,
                       map = map,
                       K = T,
@@ -131,7 +131,7 @@ comp.skyplot(list(without_cofactor,with_cofactor),map,legnames = c("No cofactor"
 
 # 4 Permutation threshold ------------
 result_perm <- map.QTL(phenotypes = phe,
-                       genotypes = dos,
+                       genotypes = snp,
                        ploidy = 4,
                        map = map,
                        Q = T,
@@ -142,8 +142,8 @@ result_perm <- map.QTL(phenotypes = phe,
 str(result_perm,max.level = 2,give.attr = F)
 
 # 5 Genotype imputation --------------
-dos_NA <- dos
-dos_NA[sample(1:length(dos),2000)] <- NA
+dos_NA <- snp
+dos_NA[sample(1:length(snp),2000)] <- NA
 result_NA <- map.QTL(phenotypes = phe,
                      genotypes = dos_NA,
                      ploidy = 4,
@@ -155,9 +155,9 @@ str(result_NA,max.level = 2,give.attr = F)
 # 6 Visualisation ------------------
 
 #6.1 PCoA ---------------
-K <- calc.K(t(dos))
+K <- calc.K(t(snp))
 #We must transform the result of dist into a matrix to use it with pcoa.plot()
-euc <- as.matrix(dist(t(dos),method = "euclidean"))
+euc <- as.matrix(dist(t(snp),method = "euclidean"))
 
 pop <- substr(colnames(K),1,2)
 table(pop)
@@ -221,7 +221,7 @@ pvals <- list(lin_dosage = pval(result_dos),
               lin_Qpco = pval(result_Qpco),
               mix = pval(result_mix),
               lin_Q_NA = pval(result_NA))
-QQ.plot(pvals, main = "Model comparison for pvalues of pheno1")
+QQ.plot(pvals, main = "Model comparison for p-values of pheno1",legspace = 0.22)
 QQ.plot(pvals[-1:-2], main = "Model comparison for pvalues of pheno1")
 
 #6.3 Skyline plots ------
@@ -237,11 +237,11 @@ skyplot(pv1,map,chrom = 2,
 
 #The "chromosomes" can also be expressed as characters
 map_letters <- map
-map_letters$chromosome <- LETTERS[map_letters$chromosome]
+map_letters$chromosome <- LETTERS[map_letters$chromosome + 1]
 
 skyplot(pv1,map_letters,
         main="Skyline plot where chromosomes are characters",
-        chrom = c("B","D"),small = T)
+        chrom = c("C","E"),small = T)
 
 #We can also create "comparative" skyplots
 pv2 <- -log10(result_mix$phenotype2$pval)
@@ -252,19 +252,18 @@ comp.skyplot(list(pv1,pv2),map,
 # And compare the different models
 #Remember skyplot will not transform your values into -log10
 pvals <- lapply(pvals,function(i) -log10(i))
-comp.skyplot(pvals,map,
+comp.skyplot(pvals,map,legspace = 0.22,
              main="Comparison of all models on example data")
 #Again the non-corrected models are too outlying
 comp.skyplot(pvals[-1:-2],map,
-             pch = c(15,17,19),
+             pch = c(15,17,19),legspace = 0.22,
              main= "Comparison of models on example data")
 
 # 6.4 Phenotype boxplots ----------------
 #We choose 1134 because it's the most significant marker in our QTL analysis
-which.min(result_Q$phenotype1$pval)
-
-gen_dos <- unlist(dos[1134,])
-gen_hap <- unlist(hap[1134,])
+best_marker <- which.min(result_mix$phenotype1$pval)
+gen_dos <- unlist(snp[best_marker,])
+gen_hap <- unlist(hap[best_marker,])
 
 pheno_box(phe[,1],gen_dos,
           xlab="Dosage",ylab="phenotype",

@@ -17,7 +17,7 @@ source("../R/mapQTL_fun.R")
 data <- readRDS("new_workshop_data.RDS")
 map <- data$map
 phe <- data$pheno
-dos <- as.matrix(data$dosage)
+snp <- as.matrix(data$snp)
 hap <- as.matrix(data$founder)
 sample_pv <- -log10(data$result[[1]]$pval)
 sample_pv2 <- -log10(data$result[[2]]$pval)
@@ -70,8 +70,8 @@ The `mpQTL` package requires specific data structures used across all functions.
 
 *Dosage scores* are represented using a matrix of $markers \times individuals$ so that there are $m$ rows, equal to the number of markers and $n$ columns, equal to the number of individuals. *Haplotype data* is expressed in a similar fashion, with the difference that each each individual is represented by $p$ number of columns, where $p$ is the ploidy. That is, for a tetraploid, each individual has four consecutive columns containing the haplotype type. Haplotypes can be expressed using numeric or character values (e.g. 120, 140, 128...;A, B, C...; hap1, hap2, hap3...) and the phase of the genotypes *does not matter* (i.e. it is not taken into account which genotypes are in the same columns). All functions have been tested and developed so that missing values in any of the two matrices can be handled without problems.
 ```{r gen_tables,echo=F}
-rownames(dos) <- map$marker
-tab <- knitr::kable(dos[1:10,1:4],format = "html",caption = "Dosages of 4 individuals")
+rownames(snp) <- map$marker
+tab <- knitr::kable(snp[1:10,1:4],format = "html",caption = "Dosages of 4 individuals")
 kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condensed"))
 
 tab <- knitr::kable(hap[1:10,1:4],format = "html",caption = "Haplotypes of 1 individual")
@@ -110,7 +110,7 @@ The simplest QTL model that `map.QTL()` provides is a linear model with no Q + K
 
 ```{r dosage}
 result_dos <- map.QTL(phenotypes = phe,
-        genotypes = dos,
+        genotypes = snp,
         ploidy = 4,
         map = map)
 
@@ -177,7 +177,7 @@ In this case, there are 12 different levels, depending on the ancestral group of
 
 ```{r}
 result_Q <- map.QTL(phenotypes = phe,
-        genotypes = dos,
+        genotypes = snp,
         ploidy = 4,
         map = map,
         Q = pop)
@@ -198,7 +198,7 @@ However, sometimes it's not simple to obtain a set of population identifiers tha
 
 ```{r Qpco}
 result_Qpco <- map.QTL(phenotypes = phe,
-        genotypes = dos,
+        genotypes = snp,
         ploidy = 4,
         map = map,
         Q = T,
@@ -234,7 +234,7 @@ Importantly, K is calculated using a *sample of markers* across the genome, rath
 
 ```{r mixed}
 result_mix <- map.QTL(phenotypes = phe,
-        genotypes = dos,
+        genotypes = snp,
         ploidy = 4,
         map = map,
         K = T,
@@ -263,7 +263,7 @@ The main feature of the unified mixed model is to include the kinship matrix $K$
 * `ploidy`: integer indicating ploidy. Only used if `haplotypes = T`
 
 ```{r kinship}
-Kd <- calc.K(t(dos))
+Kd <- calc.K(t(snp))
 Kh <- calc.K(t(hap),haplotypes = T, ploidy = 4)
 
 #We can visualize the matrices using heatmaps
@@ -292,7 +292,7 @@ In our dataset we have a phenotype with a categorical cofactor effect. We can se
 table(cof)
 
 result_cof <- map.QTL(phenotypes = phe,
-        genotypes = dos,
+        genotypes = snp,
         ploidy = 4,
         map = map,
         K = T,
@@ -319,7 +319,7 @@ There are three parameters for threshold calculation:
 
 ```{r perm}
 result_perm <- map.QTL(phenotypes = phe,
-        genotypes = dos,
+        genotypes = snp,
         ploidy = 4,
         map = map,
         Q = T,
@@ -350,8 +350,8 @@ To control the behaviour of the imputator use:
 * `k`: integer, how many neighbours should be used for imputation? Defaults to 20.
 
 ```{r imputation}
-dos_NA <- dos
-dos_NA[sample(1:length(dos),2000)] <- NA
+dos_NA <- snp
+dos_NA[sample(1:length(snp),2000)] <- NA
 result_NA <- map.QTL(phenotypes = phe,
         genotypes = dos_NA,
         ploidy = 4,
@@ -422,9 +422,9 @@ For PCoA plots, the most useful is to be able to map categories onto the plot, t
 
 Let us see how this colour and point type mapping work. 
 
-```{r pcoa_visualization,fig.height=7,fig.width=9,out.width=700}
+```{r pcoa_visualization,fig.height=7,fig.width=9,out.width=1000}
 #calculate the similarity matrix K
-K <- calc.K(t(dos))
+K <- calc.K(t(snp))
 
 pop <- substr(colnames(K),1,2)
 layout(matrix(1:4,byrow=T,ncol=2))
@@ -447,10 +447,10 @@ pcoa.plot(K,col = 1:nrow(K),plot_legend = F,
 
 As mentioned in the introduction, PCoA plots can use both similarity or distance matrices, and any distance or similarity measure can be used. Let's have a look at some examples.
 
-```{r pcoa_interpretation,,fig.height=7,fig.width=9,out.width=700}
+```{r pcoa_interpretation,,fig.height=7,fig.width=9,out.width=1000}
 #Other types of distance matrices can also be used
 #we must transform the result of dist into a matrix to use it with pcoa.plot()
-euc <- as.matrix(dist(t(dos),method = "euclidean"))
+euc <- as.matrix(dist(t(snp),method = "euclidean"))
 
 layout(matrix(1:4,byrow=T,ncol=2))
 par(mar=c(4,4,3,1))
@@ -472,7 +472,7 @@ pcoa.plot(K,col = pop,comp = c(5,6),
 
 A PCoA plot contains a single point for each individual, and *generally* the closer two points are, the more similar these individuals are. The sign and dimensions of the axis are mostly meaningless, so there is no need to worry about them. That also means that two mirrored images (like the K similarity and 1-K distance PCoA plots above) are equivalent. It is crucial, as well, to look carefully at the percentage of explained variance of each PC, as this is an indication of the relative importance of that axis in comparison to the original matrix. Let's examine the PCoA plots more in detail.
 
-All plots show results of a PCoA obtained from the same dosage matrix (`dos`). This dosage matrix contains information about 459 individuals of which 9 are parents and 450 are offspring between pairs of parents. Moreover, this 9 parents originate, in fact, from 3 different natural populations (labelled A1, A2 and A3). Additionally, the offspring of each cross has been labelled as C1 to C9. We see how all siblings end together in the plot, while the parents are separated from each other. Although it is hard to see from these plots, each offspring is situated between its two parents, indicating that, genetically, they are a "middle point" between the two. 
+All plots show results of a PCoA obtained from the same dosage matrix (`snp`). This dosage matrix contains information about 459 individuals of which 9 are parents and 450 are offspring between pairs of parents. Moreover, this 9 parents originate, in fact, from 3 different natural populations (labelled A1, A2 and A3). Additionally, the offspring of each cross has been labelled as C1 to C9. We see how all siblings end together in the plot, while the parents are separated from each other. Although it is hard to see from these plots, each offspring is situated between its two parents, indicating that, genetically, they are a "middle point" between the two. 
 
 The first three graphs show the result of three different types of genetic distance/similarity measures, and highlight that the three provide equivalent (yet not exactly the same) results. The graphs cover aproximately 73%, 73% and 65% of the total variance respectively, and thus represent very well the whole distance/similarity matrix. Note that here we have unusually high variance components because we are using **simulated data**, normally we would expect somewhere between 10-40% of explained variance in a PCoA with the first and second PCs. All plots show the same structure, even though the orientation might change between them. 
 
@@ -490,7 +490,7 @@ QQ-plots are useful for determining whether the p-value distribution of a QTL an
 
 #### The function {-}
 
-The function `comp.QQ()` can be used to generate QQ-plots of one or multiple vectors of p-values. Each vector of p-values can be given as a column in a matrix or as an element of a list. The number of p-values in each vector does not matter. A single set of p-values can also be provided.
+The function `QQ.plot()` can be used to generate QQ-plots of one or multiple vectors of p-values. Each vector of p-values can be given as a **column in a matrix** or as an **element of a list**. The number of p-values in each vector does not matter. A single set of p-values can also be provided.
 
 ```{r qq_plot}
 #The p-values are from 500 random normal values
@@ -505,17 +505,21 @@ high_sig <- pnorm(rnorm(500,mean=3),lower.tail = F)
 #The p-values are all too non-significant
 low_sig <- pnorm(rnorm(500),sd = 3,lower.tail = F)
 
-pvals <- list(not_sig,some_sig,high_sig,low_sig)
-QQ.plot(pvals,main="Example QQ-plot",
+examples <- list(not_sig,some_sig,high_sig,low_sig)
+QQ.plot(examples,main="Example QQ-plot",
         legnames = c("Not significant",
                      "Good significant",
                      "Overestimated",
                      "Underestimated"))
 ```
 
-A *legend* is automatically added, but can be deactivated using the argument `plot_legend = F`, and the legend names are extracted from the column names or list element names. In case no names are provided, they're labelled as "pval 1", "pval 2", etc. This can also be changed with the argument `legname` and giving a vector of names.
+A **legend** is automatically added when multiple pvalue sets are provided. There are some parameters related with the legend:
+* `plot_legend`: logical, can be used to avoid the generation of the legend.
+* `legnames`: a vector can be provided for the legend names.
+* `legspace`: numeric, a number indicating how much extra space (in proportion) must be added to **the left** of the plot. Can be useful to tweak it when legend names are too long and they overlap with points on the QQ-plot.
 
 We can also compare the different models we have applied to the example data. 
+
 ```{r}
 pvals <- list(lin_dosage = result_dos$phenotype1$pval,
               lin_hap = result_hap$phenotype1$pval,
@@ -524,7 +528,7 @@ pvals <- list(lin_dosage = result_dos$phenotype1$pval,
               mix = result_mix$phenotype1$pval,
               lin_Q_NA = result_NA$phenotype1$pval)
 
-QQ.plot(pvals, main = "Model comparison for p-values of pheno1")
+QQ.plot(pvals, main = "Model comparison for p-values of pheno1",legspace = 0.22)
 
 #The non-corrected linear models have grossly overestimated p-values
 #Better take them out to compare the other models more clearly
@@ -567,13 +571,13 @@ pv1 <- -log10(result_mix$phenotype1$pval)
 skyplot(pv1,map = map,main="Example Skyline plot")
 
 #We want to focus on chromosome 2
-skyplot(pv1,map,chrom = 2,main ="Skyline lot of chromosome 2",threshold = 3.6)
+skyplot(pv1,map,chrom = 2,main ="Skyline lot of chromosome 2",threshold = 3.95)
 
 #The "chromosomes" can also be expressed as characters
 map_letters <- map
 map_letters$chromosome <- LETTERS[map_letters$chromosome+1]
 
-skyplot(pv1,map_letters,main="Skyline plot where chromosomes are characters",chrom = c("B","D"),small = T)
+skyplot(pv1,map_letters,main="Skyline plot where chromosomes are characters",chrom = c("C","E"),small = T,threshold = 3.95)
 ```
 
 #### Comparative skyline {#compskyplot -}
@@ -583,11 +587,15 @@ For our research, we wanted to compare the skyline plots of multiple models, nam
 * `map`: a map must be provided for each set of p-values. If a single map is provided, it will be assumed that all p-value vectors correspond to the same map. For the moment, we have not tested what happens if each map has a different set of chromosomes (i.e. map1 has chromosomes 1, 2 and 3 and map2 has chromosomes 1, 2 and 4), that might cause conflicts.
 * `chrom`: similarly, we have not tested what would happen if chromosomes are selected that are present only in one of the two maps. 
 * `legnames`: a vector of names for the legend elements. If not provided, it will be read from the pvalue list, and if the list has no names, it will be simply labelled pval 1, pval 2, etc.
+* `legspace`: numeric, the proportion of space to add to the left of the plot for the legend. It is useful when the legend is too close to points, and defaults to 0.1.
 * `pch`: the usual numeric pch for `plot()`, but each value given will be assigned to each set of p-values. Can help distinguish points when there are many colours. Will be recycled if not enough pch values are provided.
+* `alpha`: numeric between 0 (transparent) and 1 (opaque). By default, the points are plotted with some transparency to be able to see the multiple distributions, change this parameter to make it more/less transparent.  
 
 ```{r comp_skyplot}
 pv2 <- -log10(result_mix$phenotype2$pval)
-comp.skyplot(list(pv1,pv2),map,main = "Comparison of two p-value distributions",threshold = 4,pch = c(19,17))
+comp.skyplot(list(pv1,pv2),map,
+             main = "Comparison of two p-value distributions",
+             threshold = 3.95,pch = c(19,17))
 ```
 
 We can also use it to compare the results we have been generating.
@@ -595,9 +603,10 @@ We can also use it to compare the results we have been generating.
 ```{r}
 #Remember skyplot will not tranform values into -log10
 pvals <- lapply(pvals,function(i) -log10(i))
-comp.skyplot(pvals,map)
+comp.skyplot(pvals,map,legspace = 0.22)
 #Again the non-corrected models are too outlying
-comp.skyplot(pvals[-1:-2],map,pch = c(15,17,19),main= "Comparison of models on example data")
+comp.skyplot(pvals[-1:-2],map,pch = c(15,17,19),legspace = 0.22,
+             main= "Comparison of models on example data")
 ```
 
 #### Interpreting skyline plots {-}
@@ -628,7 +637,7 @@ When `haplotype = T` other parameters can be used:
 ```{r phe_box}
 #We choose 1134 because it's the most significant marker in our QTL analysis
 best_marker <- which.min(result_mix$phenotype1$pval)
-gen_dos <- unlist(dos[best_marker,])
+gen_dos <- unlist(snp[best_marker,])
 gen_hap <- unlist(hap[best_marker,])
 
 pheno_box(phe[,1],gen_dos,

@@ -72,6 +72,8 @@ lighten <- function(
 #' @param c Value between 0 and 100 (default 100). Represents chroma, or colour intensity and is similar to saturation.
 #' 0 means grey, 100 means completely saturated.
 #' @param l Value between 0 and 100 (default 60). Represents brightness, or the amount of white
+#' @param alpha Value between 0 (transparent) and 1 (opaque), to add some degree of
+#' transparency to the colour palette.
 #'
 #' @return A colour palette of n colours.
 #' @export
@@ -178,7 +180,7 @@ QQcalc<-function(pvals){
 #' pvals <- pnorm(rnorm(100),lower.tail = T)
 #' QQ.plot(pvals)
 QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype= NULL,
-                     h = NULL, l = NULL, ...
+                     h = NULL, l = NULL, legspace = 0 ,...
 ){
   if(is.numeric(pvals)) pvals <- list(pvals)
   if(is.matrix(pvals)) pvals <- mat2list(pvals)
@@ -188,6 +190,7 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 
   if(is.null(ylim)) ylim <- c(0,max(-log10(unlist(pvals)),na.rm=T))
   xlim <- range(unlist(sapply(qqval,'[',1)),na.rm = T)
+  xlim[1] <- xlim[1] - legspace*(xlim[2] - xlim[1])
 
   plot(0,type="l",col="red",
        xlab=expression(Expected~~-log[10](italic(p))),
@@ -338,6 +341,9 @@ map_axis <- function(map,space = 0,maxes = NULL){
 #' @param pval list or matrix (per column) of pvalues to be plotted together.
 #' @param map list of map dataframes. If there is only a data.frame, it will be assumed
 #' that all p-value sets have the same underlying genetic map.
+#' #' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
+#' to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
+#' names are very long, increase this number to tweak the amount of space left to the right.
 #' @param ... additional parameters to be passed to plot() (not xlim or ylim)
 #' @param pch numeric vector. Each point type provided will be used for
 #' each of the pvalue sets provided.
@@ -347,7 +353,7 @@ map_axis <- function(map,space = 0,maxes = NULL){
 #'
 comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, ylab = NULL,
                           xlab = NULL, legnames = NULL, coltype=NULL, h = NULL, l = NULL,
-                          pch = NULL, ...
+                          pch = NULL, legspace = 0.1,alpha = 0.3,...
 ){
   n <- length(pval)
   if(is.data.frame(map)){ map <- lapply(1:n,function(x) map)
@@ -387,7 +393,7 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
 
 
   #Then, we create the colour palette we are going to use
-  cols <- select.col(n,coltype,h=h,l=50,alpha=0.3)
+  cols <- select.col(n,coltype,h=h,l=50,alpha=alpha)
 
   #then we calculate the maximum pvalue
   if(is.null(ylim)){
@@ -398,10 +404,12 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
     ylim <- c(min(ylim[1,]),max(ylim[2,]))
   }
 
+
   if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
   if(is.null(xlab)) xlab <- "Chromosomes"
 
   xlim <- c(0,max(sapply(new_maps,function(x) max(x$axis,na.rm=T))))
+  xlim[2] <- xlim[2] + legspace*(xlim[2] - xlim[1])
 
   plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = F,xlab=xlab,...)
 
@@ -446,7 +454,8 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   else small <- F
   draw_chrom_axis(ch_pos[1,],ch_pos[2,],chrom,small)
 
-  if(!is.null(threshold)) abline(h=threshold,col="red",lwd=1.3,lty=2)
+  if(!is.null(threshold)) segments(0,threshold,xlim[2]*(1-legspace),
+                                   threshold,lwd=1.3,lty=2,col="red")
 }
 
 #' Chromosome axis drawer

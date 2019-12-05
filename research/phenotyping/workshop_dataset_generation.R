@@ -348,6 +348,7 @@ cofa <- apply(cof_mat,1,which)
 phe <- phe[,c(3,7)]
 colnames(phe) <- paste0("phenotype",1:2)
 
+#4 Data saving -------------------
 res <- map.QTL(phe,genotypes =  geno[,-1],map = map,ploidy = 4,K = T)
 data <- list(pheno = phe,
              map = map,
@@ -360,7 +361,7 @@ saveRDS(data,"vignette/workshop_data.RDS")
 new_res <- map.QTL(phe,genotypes =  new_geno[,-1],map = new_map,ploidy = 4,K = T)
 new_data <- list(pheno = phe,
              map = new_map,
-             dosage = new_geno[,-1],
+             snp = new_geno[,-1],
              founder = new_found,
              cofactor = cofa,
              result = new_res)
@@ -449,15 +450,3 @@ ped2net <- function(pedigree){
   })
   names(net) <- parents
 }
-
-pedigree()
-g <- igraph::graph(c(1,2,1,3,1,4,1,5),n = 5)
-library("igraph")
-d <- c(rbind(rpois(lambda=3,n=5e5),rpois(lambda=4,n=5e5)))
-e1 <- c(rbind(pedigree$parent1[-1:-9],pedigree$name[-1:-9]))
-e2 <- c(rbind(pedigree$parent2[-1:-9],pedigree$name[-1:-9]))
-g <- graph(c(e1,e2))
-plot(g,)
-?igraph.plotting
-plot(g,shape="crectangle")
-g

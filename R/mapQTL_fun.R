@@ -307,7 +307,7 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
 
         ## mantain the usual output structure in case of error
         if (class(solveout) == "try-error") {
-          write(solveout, file="lm_compare_errors.txt", append = T)
+          # write(solveout, file="lm_compare_errors.txt", append = T)
 
           #ATN the "original structure" requires iterators with as many elements
           #as there are phenotypes. That is, NA matrices/ vectors with length =
@@ -443,7 +443,7 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
 
         ## mantain the usual output structure in case of error
         if (class(solveout) == "try-error") {
-          write(solveout, file="mm.solve_errors.txt", append = T)
+          # write(solveout, file="mm.solve_errors.txt", append = T)
           solveout <- list(list(
             beta = matrix(NA),
             Fstat = NA,
