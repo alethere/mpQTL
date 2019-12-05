@@ -22,3 +22,4 @@ devtest/devdatasets/
 *test.R
 #Exceptions
 !vignette/workshop_data.RDS
+!cignette/new_workshop_data.RDS
