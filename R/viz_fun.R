@@ -315,15 +315,26 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 #' @keywords internal
 map_axis <- function(map,space = 0,maxes = NULL){
   sp_map <- split(map,map$chromosome)[as.character(unique(map$chromosome))]
+
   if(is.null(maxes)){
     maxes <- sapply(sp_map,function(x) max(x$position))
-  }else{
-    maxes <- maxes[as.character(unique(map$chromosome))]
   }
-  maxes <- c(0,maxes)
 
-  for(i in 1:length(sp_map)){
-    sp_map[[i]]$axis <- sp_map[[i]]$position + sum(maxes[1:i]) + space*(i-1)
+  # else{
+  #   maxes <- sapply(unique(mmap$chromosome),function(i){
+  #     this <- which(names(maxes) == i)
+  #     sum(maxes[1:this])
+  #   })
+  # }
+  chroms <- names(maxes)
+  new_maxes <- sapply(1:length(maxes),function(i) sum(maxes[1:i]))
+  new_maxes <- c(0,new_maxes)
+  names(new_maxes) <- c(chroms,"last")
+  spaces <- sapply(1:length(maxes),function(i) space*(i-1))
+  names(spaces) <- c(chroms)
+
+  for(i in names(sp_map)){
+    sp_map[[i]]$axis <- sp_map[[i]]$position + new_maxes[i] + spaces[i]
   }
   return(do.call(rbind,sp_map))
 }
@@ -383,11 +394,11 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   }
 
   #First we calculate the maximum positions of each map
-  maxes <- sapply(1:n,function(i){
+  maxes <- lapply(1:n,function(i){
     sapply(split(map[[i]]$position,map[[i]]$chromosome),max)
   })
-  if(is.vector(maxes)) maxes <- matrix(maxes,nrow=2)
-  maxes <- apply(maxes,1,max)
+  maxes <- sapply(chrom,function(i) max(sapply(maxes,function(m) m[i]),na.rm=T))
+
   #This allows us to calculate unified mapping axes
   new_maps <- lapply(map,map_axis,space = sum(maxes)*0.05,maxes = maxes)
 
@@ -440,15 +451,20 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
 
   #We calculate the start and end of each chromosome for all maps
   ch_pos <- lapply(new_maps,function(nmp){
-    sapply(split(nmp$axis,nmp$chromosome),range)[,as.character(chrom)]
+    sapply(split(nmp$axis,nmp$chromosome),range)
   })
+  all_ch <- unique(unlist(sapply(ch_pos,colnames)))
 
   #We take the max/min of each end/start for each chromosome
-  ch_pos <- matrix(sapply(1:length(ch_pos[[1]]),function(i){
-    val <- sapply(ch_pos,'[',i)
-    if(i%%2 == 0) return(min(val))
-    else return(max(val))
-  }),nrow=2)
+  ch_pos <- sapply(all_ch,function(a){
+    one_ch <- lapply(ch_pos,function(ch){
+      r <- try(ch[,a],silent = T)
+      if(class(r) == "try-error") r <- NA
+      return(r)
+    })
+    one_ch <- do.call(rbind,one_ch)
+    return(c(min(one_ch[,1],na.rm=T),max(one_ch[,2],na.rm=T)))
+  })
 
   if(length(chrom) < 2) small <- T
   else small <- F

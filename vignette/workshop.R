@@ -7,11 +7,29 @@ install.packages("../mpQTL_0.2.0.tar.gz",repos=NULL)
 library("mpQTL")
 
 #the object "data" contains an example dataset
+data <- readRDS("new_workshop_data.RDS")
 map <- data$map
 phe <- data$pheno
 snp <- as.matrix(data$snp)
-hap <- as.matrix(data$founder)
+anc <- as.matrix(data$founder)
+sample_pv <- -log10(data$result[[1]]$pval)
+sample_pv2 <- -log10(data$result[[2]]$pval)
 cof <- data$cofactor
+hapmap <- data$hapmap
+
+ploidy <- 4
+hap_names <- sapply(colnames(data$PolyHap_res$chr1_1.1$hapdos),function(n) paste0(n,"_",1:ploidy))
+hap_list <- lapply(data$PolyHap_res,function(chrom){
+  hap_mat <- chrom$hapdos
+  haps <- rownames(hap_mat)
+  hap_vec <- as.vector(apply(hap_mat,2,function(h) rep(haps,h)))
+  return(hap_vec)
+})
+
+hap <- do.call(rbind,hap_list)
+rownames(hap) <- names(hap_list)
+colnames(hap) <- hap_names
+
 pval <- function(res,n = 1) -log10(res[[n]]$pval)
 
 #Data structures -----------
@@ -43,13 +61,13 @@ skyplot(pv,map,main="QTL detection with linear model using dosages")
 result_hap <- map.QTL(phenotypes = phe,
                       genotypes = hap,
                       ploidy = 4,
-                      map = map)
+                      map = hapmap)
 
 str(result_hap,max.level = 2, give.attr = F)
 result_hap$phenotype1$beta[1:3]
 
 pv <- pval(result$hap)
-skyplot(pv,map,main="QTL detection with linear model using haplotypes")
+skyplot(pv,hapmap,main="QTL detection with linear model using haplotypes")
 
 #1.2 Linear + Q ---------------
 pop <- substr(rownames(phe),1,2)
@@ -69,19 +87,19 @@ skyplot(pvQ,map,main="QTL detection with linear model and Q correction")
 
 #1.3 Linear + Qpco ----------------
 result_Qpco <- map.QTL(phenotypes = phe,
-                       genotypes = snp,
+                       genotypes = hap,
                        ploidy = 4,
-                       map = map,
+                       map = hapmap,
                        Q = T,
                        Qpco = 2)
 
 result_Qpco$phenotype1$beta[1]
 
 pvQpco <- pval(result_Qpco)
-skyplot(pvQpco,map,main="QTL detection with linear model and Qpco correction")
+skyplot(pvQpco,hapmap,main="QTL detection with linear model and Qpco correction")
 
 #We can check the similarity between pvalues with both methods
-comp.skyplot(list(Q = pvQ,Qpco = pvQpco),map,
+comp.skyplot(list(Q = pvQ,Qpco = pvQpco),map = list(map,hapmap),
              pch = c(4,1),main="Comparison between Q and Qpco corrections")
 
 #2 Mixed QTL models ------------------
@@ -250,39 +268,37 @@ comp.skyplot(list(pv1,pv2),map,
              threshold = 4,pch = c(19,21))
 
 # And compare the different models
-#Remember skyplot will not transform your values into -log10
+#Remember skyplot will not tranform values into -log10
 pvals <- lapply(pvals,function(i) -log10(i))
-comp.skyplot(pvals,map,legspace = 0.22,
-             main="Comparison of all models on example data")
+comp.skyplot(pvals,map = list(map,hapmap,map,hapmap,map,map),
+             legspace = 0.22)
 #Again the non-corrected models are too outlying
-comp.skyplot(pvals[-1:-2],map,
+comp.skyplot(pvals[-1:-2],
+             map= list(map,hapmap,map,map),
              pch = c(15,17,19),legspace = 0.22,
              main= "Comparison of models on example data")
 
 # 6.4 Phenotype boxplots ----------------
-#We choose 1134 because it's the most significant marker in our QTL analysis
-best_marker <- which.min(result_mix$phenotype1$pval)
-gen_dos <- unlist(snp[best_marker,])
-gen_hap <- unlist(hap[best_marker,])
+#We choose the most significant marker in our QTL analysis
+best_snp <- which.min(result_mix$phenotype1$pval)
+best_hap <- which.min(result_Qpco$phenotype1$pval)
+gen_snp <- unlist(snp[best_snp,])
+gen_hap <- unlist(hap[best_hap,])
 
-pheno_box(phe[,1],gen_dos,
-          xlab="Dosage",ylab="phenotype",
-          main="A boxplot of dosages")
+pheno_box(phe[,1],gen_snp,
+          xlab="Dosage",ylab="phenotype",main="A boxplot of dosages")
 
 #But now there are too many things plotted and I can't see anything
 pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,
-          xlab="Haplotypes",ylab="phenotype",
-          main="A boxplot of haplotype dosages")
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages")
 
 #This is better but still too many boxes
-pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,
-          draw.points = F,
-          xlab="Haplotypes",ylab="phenotype",
-          main="A boxplot of haplotype dosages (no points)")
+pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,draw.points = F,
+          xlab="Haplotypes",ylab="phenotype",main="A boxplot of haplotype dosages (no points)")
 
 #This is better
 pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,
-          hap.select = c(57,37,69,46,23),
+          hap.select = c("H_01","H_03", "H_06","H_08"),
           xlab="Haplotypes",ylab="phenotype",
           main="A boxplot of some haplotype dosages")
 
