@@ -101,7 +101,8 @@ res3 <- map.QTL(phenotypes = pheno,
                 linear = NULL,
                 K_identity = F)
 
-
+data <- test.compatibility(pheno,dosage.X(geno[1,]),Z = diag(nrow(pheno)), K = diag(nrow(pheno)))
+length(data)
 ## compare the p-values of pheno "A" across the three analyses (for the first marker only)
 res1[[1]]$pval
 res2[[1]]$pval
@@ -109,3 +110,6 @@ res3[[1]]$pval
 ## res1 and res returned the same pval (0.0706), but in res3 it is different (0.0851)
 ## the results for one phenotype should not be affected by other phenotypes
 ## this situation is exacerbated in permutation tests
+
+sapply(res1,'[[',"pval")
+sapply(res3,'[[',"pval")
