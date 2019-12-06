@@ -36,7 +36,6 @@ hap_list <- lapply(data$PolyHap_res,function(chrom){
 hap <- do.call(rbind,hap_list)
 rownames(hap) <- names(hap_list)
 colnames(hap) <- hap_names
-
 ```
 
 

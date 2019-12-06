@@ -7,7 +7,7 @@ install.packages("../mpQTL_0.2.0.tar.gz",repos=NULL)
 library("mpQTL")
 
 #the object "data" contains an example dataset
-data <- readRDS("new_workshop_data.RDS")
+# data <- readRDS("new_workshop_data.RDS")
 map <- data$map
 phe <- data$pheno
 snp <- as.matrix(data$snp)
@@ -66,7 +66,7 @@ result_hap <- map.QTL(phenotypes = phe,
 str(result_hap,max.level = 2, give.attr = F)
 result_hap$phenotype1$beta[1:3]
 
-pv <- pval(result$hap)
+pv <- pval(result_hap)
 skyplot(pv,hapmap,main="QTL detection with linear model using haplotypes")
 
 #1.2 Linear + Q ---------------
@@ -160,10 +160,10 @@ result_perm <- map.QTL(phenotypes = phe,
 str(result_perm,max.level = 2,give.attr = F)
 
 # 5 Genotype imputation --------------
-dos_NA <- snp
-dos_NA[sample(1:length(snp),2000)] <- NA
+snp_NA <- snp
+snp_NA[sample(1:length(snp),2000)] <- NA
 result_NA <- map.QTL(phenotypes = phe,
-                     genotypes = dos_NA,
+                     genotypes = snp_NA,
                      ploidy = 4,
                      map = map,
                      Q = T)
@@ -210,7 +210,7 @@ pcoa.plot(K,col = pop,pch = c(15,17,19),
 pcoa.plot(K,col = 1:nrow(K),
           pch=19,main="PCoA plot with  different color per individual")
 
-gpdev.off()
+dev.off()
 
 #6.2 QQ-plot --------
 #The p-values are from 500 random normal values
@@ -239,11 +239,13 @@ pvals <- list(lin_dosage = pval(result_dos),
               lin_Qpco = pval(result_Qpco),
               mix = pval(result_mix),
               lin_Q_NA = pval(result_NA))
+#We need to undo the -log10 pval, because QQplot performs the transformation internally
+pvals <- lapply(pvals,function(p) 10^-p)
 QQ.plot(pvals, main = "Model comparison for p-values of pheno1",legspace = 0.22)
 QQ.plot(pvals[-1:-2], main = "Model comparison for pvalues of pheno1")
 
 #6.3 Skyline plots ------
-pv1 <- -log10(result_mix$phenotype1$pval)
+pv1 <- pval(result_mix)
 
 #Just a skyline plot
 skyplot(pv1,map = map,main="Example Skyline plot")
@@ -262,7 +264,7 @@ skyplot(pv1,map_letters,
         chrom = c("C","E"),small = T)
 
 #We can also create "comparative" skyplots
-pv2 <- -log10(result_mix$phenotype2$pval)
+pv2 <- pval(result_mix,2)
 comp.skyplot(list(pv1,pv2),map,
              main = "Comparison of two p-value distributions",
              threshold = 4,pch = c(19,21))

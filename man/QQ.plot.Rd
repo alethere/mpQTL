@@ -12,6 +12,7 @@ QQ.plot(
   coltype = NULL,
   h = NULL,
   l = NULL,
+  legspace = 0,
   ...
 )
 }
