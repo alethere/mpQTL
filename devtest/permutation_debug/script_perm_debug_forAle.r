@@ -35,7 +35,7 @@ map
 res1 <- map.QTL(phenotypes = pheno[,"A"],
                genotypes = geno, #genotype matrix
                ploidy = 4,
-               map = map[1:3,], #genetic map table
+               map = map, #genetic map table
                K=NULL, #distance matrix
                Q=NULL, #population effect matrix
                Z=NULL,
@@ -59,7 +59,7 @@ res1 <- map.QTL(phenotypes = pheno[,"A"],
 res2 <- map.QTL(phenotypes = pheno[,c("A","B")],
                 genotypes = geno, #genotype matrix
                 ploidy = 4,
-                map = map[1:3,], #genetic map table
+                map = map, #genetic map table
                 K=NULL, #distance matrix
                 Q=NULL, #population effect matrix
                 Z=NULL,
@@ -82,7 +82,7 @@ res2 <- map.QTL(phenotypes = pheno[,c("A","B")],
 res3 <- map.QTL(phenotypes = pheno,
                 genotypes = geno, #genotype matrix
                 ploidy = 4,
-                map = map[1:3,], #genetic map table
+                map = map, #genetic map table
                 K=NULL, #distance matrix
                 Q=NULL, #population effect matrix
                 Z=NULL,
@@ -111,5 +111,23 @@ res3[[1]]$pval
 ## the results for one phenotype should not be affected by other phenotypes
 ## this situation is exacerbated in permutation tests
 
+
 sapply(res1,'[[',"pval")
 sapply(res3,'[[',"pval")
+
+
+
+
+# This is the same behaviour of the lm function
+lm_mat_fun <- function(pheno, geno) {
+  a <- apply(geno,2, function(x) {
+    temp <- summary(lm(pheno ~ x))
+    temp <- unname(sapply(temp, function(l) l[[4]][2,4]))
+  })
+  return(t(a))
+}
+
+reslm2 <- lm_mat_fun(pheno[,c("A","B")], t(geno))
+reslm3 <- lm_mat_fun(pheno, t(geno))
+
+
