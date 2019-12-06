@@ -8,6 +8,8 @@ library("mpQTL")
 
 #the object "data" contains an example dataset
 data <- readRDS("new_workshop_data.RDS")
+names(data)
+
 map <- data$map
 phe <- data$pheno
 snp <- as.matrix(data$snp)

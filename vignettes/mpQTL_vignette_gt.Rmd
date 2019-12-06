@@ -1,0 +1,25 @@
+---
+title: "QTL analysis with the R package mpQTL"
+author: "Alejandro Thérèse Navarro"
+output: 
+  html_document:
+    theme: lumen
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+    toc_depth: 3
+---
+
+# Data preparation
+
+```{r data_load1,echo=F}
+source("../R/haplo_fun.R")
+data <- readRDS("new_workshop_data.RDS")
+map <- data$map
+snp <- as.matrix(data$snp)
+ploidy <- 4
+
+```
+
+
