@@ -17,6 +17,8 @@ comp.skyplot(
   h = NULL,
   l = NULL,
   pch = NULL,
+  legspace = 0.1,
+  alpha = 0.3,
   ...
 )
 }
@@ -24,7 +26,10 @@ comp.skyplot(
 \item{pval}{list or matrix (per column) of pvalues to be plotted together.}
 
 \item{map}{list of map dataframes. If there is only a data.frame, it will be assumed
-that all p-value sets have the same underlying genetic map.}
+that all p-value sets have the same underlying genetic map.
+#' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
+to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
+names are very long, increase this number to tweak the amount of space left to the right.}
 
 \item{threshold}{A threshold value to draw the threshold line.}
 
@@ -51,6 +56,9 @@ is blue 300 is purple and 360 is back to red.}
 
 \item{pch}{numeric vector. Each point type provided will be used for
 each of the pvalue sets provided.}
+
+\item{alpha}{Value between 0 (transparent) and 1 (opaque), to add some degree of
+transparency to the colour palette.}
 
 \item{...}{additional parameters to be passed to plot() (not xlim or ylim)}
 }

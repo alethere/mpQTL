@@ -24,6 +24,9 @@ is blue 300 is purple and 360 is back to red.}
 0 means grey, 100 means completely saturated.}
 
 \item{l}{Value between 0 and 100 (default 60). Represents brightness, or the amount of white}
+
+\item{alpha}{Value between 0 (transparent) and 1 (opaque), to add some degree of
+transparency to the colour palette.}
 }
 \value{
 A colour palette of n colours.

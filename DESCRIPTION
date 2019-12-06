@@ -23,3 +23,5 @@ RoxygenNote: 7.0.1
 Imports:
     colorspace (>= 1.4),
     parallel
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
