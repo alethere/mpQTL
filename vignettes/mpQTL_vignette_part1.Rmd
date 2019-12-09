@@ -151,7 +151,7 @@ hapmap <- hapres$map     # haplotype map
 - **haplotype names**
     A matrix representing the haplotype composition of each individual, where markers (haploblocks)       are in rows and individual homologues are in columns.
 - **haplotype dosages or probabilities** (not implemented yet)
-    A list where each element is an matrix of haplotype dosages (or probabilities), with haplotypes in     rows and individuals in columns.
+    A list where each element is a matrix of haplotype dosages (or probabilities), with haplotypes in     rows and individuals in columns.
 
 ![](Genotypic_data.png)
  
@@ -167,6 +167,22 @@ hap[1:5,1:8]
 
 ```
 
+In addition to `HapCurate`, a set of functions for conversion among those formats are separately provided. See the examples below.
+
+```{r}
+## from (a list of) haplotype dosages to haplotype names
+eg1 <- HapdoseToHapname(PolyHap_res[1:3], ploidy = 4)
+eg1[,1:8]
+
+## from SNP dosages to haplotype names
+eg2 <- SNPdoseToHapname(snp[1:5,1:4], ploidy = 4)
+eg2
+
+## from haplotype names to haplotype dosages
+eg3 <- HapnameToHapdose(eg1)
+str(eg3)
+eg3[[1]][,1:3]
+```
 
 
 
