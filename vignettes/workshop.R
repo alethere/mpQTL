@@ -46,6 +46,23 @@ hap[1:20,1:8] #8 columns of a tetraploid = 2 individuals
 #phenotypes are expressed as a numeric matrix, with individuals in rows and each trait in a column
 phe[1:20,]
 
+#0 Genetic Structure (K) --------------------
+pop <- substr(rownames(phe),1,2)
+pop
+table(pop)
+
+Kd <- calc.K(t(snp))
+Kh <- calc.K(t(hap),haplotypes = T, ploidy = 4)
+
+#We can visualize the matrices using heatmaps
+heatmap(Kd, Colv = NA, Rowv = NA, main = "Dosage matrix")
+heatmap(Kh, Colv = NA, Rowv = NA, main = "Haplotype matrix")
+
+#Or a bit more clearly using PCoA plots
+pcoa.plot(Kd,col = pop, main = "Dosage matrix")
+pcoa.plot(Kh,col = pop, main = "Haplotype matrix")
+
+
 #1 Linear QTL models ---------------
 #1.1 Linear -------------
 
@@ -73,10 +90,6 @@ pv <- pval(result_hap)
 skyplot(pv,hapmap,main="QTL detection with linear model using haplotypes")
 
 #1.2 Linear + Q ---------------
-pop <- substr(rownames(phe),1,2)
-pop
-table(pop)
-
 result_Q <- map.QTL(phenotypes = phe,
                     genotypes = snp,
                     ploidy = 4,
@@ -122,17 +135,6 @@ skyplot(pv,map,main="QTL detection with mixed model")
 
 result_mix$phenotype1$beta[1:3]
 
-#2.2 Kinship matrix ------------------
-Kd <- calc.K(t(snp))
-Kh <- calc.K(t(hap),haplotypes = T, ploidy = 4)
-
-#We can visualize the matrices using heatmaps
-heatmap(Kd, Colv = NA, Rowv = NA, main = "Dosage matrix")
-heatmap(Kh, Colv = NA, Rowv = NA, main = "Haplotype matrix")
-
-#Or a bit more clearly using PCoA plots
-pcoa.plot(Kd,col = pop, main = "Dosage matrix")
-pcoa.plot(Kh,col = pop, main = "Haplotype matrix")
 
 #3 Cofactors and covariates ----------------
 table(cof)
