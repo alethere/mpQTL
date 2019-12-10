@@ -446,13 +446,35 @@ saveRDS(data,"vignette/workshop_data.RDS")
 
 new_res <- map.QTL(phe,genotypes =  new_geno[,-1],map = new_map,ploidy = 4,K = T)
 # new_data <- c(wdata, PolyHap_res=list(PolyHap_res), hapmap=list(hapmap))
+
+cross_ped <- read.table(loc("cross_workshop.ped"),stringsAsFactors = F)
 new_data <- list(pheno = phe,
              map = new_map,
              snp = new_geno[,-1],
              founder = new_found,
              cofactor = cofa,
-             result = new_res)
-saveRDS(new_data,"vignette/new_workshop_data.RDS")
+             result = new_res,
+             pedigree = corss_ped)
+saveRDS(new_data,"vignettes/new_workshop_data.RDS")
+
+data <- readRDS("vignettes/new_workshop_data.RDS")
+
+parents <- paste0(rep(paste0("A",1:3),each = 3),"_P",1:9)
+names(parents) <- rownames(data$pheno)[1:9]
+rownames(data$pheno)[1:9] <- parents
+rownames(data$snp) <- data$map$marker
+colnames(data$snp)[1:9] <- parents
+colnames(data$founder)[1:36] <- as.vector(sapply(parents,function(p) paste0(p,"_",1:4)))
+
+for(i in seq_along(data$PolyHap_res)){
+  colnames(data$PolyHap_res[[i]]$hapdos)[1:9] <- parents
+}
+
+cross_ped[1:9,1] <- parents
+cross_ped[,2] <- parents[cross_ped[,2]]
+cross_ped[,3] <- parents[cross_ped[,3]]
+data$pedigree <- cross_ped
+
 
 effect_gen <- function(
   gen, #genotypes (per chromosome of individual)
