@@ -70,7 +70,9 @@
 #' @param permutation permutation strategy. Can be "pop" (permutation over the
 #' whole population) or "fam" (permutation within families). If it is NULL, no
 #' permutation will be run.
-#' @param alpha Permutation threshold alpha value, defaults to 0.05. Alpha is the
+#' @param fam If permutation = "fam", provide here a vector indicating the family
+#' membership (or a population structure membership) of each individual.
+#' @param alpha Permutation threshold alpha value, default to 0.05. Alpha is the
 #' chance of observing a false positive experiment-wise.
 #' @param impute Logical value indicating whether missing genotypes should be
 #' imputed using \code{impute.knn}. Defaults to True, but False is recommended (imputation algorithm
@@ -90,7 +92,7 @@
 #' @return a pvalue matrix containing the pvalue of each marker with each phenotype passed.
 map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, cofactor=NULL,
                    cofactor.type=NULL, cM=1, seed=NULL, Qpco=2, no_cores=parallel::detectCores()-1,
-                   approximate = T, permutation = NULL, nperm = 100, alpha = 0.95, impute=T, k=20,
+                   approximate = T, permutation = NULL, fam=NULL, nperm = 100, alpha = 0.05, impute=T, k=20,
                    linear = NULL, K_identity = F ){
 
   if(is.null(linear)){
@@ -498,7 +500,7 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
     minpvalMat <- matrix(minpval, ncol = npheno, byrow = T)
     maxlogpvalMat <- -log10(minpvalMat)
     thr <- sapply(1:ncol(maxlogpvalMat), function(i) {
-      quantile(maxlogpvalMat[,i], probs = alpha) # alpha can be a vector
+      quantile(maxlogpvalMat[,i], probs = 1-alpha) # alpha can be a vector
     })
     if (length(alpha)==1) thr <- t(thr)
     colnames(thr) <- colnames(phenotypes)[1:npheno]
@@ -1075,16 +1077,15 @@ pairwise_rpool <- function(hapdos,
 #' The Li and Ji method is more appropriate when the assumption of
 #' independence is not met. In this method, the eigenvalues of a correlation
 #' matrix are used to estimate the effective number of independent tests.
+#' NOT RECOMMENDED fo haplotype data, use SNP dosages only.
 #'
 #' @param m a matrix of SNP dosages or a list of matrices with haplotype dosages,
 #' with markers (or haplotypes) in rows and individuals in columns.
-#' No missing values are allowed. No monomorphic markers are allowed.
 #' @param chrom a vector defining to which chromosome markers belong.
-#' @param alpha significance level (use 0.05 for 5\% significance).
+#' @param alpha significance level (use 0.05 for 5% significance).
 #' @param ploidy numeric indicating the ploidy level.
 #'
 #' @return value of adjusted alpha.
-#' @keywords internal
 thr.LiJi <- function(m,
                      chrom,
                      alpha,

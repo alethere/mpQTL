@@ -307,38 +307,52 @@ TrueGeno2TrueHap <- function(geno, hb_list) {
 }
 
 # Inferred haplotypes curation ----------------------
+
 #' Prepare haplotypes for QTL mapping
 #'
 #' @param haplo It can be one of the following options:
 #' \itemize{
-#'   \item A matrix of multi-allelic genotypes, with markers in rows and
-#'   individual homologues in columns. Marker names are provided as rownames
-#'   and individual homologues names as column names. Genotypes can be both
-#'   numbers and characters.
+#'   \item A matrix of multi-allelic genotypes ('haplotype names'), with
+#'   markers in rows and individual homologues in columns. Marker names
+#'   are provided as rownames and individual homologues names as column names.
+#'   Genotypes can be both numbers and characters.
 #'   \item A list where each element
 #'   is a numeric matrix of haplotype dosages for a certain locus and each element name
 #'   is a locus name. Locus names must be unique.
 #'   In each matrix, haplotypes are in rows and individuals in columns.
-#'   Row names must contain haplotype
-#'   names.
+#'   Row names contain haplotype names.
 #'   Column names contain individual names.
 #'   \item The output of PolyHaplotyper.
 #' }
 #'
-#' @param hb_list
-#' @param map
-#' @param ploidy
-#' @param na.rate
-#' @param use.SNPs
-#' @param snpdose
+#' @param hb_list A list where each element is a vector of SNP names contained
+#' in a block.
+#' @param map A data frame with three columns named "marker", "chromosome"
+#' and "position".
+#' @param ploidy Numeric indicating the ploidy level.
+#' @param na.rate Numeric, from 0 to 1, indicating the rate of missingness
+#' allowed per marker (or block). Using 1 no filtration is applied.
+#' @param use.SNPs Logical value. If TRUE, SNP markers of discarded blocks will be
+#' included in the final haplotype table. Default is FALSE.
+#' @param snpdose A numeric matrix of SNP dosages, with markers in rows and
+#' individuals in columns. Row names are marker names and colmn names are
+#' individual names.
 #'
-#' @return
+#' @return A list with two elements
+#' \itemize{
+#'   \item *$genotypes* Curated matrix of multi-allelic genotypes
+#'   ('haplotype names'), with markers in rows and individual homologues in
+#'   columns. Marker names are provided as rownames and individual homologues
+#'   names as column names. Genotypes can be both numbers and characters.
+#'   \item *$map* A map for the haplotypes, where the position of each marker
+#'   is the average position of the SNP markers contained in a block.
+#' }
 #' @export
 HapCurate <- function(haplo,
                       hb_list, #may contain also 1-SNP blocks
                       map = NULL,  #snp map
                       ploidy,
-                      na.rate = 1, #from 0 to 1. 1 means no filtration
+                      na.rate = 1, #from 0 to 1, where 1 means no filtration
                       use.SNPs = F,
                       snpdose) {
 
