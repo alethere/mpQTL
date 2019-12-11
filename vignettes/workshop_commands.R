@@ -2,13 +2,146 @@
 #' Code and explanations on mpQTL v0.2.0
 #' by Alejandro Thérèse Navarro & Giorgio Tumino
 
-#Installing and loading the package
-install.packages("../mpQTL_0.2.0.tar.gz",repos=NULL)
+
+# FIRST PART: Data introduction ------------------------
+# Set your working directory
+# if you followed the instructions, it should be here:
+setwd("C:/workshop/myanalyses")
+
+
+# Installing and loading the package
+install.packages("../mpQTL/mpQTL_0.2.0.tar.gz", repos=NULL)
 library("mpQTL")
 
-#the object "data" contains an example dataset
+# the object "data" contains an example dataset
+data <- readRDS("../mpQTL/new_workshop_data.RDS")
+names(data)
 
-data <- readRDS("new_workshop_data.RDS")
+
+# 1 Population design ----------------------------
+## pedigree file
+ped <- data$pedigree
+head(ped,15)
+
+
+# 2 Haplotyping ----------------------------------
+## parents used in each cross
+parents <- as.matrix(unique(ped[!is.na(ped[,2]) & !is.na(ped[,3]),2:3]))
+parents
+
+## merge reciprocal crosses
+for(i in 1:nrow(parents)) {
+  parents[i,] <- parents[i, order(parents[i,])]
+}
+parents <- as.matrix(unique(parents[,1:2]))
+parents
+
+F1 <- list()
+for (p in seq_len(nrow(parents))) {
+  F1[[p]] <- ped[,1][(!is.na(ped[,2]) & !is.na(ped[,3]) & ped[,2]==parents[p, 1] & ped[,3]==parents[p, 2]) |
+                       (!is.na(ped[,2]) & !is.na(ped[,3]) & ped[,2]==parents[p, 2] & ped[,3]==parents[p, 1])]
+}
+str(F1)
+
+
+# Make haploblocks
+## genetic map
+map <- data$map
+head(map)
+table(map$chromosome) # number of markers per chromosome
+tapply(map$position, map$chromosome, max) # chromosome lenght
+
+## create blocks by a sliding window
+hb_list <- map2blocks(map=map[map$chromosome != 0,], #excluding chrom 0
+                      winsize=1, # window size
+                      sldpace=1) # window step (sliding pace)
+
+length(hb_list)
+table(sapply(hb_list, length))
+names(hb_list)[1:5]
+
+## refine blocks with more than 8 SNPs
+set.seed(3)
+hb_list <- refineBlocks(hb_list,   # haploblock list
+                        nmrk=2:7,  # numeric vector indicating allowed block length
+                        method="random",
+                        nrand = 2) # number of random selections per block
+names(hb_list)[1:5]
+
+# Haplotype inference (DO NOT RUN, we get true haplotypes from our simulation)
+# ## infer haplotypes by PolyHaplotyper (DO NOT RUN)
+# results <- inferHaplotypes(mrkDosage=snp, ploidy=4,
+#                            haploblock=hb_list,
+#                            parents=parents, F1=F1,
+#                            maxmrk=7)
+
+## get true haplotypes from the simulation
+PolyHap_res <- data$PolyHap_res
+str(PolyHap_res[[1]])
+## first block, 21 haplotypes, first 5 individuals
+PolyHap_res[[1]]$hapdos[,1:5]
+## the sum per column (individual) must be equal to ploidy
+colSums(PolyHap_res[[1]]$hapdos[,1:5])
+
+
+# 3 Haplotype data cuaration and format conversion -------------------------------------
+hapres <- HapCurate(PolyHap_res,  # results of PolyHaplotyper or 'haplotype dosages' or 'haplotype names'
+                    hb_list = hb_list, #may contain also 1-SNP blocks
+                    map = map,
+                    ploidy = 4,
+                    na.rate = 1,  # allowed missingness per marker
+                    use.SNPs = F, # whether you want to include SNPs of discarded blocks
+                    snpdose = snp)
+
+## haplotypes ('haplotype names' format)
+hap <- hapres$genotypes
+hap[1:5,1:8]
+## haplotype map
+hapmap <- hapres$map
+head(hapmap)
+
+## save hap and hapmap
+saveRDS(hap, "hap.rds")
+saveRDS(hapmap, "hapmap.rds")
+
+
+# 4 Types of genetic data accepted by `mpQTL` --------------------------
+## SNP dosages
+snp <- as.matrix(data$snp)
+snp[1:5,1:4]
+
+## Haplotype names
+hap[1:5,1:8]
+
+## from (a list of) haplotype dosages to haplotype names
+eg1 <- HapdoseToHapname(PolyHap_res[1:5], ploidy = 4)
+eg1[,1:8]
+
+## from SNP dosages to haplotype names
+eg2 <- SNPdoseToHapname(snp[1:5,1:4], ploidy = 4)
+eg2
+
+## from haplotype names to haplotype dosages
+eg3 <- HapnameToHapdose(eg1)
+str(eg3)
+eg3[[1]][,1:5]
+
+
+
+
+# SECOND PART: mpQTL functionalities  -----------------------
+
+# #Installing and loading the package
+# install.packages("../mpQTL_0.2.0.tar.gz",repos=NULL)
+# library("mpQTL")
+
+
+# Set your working directory again in 'myanalyses'
+setwd("C:/workshop/myanalyses")
+
+
+#the object "data" contains an example dataset
+data <- readRDS("../mpQTL/new_workshop_data.RDS")
 names(data)
 
 map <- data$map
@@ -18,24 +151,22 @@ anc <- as.matrix(data$founder)
 sample_pv <- -log10(data$result[[1]]$pval)
 sample_pv2 <- -log10(data$result[[2]]$pval)
 cof <- data$cofactor
-hapmap <- data$hapmap
-
-ploidy <- 4
-hap_names <- sapply(colnames(data$PolyHap_res$chr1_1.1$hapdos),function(n) paste0(n,"_",1:ploidy))
-hap_list <- lapply(data$PolyHap_res,function(chrom){
-  hap_mat <- chrom$hapdos
-  haps <- rownames(hap_mat)
-  hap_vec <- as.vector(apply(hap_mat,2,function(h) rep(haps,h)))
-  return(hap_vec)
-})
-
-hap <- do.call(rbind,hap_list)
-rownames(hap) <- names(hap_list)
-colnames(hap) <- hap_names
 
 pval <- function(res,n = 1) -log10(res[[n]]$pval)
+ploidy <- 4
 
-#Data structures -----------
+#load hap and hapmap (which you created during the previuos part of the vignette)
+hap <- readRDS("hap.rds")
+hapmap <- readRDS("hapmap.rds")
+
+## haplotypes ('haplotype names' format)
+hap[1:5,1:8]
+## haplotype map
+head(hapmap)
+
+
+
+# 1 Recall data structures -----------
 
 #Genetic map has three columns, "marker", "position" and "chromosome"
 map[1:20,]
@@ -46,7 +177,7 @@ hap[1:20,1:8] #8 columns of a tetraploid = 2 individuals
 #phenotypes are expressed as a numeric matrix, with individuals in rows and each trait in a column
 phe[1:20,]
 
-#0 Genetic Structure (K) --------------------
+#2 Genetic Structure (K) --------------------
 pop <- substr(rownames(phe),1,2)
 pop
 table(pop)
@@ -63,8 +194,8 @@ pcoa.plot(Kd,col = pop, main = "Dosage matrix")
 pcoa.plot(Kh,col = pop, main = "Haplotype matrix")
 
 
-#1 Linear QTL models ---------------
-#1.1 Linear -------------
+#3 Linear QTL models ---------------
+#3.1 Linear -------------
 
 #With dosages
 result_dos <- map.QTL(phenotypes = phe,
@@ -89,7 +220,7 @@ result_hap$phenotype1$beta[1:3]
 pv <- pval(result_hap)
 skyplot(pv,hapmap,main="QTL detection with linear model using haplotypes")
 
-#1.2 Linear + Q ---------------
+#3.2 Linear + Q ---------------
 result_Q <- map.QTL(phenotypes = phe,
                     genotypes = snp,
                     ploidy = 4,
@@ -101,7 +232,7 @@ result_Q$phenotype1$beta[1]
 pvQ <- pval(result_Q)
 skyplot(pvQ,map,main="QTL detection with linear model and Q correction")
 
-#1.3 Linear + Qpco ----------------
+#3.3 Linear + Qpco ----------------
 result_Qpco <- map.QTL(phenotypes = phe,
                        genotypes = hap,
                        ploidy = 4,
@@ -118,9 +249,9 @@ skyplot(pvQpco,hapmap,main="QTL detection with linear model and Qpco correction"
 comp.skyplot(list(Q = pvQ,Qpco = pvQpco),map = list(map,hapmap),
              pch = c(4,1),main="Comparison between Q and Qpco corrections")
 
-#2 Mixed QTL models ------------------
+#4 Mixed QTL models ------------------
 
-#2.1 Mixed -------------
+#4.1 Mixed -------------
 result_mix <- map.QTL(phenotypes = phe,
                       genotypes = snp,
                       ploidy = 4,
@@ -136,7 +267,7 @@ skyplot(pv,map,main="QTL detection with mixed model")
 result_mix$phenotype1$beta[1:3]
 
 
-#3 Cofactors and covariates ----------------
+#5 Cofactors and covariates ----------------
 table(cof)
 
 result_cof <- map.QTL(phenotypes = phe,
@@ -152,19 +283,27 @@ with_cofactor <- -log10(result_cof$phenotype2$pval)
 comp.skyplot(list(without_cofactor,with_cofactor),map,legnames = c("No cofactor","Cofactor"),
              main = "QTL detection with and without cofactor")
 
-# 4 Permutation threshold ------------
+# 6 Significance threshold ------------
 result_perm <- map.QTL(phenotypes = phe,
                        genotypes = snp,
                        ploidy = 4,
                        map = map,
                        Q = T,
                        permutation = "pop",
-                       nperm = 10,
-                       alpha = 0.95)
+                       nperm = 20,
+                       alpha = 0.05)
 
 str(result_perm,max.level = 2,give.attr = F)
 
-# 5 Genotype imputation --------------
+## for SNPs only, you can use the Li & Ji method
+result_liji <- thr.LiJi(snp,
+                        map$chromosome,
+                        alpha = 0.05,
+                        ploidy = 4)
+result_liji
+-log10(result_liji$threshold)
+
+# 7 Genotype imputation --------------
 snp_NA <- snp
 snp_NA[sample(1:length(snp),2000)] <- NA
 result_NA <- map.QTL(phenotypes = phe,
@@ -175,9 +314,9 @@ result_NA <- map.QTL(phenotypes = phe,
 
 str(result_NA,max.level = 2,give.attr = F)
 
-# 6 Visualisation ------------------
+# 8 Visualisation ------------------
 
-#6.1 PCoA ---------------
+#8.1 PCoA ---------------
 K <- calc.K(t(snp))
 #We must transform the result of dist into a matrix to use it with pcoa.plot()
 euc <- as.matrix(dist(t(snp),method = "euclidean"))
@@ -217,7 +356,7 @@ pcoa.plot(K,col = 1:nrow(K),
 
 dev.off()
 
-#6.2 QQ-plot --------
+#8.2 QQ-plot --------
 #The p-values are from 500 random normal values
 not_sig <- pnorm(rnorm(500),lower.tail = F)
 
@@ -249,7 +388,7 @@ pvals <- lapply(pvals,function(p) 10^-p)
 QQ.plot(pvals, main = "Model comparison for p-values of pheno1",legspace = 0.22)
 QQ.plot(pvals[-1:-2], main = "Model comparison for pvalues of pheno1")
 
-#6.3 Skyline plots ------
+#8.3 Skyline plots ------
 pv1 <- pval(result_mix)
 
 #Just a skyline plot
@@ -285,7 +424,7 @@ comp.skyplot(pvals[-1:-2],
              pch = c(15,17,19),legspace = 0.22,
              main= "Comparison of models on example data")
 
-# 6.4 Phenotype boxplots ----------------
+# 8.4 Phenotype boxplots ----------------
 #We choose the most significant marker in our QTL analysis
 best_snp <- which.min(result_mix$phenotype1$pval)
 best_hap <- which.min(result_Qpco$phenotype1$pval)
@@ -305,7 +444,7 @@ pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,draw.points = F,
 
 #This is better
 pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,
-          hap.select = c("H_01","H_03", "H_06","H_08"),
+          hap.select = c("01","03", "06","08"),
           xlab="Haplotypes",ylab="phenotype",
           main="A boxplot of some haplotype dosages")
 
@@ -313,9 +452,10 @@ pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,
 #you can use the dosage.X function
 dosage.X(gen_hap,haplotype = T,ploidy = 4)
 
-#6.5 Colour -------------
+#8.5 Colour -------------
 layout(matrix(1:4,byrow = T, ncol = 2))
 for(l in c(40,60,80,100)) hue_wheel(l)
 dev.off()
+
 
 

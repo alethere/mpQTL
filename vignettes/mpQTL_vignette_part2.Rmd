@@ -1,6 +1,6 @@
 ---
 title: "QTL analysis with the R package mpQTL"
-author: "Alejandro Thérèse Navarro  &  Giorgio Tumino"
+author: "Alejandro Thérèse Navarro"
 output: 
   html_document:
     theme: lumen
@@ -10,194 +10,6 @@ output:
       collapsed: false
     toc_depth: 3
 ---
-
-# Introduction
-The present vignette will show how to use `mpQTL` to run a QTL analysis. `mpQTL` is an R package for single marker association analysis in structured populations of any ploidy (e.g. multiparental populations, GWAS panels or a combination of them). Input genotypic data can be both biallelic (continuous or discrete SNP data) or multiallelic (haplotypes). The use of multiallelic markers seems particularly advantageous in describing highly diverse populations (multiparental or GWAS panels), where the number of alleles (ancestral alleles) segregating at each locus is expected to be greater than two. Local haplotypes (which are multiallelic) can be used to better describe the genetic effects of ancestral alleles. However, haplotyping methods for such unstructured populations are not available yet for polyploid species. Direct haplotyping techniques based on sequencing are recently emerging and represent a promising option for future haplotype-based applications. In our current pipeline, local haplotypes are inferred by using `PolyHaplotyper` (under development), that can phase blocks of maximum 8 SNPs for tetraploid and hexaploid species. Even though  `PolyHaplotyper` can haplotype unrelated individuals, it has been designed in a way that takes advantage of F1 families sharing a parent, resulting in higher accurate haplotypes.   
-
-The first part of this vignette will give an introduction on the genotypic data that will be used. Although `PolyHaplotyper` is not a focus of this vignette (we will use simulated haplotypes only), a short recall will be provided on the main input requirements and on possible strategies for constructing haploblocks.   
-In a second part of this document (starting from [Statistical introduction](#stat_intro)) we will discuss most of the main functions of the `mpQTL` package, their usage and interpretation as well as some of the statistical theory behind them. Firstly we will introduce some statistical concepts about the model behind `mpQTL` and its main function `map.QTL()`, then we will discuss the features included in `map.QTL()` with a series of examples, and lastly we introduce a series of visualisation functions that will aid us in interpreting our data and the results we obtain from it.
- 
-
-```{r data_load1,echo=F}
-source("../R/utils_fun.R")
-data <- readRDS("new_workshop_data.RDS")
-
-```
-
-# Population design
-The following analysis will be run on a simulated multiparental population, consisting of a set of connected F1 families (see the figure below).
-
-![](Pop_design.png) &nbsp; 
- 
-Pedigree information can be provided by using a table with 3 columns for individual name, mother name and father name respectively.  
-```{r}
-## pedigree file
-ped <- data$pedigree
-# ped <- read.table("cross_workshop.ped", header = T, stringsAsFactors = F)
-# class(ped)
-head(ped,15)
-
-## parents used in each cross
-parents <- as.matrix(unique(ped[!is.na(ped[,2]) & !is.na(ped[,3]),2:3]))
-parents
-
-
-```
-
-
-
-# A note on haplotyping
-In highly diverse and structured populations, precision and power of QTL detection might be increased by using haplotypes (~ ancestral alleles) instead of SNP alleles. Unless a direct haplotyping technique is used, ancestral alleles are not observed. Rather, they need to be estimated by phasing a set of SNP markers. In our approach, haplotyping (i.e. phasing of a number of SNPs) can be performed by `PolyHaplotyper`, that takes advantage of connected F1 families (F1s sharing one parent).   
-We will briefly recall the main steps to run `PolyHaplotyper`. 
-
-## Provide parents and family membership
-The distinction between mother and father is not used in the `PolyHaplotyper` algorithm. Therefore, progenies of reciprocal crosses should be indicated as belonging to the same family.
-
-```{r}
-## merge reciprocal crosses
-for(i in 1:nrow(parents)) {
-  parents[i,] <- parents[i, order(parents[i,])]
-}
-parents <- as.matrix(unique(parents[,1:2]))
-parents
-
-## create a list of individuals belonging to each family
-F1 <- list()
-for (p in seq_len(nrow(parents))) {
-  F1[[p]] <- ped[,1][(!is.na(ped[,2]) & !is.na(ped[,3]) & ped[,2]==parents[p, 1] & ped[,3]==parents[p, 2]) |
-                       (!is.na(ped[,2]) & !is.na(ped[,3]) & ped[,2]==parents[p, 2] & ped[,3]==parents[p, 1])]
-}
-str(F1)
-
-
-```
-
-## Make haploblocks
-`PolyHaplotyper` performs phasing of pre-defined sets of maximum 8 SNPs (haploblocks). This implies that a prior knowledge on marker position (or marker proximity from contig data) should be available. In the example illustrated in this vignette, a reference genetic map is available. Therefore, haploblocks were generated based on SNP genetic position.
-
-```{r, collapse=T}
-## genetic map
-map <- data$map
-head(map)
-table(map$chromosome) # number of markers per chromosome
-tapply(map$position, map$chromosome, max) # chromosome lenght
-```
-
-In the following chunk, two functions will be used: 
-
-1. `map2blocks` to create adjacent blocks of 1 cM along the genome, where:
-    * `winsize` defines the size of the window in map units,
-    * `sldpace` defines the step size (or the sliding pace) of the window. If `sldpace` equals `winsize`, approximately adjacent blocks will be constructed. To generate overlapping blocks, set `sldpace` < `winsize`.
-2. `refineBlocks` to refine blocks with more than a maximum number of SNPs (defined by `nmrk`), selecting a random set of SNPs (`method="random"`) or splitting the block into smaller adjacent blocks (`method="split"`).
-
-```{r, collapse=T}
-## create blocks by a sliding window
-hb_list <- map2blocks(map=map[map$chromosome != 0,], #excluding chrom 0
-                       winsize=1, # window size
-                       sldpace=1) # window step (sliding pace)
-
-length(hb_list)
-table(sapply(hb_list, length))
-names(hb_list)[1:5]
-
-## refine blocks with more than 8 SNPs
-set.seed(3)
-hb_list <- refineBlocks(hb_list,   # haploblock list
-                        nmrk=2:7,  # numeric vector indicating allowed block length
-                        method="random",
-                        nrand = 2) # number of random selections per block
-names(hb_list)[1:5]
-
-```
-
-
-## Haplotype inference
-The objects we just created are used as input in `PolyHaplotyper::inferHaplotypes`. Do not run it. In this vignette we will use true haplotypes obtained from our simulation. They are in the same format of `PolyHaplotyper` results.
-```{r}
-# ## infer haplotypes by PolyHaplotyper (DO NOT RUN)
-# results <- inferHaplotypes(mrkDosage=snp, ploidy=4,
-#                            haploblock=hb_list,
-#                            parents=parents, F1=F1,
-#                            maxmrk=7)
-
-## get true haplotypes from the simulation
-PolyHap_res <- data$PolyHap_res
-str(PolyHap_res[[1]])
-```
-`PolyHaplotyper` output is a list, where each element is a list of results related to one haploblock. Haplotype information is stored in the object called *hapdos* in form of haplotype dosages (with haplotypes in rows and individuals in columns).
-```{r}
-## first block, 21 haplotypes, first 5 individuals
-PolyHap_res[[1]]$hapdos[,1:5] 
-## the sum per column (individual) must be equal to ploidy
-colSums(PolyHap_res[[1]]$hapdos[,1:5])
-```
-
-
-## Haplotype curation and format conversion
-After haplotype inference, blocks can contain missing values for the individuals with more than one possible phasing solution. Therefore, haplotype data curation is recommended before performing QTL mapping. In addition, the output of PolyHaplotyper needs to be converted in an appropriate input format for `mpQTL` (from *haplotype dosages* to *haplotype names*, see next section). The function `HapCurate` can be used to simultaneously screen for missingness per block and convert *haplotype dosages* into *haplotype names* (see next section). SNPs of discarded blocks can be re-included (`use.SNPs = TRUE`). According to the final marker set, a map will be generated as well, where marker position is the average position of the SNPs included in a block. Markers will be re-ordered based on their map position.   
-`HapCurate` returns a list of two elements:
-
-- `$genotypes`: curated genotypes in form of *haplotype names*
-- `$map`: a map for haploblocks (and SNPs, if included)
-```{r}
-hapres <- HapCurate(PolyHap_res,  # results of PolyHaplotyper
-                    hb_list = hb_list, #may contain also 1-SNP blocks
-                    map = map,
-                    ploidy = 4,
-                    na.rate = 1,  # allowed missingness per marker
-                    use.SNPs = F, # whether you want to re-include SNPs of discarded blocks
-                    snpdose = snp)
-
-## haplotypes ('haplotype names' format)
-hap <- hapres$genotypes  
-hap[1:5,1:8]
-## haplotype map
-hapmap <- hapres$map   
-head(hapmap)
-```
-
-
-# Types of genetic data accepted by `mpQTL`
-`mpQTL` can use as input different types of genotypic data:
-
-- **continuous SNP genotypes** A matrix of continuous genotypes, with markers in rows and individuals in columns. They could be array intensity allelic ratios $Y/(X+Y)$ or ratios of read counts.
-- **SNP dosages** A matrix of SNP dosages, with markers in rows and individuals in columns.
-- **haplotype names** A matrix representing the haplotype composition of each individual, where markers (haploblocks) are in rows and individual homologues are in columns.
-- **haplotype dosages or probabilities** (not implemented yet) A list where each element is a matrix of haplotype dosages (or probabilities), with haplotypes in rows and individuals in columns.
-
-![](Genotypic_data.png) &nbsp; 
- 
- 
-
-```{r}
-## SNP dosages
-snp <- as.matrix(data$snp)
-snp[1:5,1:4]
-
-## Haplotype names
-hap[1:5,1:8]
-
-```
-
-In addition to `HapCurate`, a set of functions for conversion among those formats are separately provided. See the examples below.
-
-```{r}
-## from (a list of) haplotype dosages to haplotype names
-eg1 <- HapdoseToHapname(PolyHap_res[1:5], ploidy = 4)
-eg1[,1:8]
-
-## from SNP dosages to haplotype names
-eg2 <- SNPdoseToHapname(snp[1:5,1:4], ploidy = 4)
-eg2
-
-## from haplotype names to haplotype dosages
-eg3 <- HapnameToHapdose(eg1)
-str(eg3)
-eg3[[1]][,1:5]
-```
-
-
-
 
 ```{r data_load,echo=F}
 source("../R/viz_fun.R")
@@ -210,13 +22,24 @@ anc <- as.matrix(data$founder)
 sample_pv <- -log10(data$result[[1]]$pval)
 sample_pv2 <- -log10(data$result[[2]]$pval)
 cof <- data$cofactor
+hapmap <- data$hapmap
 
 ploidy <- 4
+hap_names <- sapply(colnames(data$PolyHap_res$chr1_1.1$hapdos),function(n) paste0(n,"_",1:ploidy))
+hap_list <- lapply(data$PolyHap_res,function(chrom){
+  hap_mat <- chrom$hapdos
+  haps <- rownames(hap_mat)
+  hap_vec <- as.vector(apply(hap_mat,2,function(h) rep(haps,h)))
+  return(hap_vec)
+})
 
+hap <- do.call(rbind,hap_list)
+rownames(hap) <- names(hap_list)
+colnames(hap) <- hap_names
 ```
 
 
-
+In this document we will discuss most of the main functions of the `mpQTL` package, their usage and interpretation as well as some of the statistical theory behind them. Firstly we will introduce some statistical concepts about the model behind `mpQTL` and its main function `map.QTL()`, then we will discuss the features included in `map.QTL()` with a series of examples, and lastly we introduce a series of visualisation functions that will aid us in interpreting our data and the results we obtain from it.
 
 # Statistical introduction {#stat_intro}
 
@@ -273,7 +96,7 @@ kableExtra::kable_styling(tab,bootstrap_options = c("stripped","hover","condense
 
 With any genotypic data (dosages or haplotypes), an adequate genetic map must be provided. Such map is expressed using a simple `data.frame` that must contain at least three columns, "marker" with a marker name; "chromosome" with the chromosome name or number; and "position", with the genetic position of each marker, preferably in cM (although any unit will work). Most functions will assume that the genetic map and the genotypic data are in the same order, that is, that the marker of the first row of the map is the marker of the first row if the genotypic data. 
 
-Unmapped markers can also be included in this map by indicating that they belong to *chromosome 0*. Importantly, they should be given a position as well, the simplest option is to give the first unmapped marker position 1, the second position 2, and so on. However, if many unmapped markers are present, it is convenient to assign positions in a scale similar to the one of the other chromosomes. For example, if `n = 1000` is the number of unmapped markers and the positions for the other chromosomes are provided in cM (with maximum lenght around 150), it is recommended to assign positions for unmapped markers between 0 and 150 (e.g. using `seq(0,150,length.out=n)`).
+Unmapped markers can also be included in this map by indicating that they belong to *chromosome 0*. Importantly, they should be given a position as well, the simplest option is to give the first unmapped marker position 1, the second position 2, and so on. 
 
 ```{r map_table,echo=F}
 tab <- knitr::kable(map[1:10,],format = "html",caption = "Genetic map of the first ten markers")
@@ -506,16 +329,15 @@ comp.skyplot(list(without_cofactor,with_cofactor),map,legnames = c("No cofactor"
 
 To see how to create comparative skyplots see the [`comp.skyplot()` function](#compskyplot)
 
-## Significance threshold
+## Permutation threshold
 
-In order to calculate a significance threshold, a permutation test can be performed which allows us to find what is the "average" level of significance in this dataset by permuting phenotypes and genotypes. To obtain the threshold the QTL mapping process is repeated multiple times, which may require a long computation time. For our example we will use only 10 permutations, but generally, the more permutations the higher the accuracy (e.g. 1000 - 10000).
+In order to calculate a significance threshold, a permutation test can be performed which allows us to find what is the "average"" level of significance in this dataset by permuting phenotypes and genotypes. To obtain the threshold the QTL mapping process is repeated multiple times, which takes quite some time. For our example we will use only 10 permutations, but generally, the more permutations the higher the accuracy.
 
 There are three parameters for threshold calculation:
 
 * `nperm`: integer, the number of permutations. 
-* `permutation`: either "pop" or "fam", determines the permutation strategy. If "pop", it permutes over the whole population, and if "fam", only within families. If there is a strong family structure, the "fam" strategy will produce more accurate thresholds. However, in a population consisting of many small families (< 30 sibs) the "pop" approach is still preferable. 
-* `fam`: a vector of family membership (or population structure membership), to be provided if `permutation`="fam".
-* `alpha`: number between 0 and 1, indicating for which probability should the threshold be calculated. Default is 0.05 (i.e. a maximum of 5% of false positives).
+* `permutation`: either "pop" or "fam", determines the permutation strategy. If "pop", it permutes over the whole population, and if "fam", only within families. If there is a strong family structure, the "fam" strategy will produce more accurate thresholds.
+* `alpha`: number between 0 and 1, indicating for which probability should the threshold be calculated. Defaults to 0.95 (i.e. a maximum of 5% of false positives).
 
 ```{r perm}
 result_perm <- map.QTL(phenotypes = phe,
@@ -525,26 +347,12 @@ result_perm <- map.QTL(phenotypes = phe,
         Q = T,
         permutation = "pop",
         nperm = 10,
-        alpha = 0.05)
+        alpha = 0.95)
 
 str(result_perm,max.level = 2,give.attr = F)
 ```
 
-
-Alternatively, when a QTL analysis is run on **SNP dosages**, it is possible to use a method to adjust the significance level based on the effective number of independent tests (independent SNPs), as proposed by Li & Ji (2005, Heredity). The effective number of independent test is expected to be lower than the total number of tests used in the Bonferroni adjustment. For this reason, the Li & Ji threshold is usually less strict than the Bonferroni threshold. Notice that this threshold depends on genotypes only, therefore the same threshold can be used for QTL analyses of different traits.
-
-```{r, collapse=T}
-## for SNPs only, you can use the Li & Ji method
-result_liji <- thr.LiJi(snp,
-                        map$chromosome,
-                        alpha = 0.05,
-                        ploidy = 4)
-result_liji
--log10(result_liji$threshold)
-```
-
-In this case, we will continue the analyses using the permutation threshold.
-For each trait a permutation threshods (`perm.thr`) is included in the output `result_perm` and can be used to determine significant markers. We can use it and plot it in the `skyplot()` as well.  
+Now a permutation threshod (`perm.thr`) is included in the output and can be used to determine significant markers. We can use it and plot it in the `skyplot()` as well.
 
 ```{r}
 pv <- -log10(result_perm$phenotype1$pval)
@@ -871,7 +679,7 @@ pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4,draw.points = F,
 
 #This is better
 pheno_box(phe[,1],gen_hap,haplotype = T,ploidy = 4, 
-          hap.select = c("01","03", "06","08"),
+          hap.select = c("H_01","H_03", "H_06","H_08"),
           xlab="Haplotypes",ylab="phenotype",
           main="A boxplot of some haplotype dosages")
 ```
@@ -905,6 +713,5 @@ for(l in c(40,60,80,100)){
 With this system, changing the colours of any plot is pretty straight-forward. You can specify a different pair of values for `h`, to create a gradient between these two colours (in qualitative palettes) or a single `h` for sequential palettes. To switch between sequential and qualitative palettes simply change the `coltype` parameter. If you would like a stronger light-dark contrast in sequential palettes, choose more extreme `l` values, `c(20,90)` by default, or if you would like less contrast, choose closer values. For qualitative palettes, you can use this parameter to obtain lighter, or darker colours. 
 
 As a final note, since the colours are expressed in degrees, 0, 360, 720 and 1080 all refer to the same hue: red. If you set a qualitative gradient between 0 and 10, the palette will start at red and end at a very similar red (so all colours will be very similar). If, instead, you give 0 and 370 as the `h` value, the colours will start and end at these reds, but going through the whole colour wheel, giving a sort-of rainbow palette. 
-
 
 
