@@ -4,14 +4,12 @@
 \alias{draw_chrom_axis}
 \title{Chromosome axis drawer}
 \usage{
-draw_chrom_axis(ch_start, ch_end, chrom, small = F)
+draw_chrom_axis(ch_edges, small = F)
 }
 \arguments{
-\item{ch_start}{vector of chromosome starts}
-
-\item{ch_end}{vector of chromosome ends}
-
-\item{chrom}{names of chromosomes}
+\item{ch_edges}{data.frame with first column having the axis start of each
+chromosome, and the second column the axis end. Row names must have the
+names of each chromosome. This data.frame can be obtained using \code{map_axis}}
 
 \item{small}{logical, should small axis be also drawn?}
 }

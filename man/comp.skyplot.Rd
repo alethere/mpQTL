@@ -19,6 +19,7 @@ comp.skyplot(
   pch = NULL,
   legspace = 0.1,
   alpha = 0.3,
+  small = F,
   ...
 )
 }
@@ -59,6 +60,9 @@ each of the pvalue sets provided.}
 
 \item{alpha}{Value between 0 (transparent) and 1 (opaque), to add some degree of
 transparency to the colour palette.}
+
+\item{small}{logical, should the small axis (per chromosome) be drawn? By default
+T only if number of chromosomes <3.}
 
 \item{...}{additional parameters to be passed to plot() (not xlim or ylim)}
 }

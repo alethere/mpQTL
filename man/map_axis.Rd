@@ -4,17 +4,16 @@
 \alias{map_axis}
 \title{Axis calculator}
 \usage{
-map_axis(map, space = 0, maxes = NULL)
+map_axis(maplist, space = 0)
 }
 \arguments{
-\item{map}{map dataframe (with position, chromosome and marker)}
+\item{maplist}{map dataframe (or list of map dataframes)}
 
-\item{space}{space to leave between chromosomes (in cM)}
-
-\item{maxes}{the maximum length of each chromosome}
+\item{space}{space to leave between chromosomes (in map$position units)}
 }
 \value{
-a matrix with marker positions in a map and on an axis
+a maplist with the original maps and an extra "axis" column, and
+a data.frame with the axis chromosomes start and end, for axis plotting.
 }
 \description{
 Using a map dataframe, it calculates the

@@ -258,7 +258,8 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   pval <- pval[chrom_filter]
 
   tot_length <- sum(sapply(split(map$position,map$chromosome),max))
-  new_map <- map_axis(map,space = 0.05*tot_length)
+  axis_res <- map_axis(map,space = 0.05*tot_length)
+  new_map <- axis_res[[1]][[1]]
 
   #Calculate a lighter colour of the "col"
   if(is.null(col)) col <- select.col(1,h = h,l=l)
@@ -292,7 +293,7 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
     if(length(chrom) <= 2) small <- T
     else small <- F
   }
-  draw_chrom_axis(ch_pos[1,],ch_pos[2,],chrom,small)
+  draw_chrom_axis(axis_res[[2]],small)
 
 
 
@@ -306,37 +307,50 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 #' position of each marker onto a plot, including
 #' spaces between chromosomes, if desired.
 #'
-#' @param map map dataframe (with position, chromosome and marker)
-#' @param space space to leave between chromosomes (in cM)
-#' @param maxes the maximum length of each chromosome
+#' @param maplist map dataframe (or list of map dataframes)
+#' @param space space to leave between chromosomes (in map$position units)
 #'
-#' @return a matrix with marker positions in a map and on an axis
+#' @return a maplist with the original maps and an extra "axis" column, and
+#' a data.frame with the axis chromosomes start and end, for axis plotting.
 #'
 #' @keywords internal
-map_axis <- function(map,space = 0,maxes = NULL){
-  sp_map <- split(map,map$chromosome)[as.character(unique(map$chromosome))]
+map_axis <- function(maplist,space = 0){
+  if(class(maplist) != "list") maplist <- list(maplist)
 
-  if(is.null(maxes)){
-    maxes <- sapply(sp_map,function(x) max(x$position))
-  }
+  #All chromosomes present in all maps
+  chroms <- lapply(maplist,function(m){
+    as.character(unique(m$chromosome))
+  })
+  chroms <- unique(unlist(chroms))
 
-  # else{
-  #   maxes <- sapply(unique(mmap$chromosome),function(i){
-  #     this <- which(names(maxes) == i)
-  #     sum(maxes[1:this])
-  #   })
-  # }
-  chroms <- names(maxes)
-  new_maxes <- sapply(1:length(maxes),function(i) sum(maxes[1:i]))
-  new_maxes <- c(0,new_maxes)
-  names(new_maxes) <- c(chroms,"last")
-  spaces <- sapply(1:length(maxes),function(i) space*(i-1))
-  names(spaces) <- c(chroms)
+  #Per chromosome max per map
+  ch_max <- lapply(chroms,function(ch){
+    sapply(maplist,function(m){
+      max_map(m,ch)
+    })
+  })
 
-  for(i in names(sp_map)){
-    sp_map[[i]]$axis <- sp_map[[i]]$position + new_maxes[i] + spaces[i]
-  }
-  return(do.call(rbind,sp_map))
+  #Total chromosome max
+  ch_max <- unlist(lapply(ch_max,max,na.rm=T))
+  ch_max <- c(0, ch_max)
+  names(ch_max) <- c(chroms,"end")
+
+  #Now we add the space between chromosomes
+  ch_add <- sapply(1:length(ch_max),function(i) sum(ch_max[1:i]) + space*(i-1) )
+  names(ch_add) <- names(ch_max)
+
+  #Chromosome edges
+  ch_start <- ch_add[-length(ch_add)]
+  ch_end <- ch_add[-length(ch_add)] + ch_max[-1]
+
+  #Now we create the axis columns on each map
+  new_maps <- lapply(maplist,function(m){
+    m$axis <- m$position + ch_add[as.character(m$chromosome)]
+    return(m)
+  })
+
+  return(list(new_maps = new_maps,
+              chr_edges = data.frame(ch_start,ch_end)))
 }
 
 #' Comparative Skyline Manhattan plot
@@ -364,44 +378,51 @@ map_axis <- function(map,space = 0,maxes = NULL){
 #'
 comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, ylab = NULL,
                           xlab = NULL, legnames = NULL, coltype=NULL, h = NULL, l = NULL,
-                          pch = NULL, legspace = 0.1,alpha = 0.3,...
+                          pch = NULL, legspace = 0.1,alpha = 0.3,small = F,...
 ){
+
+  #Pvalues must be stored in a list, there needs to be as many maps
+  #as p-values
+  if(is.matrix(pval)) pval <- mat2list(pval)
   n <- length(pval)
   if(is.data.frame(map)){ map <- lapply(1:n,function(x) map)
   }else{
     if(length(map) != n) stop("The number of maps provided and pvalues does not coincide")
   }
 
-  if(is.matrix(pval)) pval <- mat2list(pval)
-
   #We filter per chromosome
-  if(is.null(chrom)){
-    chrom <- unique(unlist(lapply(map,function(nmp){
-      as.character(unique(nmp$chromosome))})))
-    chrom <- sort(chrom)
+  if(!is.null(chrom)){
+    pval <- lapply(1:length(pval),function(i){
+      p <- pval[[i]]
+      p <- p[map[[i]]$chromosome %in% chrom]
+      if(length(p) == 0) return(NULL)
+      return(p)
+    })
+
+    map <- lapply(map,function(m){
+      m <- m[m$chromosome %in% chrom, ]
+      if(nrow(m) == 0 ) return(NULL)
+      return(m)
+    })
   }
-  for(i in 1:n){
-    mp <- map[[i]]
-    chrom_filter <- sapply(mp$chromosome,function(x) any(x == chrom))
+  pval <- pval[!sapply(pval,is.null)]
+  map <- map[!sapply(map,is.null)]
+  n <- length(pval)
 
-    if(!any(chrom_filter)){
-      stop("The specified chrom: ",paste(chrom,collapse=", "),
-           "; is not found in the chromosomes of map: ",
-           paste(as.character(unique(mp$chromosome)), collapse=", "))}
-
-    map[[i]] <- mp[chrom_filter, ]
-    pval[[i]] <- pval[[i]][chrom_filter]
-  }
-
-  #First we calculate the maximum positions of each map
-  maxes <- lapply(1:n,function(i){
-    sapply(split(map[[i]]$position,map[[i]]$chromosome),max)
+  #space calculation
+  all_chrom <- lapply(map,function(m) as.character(unique(m$chromosome)))
+  all_chrom <- unique(unlist(all_chrom))
+  tot <- sapply(all_chrom,function(ch){
+    max(sapply(map,max_map,ch),na.rm=T)
   })
-  maxes <- sapply(chrom,function(i) max(sapply(maxes,function(m) m[i]),na.rm=T))
+  #The sum of the max of each all_chromosome is the total range of the plot
+  tot <- sum(tot)
+  space <- tot*0.05
 
-  #This allows us to calculate unified mapping axes
-  new_maps <- lapply(map,map_axis,space = sum(maxes)*0.05,maxes = maxes)
-
+  #Maps with axis column
+  axis_maps <- map_axis(map,space = space)
+  new_maps <- axis_maps[[1]]
+  ch_edges <- axis_maps[[2]]
 
   #Then, we create the colour palette we are going to use
   cols <- select.col(n,coltype,h=h,l=50,alpha=alpha)
@@ -415,10 +436,10 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
     ylim <- c(min(ylim[1,]),max(ylim[2,]))
   }
 
-
   if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
   if(is.null(xlab)) xlab <- "Chromosomes"
 
+  #Create the xlim
   xlim <- c(0,max(sapply(new_maps,function(x) max(x$axis,na.rm=T))))
   xlim[2] <- xlim[2] + legspace*(xlim[2] - xlim[1])
 
@@ -428,18 +449,18 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   if(length(pch) > n) warning("More pch values than pvals have been provided, only the first",n,"pch values will be used.")
   if(length(pch) < n) pch <- rep(pch,n)
 
-  for(i in 1:n){
-    pv <- pval[[i]]
-    mp <- new_maps[[i]]
-    col <- cols[i]
-    pc <- pch[i]
+  #We calculate and plot the points
+  pv <- do.call(c,pval)
+  ax <- do.call(c,lapply(new_maps,'[[',"axis"))
+  p_i <- lapply(1:length(pval),function(i){
+    rep(i,length(pval[[i]]))
+  })
+  p_i <- do.call(c,p_i)
 
-    # lightcol <- lighten(col)
-    # chrom_col <- sapply(mp$chromosome,function(m) which(m == unique(mp$chromosome)))
-    # col <- c(lightcol,col)[chrom_col%%2+1]
+  col <- cols[p_i]
+  pc <- pch[p_i]
 
-    points(mp$axis,pv,pch=pc,col = col)
-  }
+  points(ax,pv,pch = pc, col = col)
 
   #Plotting the legend
   if(is.null(legnames)) legnames <- names(pval)
@@ -449,61 +470,61 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   #Y axis
   at <- axisTicks(round(ylim),log = F); axis(2,at)
 
-  #We calculate the start and end of each chromosome for all maps
-  ch_pos <- lapply(new_maps,function(nmp){
-    sapply(split(nmp$axis,nmp$chromosome),range)
-  })
-  all_ch <- unique(unlist(sapply(ch_pos,colnames)))
-
-  #We take the max/min of each end/start for each chromosome
-  ch_pos <- sapply(all_ch,function(a){
-    one_ch <- lapply(ch_pos,function(ch){
-      r <- try(ch[,a],silent = T)
-      if(class(r) == "try-error") r <- NA
-      return(r)
-    })
-    one_ch <- do.call(rbind,one_ch)
-    return(c(min(one_ch[,1],na.rm=T),max(one_ch[,2],na.rm=T)))
-  })
-
-  if(length(chrom) < 2) small <- T
-  else small <- F
-  draw_chrom_axis(ch_pos[1,],ch_pos[2,],chrom,small)
+  if(length(all_chrom) < 3) small <- T
+  draw_chrom_axis(ch_edges,small)
 
   if(!is.null(threshold)) segments(0,threshold,xlim[2]*(1-legspace),
                                    threshold,lwd=1.3,lty=2,col="red")
+}
+
+#' Chromosome maximum position
+#'
+#' Given a genetic map (data.frame with columns chromosome
+#' and position), returns the maximum position per chromosome.
+#'
+#' @param map data.frame containing a genetic map (at least a chromosome and
+#' a position column)
+#' @param chr optional, vector with chromosome(s) name(s) to return the
+#' maximums of.
+#'
+#' @keywords internal
+max_map <- function(map,chr = NULL){
+  if(is.null(chr)) chr <- as.character(unique(map$chromosome))
+
+  sapply(chr,function(ch){
+    if(!any(map$chromosome == as.character(ch))) return(c(NA))
+    else  return( max(map$position[map$chromosome == as.character(ch)]) )
+
+  })
 }
 
 #' Chromosome axis drawer
 #'
 #' Helper function for \code{link\{skyplot}}
 #'
-#' @param ch_start vector of chromosome starts
-#' @param ch_end vector of chromosome ends
-#' @param chrom names of chromosomes
+#' @param ch_edges data.frame with first column having the axis start of each
+#' chromosome, and the second column the axis end. Row names must have the
+#' names of each chromosome. This data.frame can be obtained using \code{map_axis}
 #' @param small logical, should small axis be also drawn?
 #'
 #' @return
 #' @keywords internal
-draw_chrom_axis <- function(ch_start,ch_end,chrom,small=F){
-  if(!identical(length(ch_start),length(ch_end),length(chrom))){
-    stop("Not all arguments provided of equal length")
-  }
-
-  for(i in 1:length(chrom)){
-    ch_s <- ch_start[i]
-    ch_e <- ch_end[i]
-    axis(1,c(ch_s,ch_e),labels=c("",""),tck=-0.03)
+draw_chrom_axis <- function(ch_edges,small = F){
+  for(i in 1:nrow(ch_edges)){
+    #first we draw the main axis
+    #the chromosome identity
+    ch_edg <- unlist(ch_edges[i,])
+    axis(1,ch_edg,labels = c("",""))
+    #We calculate where we're gonna put them
+    at <- (ch_edg[2] - ch_edg[1])/2 + ch_edg[1]
+    mtext(rownames(ch_edges)[i],1,at=at,line=1.8,cex=1.2)
 
     #Small axis only if there's one or two chromosomes
     if(small){
-      at <- round(seq(ch_s,ch_e,length.out = 50))
-      lab <- round(at - ch_s)
+      at <- round(seq(ch_edg[1],ch_edg[2],length.out = 50))
+      lab <- round(seq(0,ch_edg[2]-ch_edg[1],length.out = length(at)),1)
       axis(1,at,labels = lab,cex.axis=0.7,padj = -1)
     }
-
-    at <- (ch_e - ch_s)/2 + ch_s
-    mtext(chrom[i],1,at=at,line=1.8,cex=1.2)
   }
 
 }

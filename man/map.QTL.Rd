@@ -20,8 +20,9 @@ map.QTL(
   no_cores = parallel::detectCores() - 1,
   approximate = T,
   permutation = NULL,
+  fam = NULL,
   nperm = 100,
-  alpha = 0.95,
+  alpha = 0.05,
   impute = T,
   k = 20,
   linear = NULL,
@@ -91,9 +92,12 @@ used for computational efficiency (if F, expect much longer waiting times)}
 whole population) or "fam" (permutation within families). If it is NULL, no
 permutation will be run.}
 
+\item{fam}{If permutation = "fam", provide here a vector indicating the family
+membership (or a population structure membership) of each individual.}
+
 \item{nperm}{number of permutations, if \code{permutation} is not null.}
 
-\item{alpha}{Permutation threshold alpha value, defaults to 0.05. Alpha is the
+\item{alpha}{Permutation threshold alpha value, default to 0.05. Alpha is the
 chance of observing a false positive experiment-wise.}
 
 \item{impute}{Logical value indicating whether missing genotypes should be

@@ -8,12 +8,11 @@ thr.LiJi(m, chrom, alpha, ploidy)
 }
 \arguments{
 \item{m}{a matrix of SNP dosages or a list of matrices with haplotype dosages,
-with markers (or haplotypes) in rows and individuals in columns.
-No missing values are allowed. No monomorphic markers are allowed.}
+with markers (or haplotypes) in rows and individuals in columns.}
 
 \item{chrom}{a vector defining to which chromosome markers belong.}
 
-\item{alpha}{significance level (use 0.05 for 5\% significance).}
+\item{alpha}{significance level (use 0.05 for 5% significance).}
 
 \item{ploidy}{numeric indicating the ploidy level.}
 }
@@ -28,5 +27,5 @@ by the number of tests, assuming tests are independent to each other.
 The Li and Ji method is more appropriate when the assumption of
 independence is not met. In this method, the eigenvalues of a correlation
 matrix are used to estimate the effective number of independent tests.
+NOT RECOMMENDED fo haplotype data, use SNP dosages only.
 }
-\keyword{internal}

@@ -1,0 +1,12 @@
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+
+Error in if (!length(Hinv) == ncol(y)) stop(paste("More than one column for y was provided.",  : 
+  argumento tiene longitud cero
+

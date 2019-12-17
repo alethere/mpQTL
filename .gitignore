@@ -23,3 +23,6 @@ devtest/devdatasets/
 #Exceptions
 !vignettes/workshop_data.RDS
 !vignettes/new_workshop_data.RDS
+doc
+Meta
+inst/doc
