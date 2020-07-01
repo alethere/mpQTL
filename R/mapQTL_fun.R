@@ -113,7 +113,12 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
   if (ncol(genotypes)==nrow(phenotypes)) {
     haplo<-F
     genotypes <- inputCheck_dos(genotypes, integer=T, ploidy=ploidy)
-    cat("SNP dosages have been detected in the genotype matrix,\n")
+    if (is.integer(genotypes)) {
+      cat("SNP dosages have been detected in the genotype matrix,\n")
+    } else {
+      cat("Continuous genotypes have been detected,\n")
+    }
+
 
     # if (!all(rownames(phenotypes)==colnames(genotypes))) {
     #   stop("phenotype individuals and genotype individuals have different names")
@@ -1617,15 +1622,17 @@ inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
       if(all(m.int, na.rm = T)) {
         # x <- apply(x, 2, as.integer)  #less efficient
         storage.mode(x) <- "integer" # conversion to integer
-      } else {
-        stop(paste("The following non-integers are not allowed:\n",
-                   paste(u[!m.int], collapse = ","),
-                   "\n"))
       }
+      # #gt: the following 'else' has been commented to allow continuous genotypes
+      # else {
+      #   stop(paste("The following non-integers are not allowed:\n",
+      #              paste(u[!m.int], collapse = ","),
+      #              "\n"))
+      # }
     }
 
     # check the expected range of dosages
-    if(!is.null(ploidy)) {
+    if(is.integer(x) & !is.null(ploidy)) {
       u <- unique(c(x))
       u <- u[!is.na(u)]
       expdos <- u %in% 0:ploidy
@@ -1700,6 +1707,11 @@ impute.knn <- function(
   if (all(unique(geno) %in% c(0:ploidy, NA))){
     cat("Imputation will be performed on dosages.\n")
     haplo<-F
+  #gt: add a condition for continuous genotypes
+  }else if (all((unique(geno) >= 0 & unique(geno) <=1) | is.na(unique(geno)))){
+    cat("Imputation will be performed on continuous genotypes.\n")
+    haplo<-F
+    contg<-T
   }else if (ncol(geno) %% ploidy == 0){
     cat("Imputation will be performed on haplotypes.\n")
     haplo<-T
@@ -1746,11 +1758,19 @@ impute.knn <- function(
       #Are they expressed numerically? The following function coerces to char
       asnum <- is.numeric(knei)
       #For each marker, select the most common dosage
-      nearest <- apply(knei, 1, function(i) {
-        res<-names(sort(table(i), decreasing = T)[1])
-        if(asnum) res<-as.numeric(res)
-        return(res)
-      })
+      if (!contg) {
+        nearest <- apply(knei, 1, function(i) {
+          res<-names(sort(table(i), decreasing = T)[1])
+          if(asnum) res<-as.numeric(res)
+          return(res)
+        })
+      } else {
+        #gt: Alternatively, instead of the most common dosage, we could use the
+        #mean. This could be more conservative in the case the second most
+        #common dosage is not so unfrequent.
+        #In any case, at the moment this is necessary for continuous genotypes.
+        nearest <- apply(knei, 1, mean, na.rm=T)
+      }
 
       #the nearest neigbhours are put in. Careful, if too many missing markers
       #less neigbhours are being used to impute.
