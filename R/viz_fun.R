@@ -246,7 +246,11 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, chromspace = 0.05, ...
 ){
   #In case the markers are not in order
-  map <- map[with(map,order(map$chromosome,map$position)),]
+  neworder <- order(map$chromosome,map$position)
+  map <- map[neworder,]
+  #any marker order change must be applied to pval accordingly,
+  #since map and pval are expected to be provided in the same marker order
+  pval <- pval[neworder]
 
   #We filter per chromosome
   if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
