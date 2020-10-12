@@ -1,7 +1,7 @@
 Package: mpQTL
 Type: Package
 Title: Multi-parental QTL analysis (GWAS modelling)
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: c(
     person("Giorgio", "Tumino", email = "giorgio.tumino@wur.nl",
            role = "aut"),
