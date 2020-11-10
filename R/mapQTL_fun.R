@@ -14,8 +14,9 @@
 # Developed by Alejandro Therese Navarro & Giorgio Tumino
 # October 2019
 
-#Main wrapper -------------------------
 
+
+#Main wrapper -------------------------
 
 #' QTL mapping of a matrix of phenotypes
 #'
@@ -38,30 +39,29 @@
 #' matrix will be used (i.e., a linear model will be applied). If T
 #' a K distance matrix will be calculated. A distance matrix may also
 #' be directly specified.
-#' @param Q NULL, T or vector identifying populations. If NULL, no Q will
+#' @param Q NULL, T or vector identifying populations or Q design matrix (#gt: explain it). If NULL, no Q will
 #' be included in the model (i.e., a model without Q correction). If T, a pco
 #' decomposition will be used to estimate population differentiation. If a
 #' vector specifying population of each individual is passed,
 #' it will be used to construct a Q matrix. Vector may contain numerical
 #' or character.
-#' @param map A table with a genetic map containing at least a "chromosome"
-#' and a "position" columns, specifying chromosome number and cM position.
-#' Used to sample marker dosages every 1 cM.
-#' AN ADRESS of a Pedsim map file: at least with a "chromosome"
-#' and "position" columns, specifying chromosome number and cM position
-#' of the marker at that chromosome
+#' @param map A data frame with 3 columns containing map information. The first
+#' column specifies marker names, the second column chromosome names and the
+#' third one marker position (any map unit).
+#' Marker position is used for plotting or it could be used to sample a subset
+#' of evenly spaced markers to be used for kinship estimation.
 #' @param cM Numeric. K distance matrix (#gt: and Q matrix) will be calculated using markers every
-#' cM centimorgans. Defaults to 1.
+#' cM centiMorgans (#gt: we should change the parameter name, since the map can be in any unit). Defaults to 1.
 #' @param seed An integer to set a seed for random number generation in \code{sample.cM}.
 #' @param no_cores Numeric. Number of cores to be used in parallel computing
 #' of the p-values. Defaults to number of cores -1.
 #' @param Z Identity matrix indicating which individuals correspond to which
 #' genotypic effects. For instance, if multiple samples correspond to the same
-#' individual, this matrix should indicate so.
+#' individual, this matrix should indicate so. #gt: shouldn't it be internal only?
 #' @param cofactor Possible cofactor matrix (where each column is a cofactor).
-#' @param cofactor.type If a cofactor matrix is specified, the type of cofactor
-#' ("numerical" or "categorical") to be used for each. It accepts partial strings
-#' such as "cat" and "num".
+#' @param cofactor.type If a cofactor matrix is specified, a character vector
+#' specifying the type ("numerical" or "categorical") of each cofactor.
+#' It accepts partial strings such as "cat" and "num".
 #' @param Qpco Logical value indicating whether a PCo-based population factor should be
 #' estimated and included. Is useful for detecting and correcting for population
 #' structure.
@@ -95,37 +95,28 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
                    approximate = T, permutation = NULL, fam=NULL, nperm = 100, alpha = 0.05, impute=T, k=20,
                    linear = NULL, K_identity = F ){
 
-  if(is.null(linear)){
-    if(is.null(K)){
-      linear <- T
-    }else{
-      linear <- F
-    }
-  }
 
-  markers <- map$marker
+  # input check ---------------------------------------------
 
+  ## phenotypes
   std_phe <- stndrdz.pheno(phenotypes)
   phenotypes <- std_phe$pheno
 
-  # Curation of genotype matrix and dosage matrix
-  ## check whether genotypes contain snp dosages or haplotypes
+  ## genotypes
+  ### Check whether genotypes contain SNPs or haplotypes and
+  ### ensure requirements are met.
+  ### This part needs to be changed to allow the new list for
+  ### probabilistic haplotypes
   if (ncol(genotypes)==nrow(phenotypes)) {
-    haplo<-F
-    genotypes <- inputCheck_dos(genotypes, integer=T, ploidy=ploidy)
+    haplo <- F
+    genotypes <- inputCheck_snp(genotypes, integer=T, ploidy=ploidy)
     if (is.integer(genotypes)) {
       cat("SNP dosages have been detected in the genotype matrix,\n")
     } else {
-      cat("Continuous genotypes have been detected,\n")
+      cat("Continuous SNP genotypes have been detected,\n")
     }
-
-
-    # if (!all(rownames(phenotypes)==colnames(genotypes))) {
-    #   stop("phenotype individuals and genotype individuals have different names")
-    # }
-
   } else if ((ncol(genotypes) %% ploidy) == 0){
-    haplo<-T
+    haplo <- T
     cat("Haplotypes have been detected in the genotype matrix.\n")
 
   } else {
@@ -138,8 +129,49 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
   #bi.geno
   #MAF
 
+  ## map
+  colnames(map) <- c("marker","chromosome","position")
+  markers <- map$marker
+
+  ## K
+  ### check K is either 1) NULL, 2) TRUE or 3) a numeric square matrix.
+  input_K <- inputCheck_K(K)
+  K <- input_K$K
+  input_K$K <- NULL
+
+  ## Q
+  ### check Q is either 1) NULL, 2) TRUE, 3) a membership vector or
+  ### 4) a design matrix
+  input_Q <- inputCheck_Q(Q)
+  Q <- input_Q$Q
+  input_Q$Q <- NULL
+
+  ## linear
+  ### assign linear based on K
+  if(is.null(linear)){
+    if(is.null(K)){
+      linear <- T
+    }else{
+      linear <- F
+    }
+  }
+
+
+
+  # input order --------------------------------------------------
+  # Match and re-order individulas and markers of input matrices
+  # ordered_input <- inputOrder(geno, pheno=pheno, map=map,
+  #                        cof=cof, Q=Q, K=K)
+
+
+
+
+
+
+
+
   #DEFINITION OF K -------------------
-  #There are four options
+  #There are three options
   #1) K=NULL, no K is used. We go linear.
   #2) K=T, K is calculated using homogeneously distributed markers along a map.
   #   using sample.cM and calc.K
@@ -1087,7 +1119,7 @@ pairwise_rpool <- function(hapdos,
 #' @param m a matrix of SNP dosages or a list of matrices with haplotype dosages,
 #' with markers (or haplotypes) in rows and individuals in columns.
 #' @param chrom a vector defining to which chromosome markers belong.
-#' @param alpha significance level (use 0.05 for 5% significance).
+#' @param alpha significance level (use 0.05 for 5\% significance).
 #' @param ploidy numeric indicating the ploidy level.
 #'
 #' @return value of adjusted alpha.
@@ -1098,7 +1130,7 @@ thr.LiJi <- function(m,
 
   # check input data format
   if (is.matrix(m) || inherits(m, "data.frame")) {
-    m <- inputCheck_dos(m, integer=F, ploidy=NULL)
+    m <- inputCheck_snp(m, integer=F, ploidy=NULL)
   }
 
   ### data preparation
@@ -1574,7 +1606,7 @@ stndrdz.pheno <- function(phenotypes) {
 #' @return a matrix
 #'
 #' @keywords internal
-inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
+inputCheck_snp <- function(x, integer=TRUE, ploidy=NULL) {
 
   # conversion to matrix?
   if(!is.matrix(x)){
@@ -1645,6 +1677,174 @@ inputCheck_dos <- function(x, integer=TRUE, ploidy=NULL) {
   }
   x
 }
+
+
+#' Check input requirements for the argument K of map.QTL
+#'
+#' @description Check that the argument K is either 1) NULL, 2) TRUE or
+#' 3) a numeric square matrix.
+#' @param K the input of the argument K of map.QTL
+#'
+#' @return When requirements are met, it returns a list with:
+#' * $type: number specifying the input type found: 1 for NULL, 2 for TRUE
+#'  or 3 for a numeric square matrix;
+#' * $K: the K object.
+#' @keywords internal
+#'
+#' @examples
+inputCheck_K <- function(K) {
+
+  if (is.null(K)) {
+    return(list(type=1,K=K))
+  } else {
+    if (length(K)==1 && is.logical(K)) {
+      if (K==TRUE) {
+        return(list(type=2,K=K))
+      } else stop("K must be either NULL, TRUE or a numeric square matrix")
+    } else {
+      d <- dim(K)
+      if (is.null(d)) {
+        stop("K must be either NULL, TRUE or a numeric square matrix")
+      } else {
+        if (!is.matrix(K)) {K <- as.matrix(K); warning("K coerced to class matrix\n",
+                                                       immediate. = T)}
+        if (!is.numeric(K)) stop("K matrix is not numeric")
+        if (d[1]!=d[2]) stop("K is not a square matrix (i.e. row number differs from column number)")
+        return(list(type=3,K=K))
+      }
+    }
+  }
+}
+
+#' Check input requirements for the argument Q of map.QTL
+#'
+#' @description Check that the argument Q is either 1) NULL, 2) TRUE,
+#' 3) a vector (num or char) indicating sub-population membership or 4) a user
+#' provided design matrix.
+#' @param Q the input of the argument Q of map.QTL
+#'
+#' @return When requirements are met, it returns a list with:
+#' * $type: number specifying the input type found: 1 for NULL, 2 for TRUE,
+#'  3 for a population membership vector or 4 for a design matrix;
+#' * $Q: the Q object.
+#' @keywords internal
+#'
+#' @examples
+inputCheck_Q <- function(Q) {
+
+  if (is.null(Q)) {
+    return(list(type=1,Q=Q))
+  } else {
+    if (length(Q)==1 && is.logical(Q)) {
+      if (Q==TRUE) {
+        return(list(type=2,Q=Q))
+      } else stop("Q must be either NULL, TRUE, a membership vector or a design matrix\n")
+    } else {
+      if (length(Q)>1 && is.vector(Q)) {
+        return(list(type=3,Q=Q))
+      } else if (length(Q)>1 && length(dim(Q)==2)) {
+        if (!is.matrix(Q)) {Q <- as.matrix(Q); warning("Q coerced to class matrix\n",
+                                                       immediate. = T)}
+        if (nrow(Q)==1 | ncol(Q)==1) {
+          dim(Q) <- NULL
+          warning("Q is a column matrix or a row matrix, coerced to vector\n",
+                  immediate. = T)
+          return(list(type=3,Q=Q))
+        } else {
+          if (!is.numeric(Q)) stop("Q design matrix is not numeric\n")
+          return(list(type=4,Q=Q))
+        }
+      }
+    }
+  }
+}
+
+
+#' Subset and order input matrices based on individual names and marker names
+#'
+#' @description This function is not used yet. First we need to add
+#' individual names and marker names as arequired for all the input matrices.
+#'
+#' @param geno
+#' @param pheno
+#' @param map
+#' @param cof
+#' @param Q
+#' @param K
+#'
+#' @return
+#' @keywords internal
+#'
+#' @examples
+inputOrder <- function(geno, pheno=NULL, map=NULL,
+                       cof=NULL, Q=NULL, K=NULL) {
+
+  # geno must be provided, since is required both for individuals and
+  # marker alignment
+
+  consistent_input <- list(geno=NULL,
+                           pheno=NULL,
+                           map=NULL,
+                           cofactor=NULL,
+                           Q=NULL,
+                           K=NULL)
+
+  # individuals
+  commonind <- NULL #to check wheter we order individuals
+  if (!is.null(pheno)) {
+    ## identify phenotyped and genotyped individuals
+    commonind <- intersect(rownames(pheno), colnames(geno))
+    ungen_ind <- setdiff(rownames(pheno), colnames(geno))
+    unphen_ind <- setdiff( colnames(geno), rownames(pheno))
+    cat(length(commonind),"genotyped and phenotyped individuals will be used\n")
+    # if (length(ungen_ind)>0) cat("Ungenotyped individuals excluded: ", ungen_ind)
+    # if (length(unphen_ind)>0) cat("Unphenotyped individuals excluded: ", unphen_ind)
+    ## subset pheno and geno accordingly
+    consistent_input$pheno <- pheno[commonind,,drop=F]
+    consistent_input$geno <- geno[,commonind,drop=F]
+    ## subset cofactors
+    if (!is.null(cof)) {
+      consistent_input$cofactor <- cof[commonind,,drop=F]
+    }
+    ## subset K
+    if (!is.null(K) & length(K)>1) { #if K is a kinship matrix
+      Ksub <- match(commonind, colnames(K))
+      consistent_input$K <- K[Ksub,Ksub,drop=F]
+    }
+    ## subset Q
+    if (!is.null(Q) & length(Q)>1) {
+      Qsub <- match(commonind, names(Q))
+      consistent_input$Q <- Q[Qsub]
+    }
+  }
+
+
+  # markers
+  if (!is.null(map)) {
+
+    ## Create a new map including all the markers in geno.
+    ## For plotting reasons, unmapped markers are assigned to chrom
+    ## 0 with fake postions.
+    colnames(map) <- c("marker","chromosome","position")
+
+    newmap <- merge(data.frame(marker = rownames(geno)), map,
+                    by = "marker", all.x = T, sort = F)
+    unmpd <- is.na(newmap$chromosome)
+    newmap$chromosome[unmpd] <- 0
+    avglen <- mean(tapply(newmap$position, newmap$chromosome, max), na.rm = T)
+    newmap$position[unmpd] <- seq(0, avglen, length.out = sum(unmpd))
+    ## reorder map and geno
+    consistent_input$map <- newmap[order(newmap$chromosome, newmap$position),, drop=F]
+    if (!is.null(commonind)) {
+      consistent_input$geno <- geno[match(consistent_input$map$marker, rownames(geno)), commonind, drop=F]
+    } else {
+      consistent_input$geno <- geno[match(consistent_input$map$marker, rownames(geno)), , drop=F]
+    }
+  }
+  return(consistent_input)
+}
+
+
 
 # Imputation ----------------------------------
 

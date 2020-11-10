@@ -12,7 +12,7 @@ with markers (or haplotypes) in rows and individuals in columns.}
 
 \item{chrom}{a vector defining to which chromosome markers belong.}
 
-\item{alpha}{significance level (use 0.05 for 5% significance).}
+\item{alpha}{significance level (use 0.05 for 5\% significance).}
 
 \item{ploidy}{numeric indicating the ploidy level.}
 }

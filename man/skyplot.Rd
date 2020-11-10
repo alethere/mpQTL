@@ -17,6 +17,7 @@ skyplot(
   h = NULL,
   l = NULL,
   pch = NULL,
+  chromspace = 0.05,
   ...
 )
 }
@@ -50,6 +51,10 @@ is blue 300 is purple and 360 is back to red.}
 \item{l}{Value between 0 and 100 (default 60). Represents brightness, or the amount of white}
 
 \item{pch}{numeric indicating the type of point to be passed to plot()}
+
+\item{chromspace}{numeric determining the space between chromosomes on the
+x axis. It is expressed as a proportion of the total map lenght. Values in the
+range 0 - 0.05 are recommended. Default set to 0.05.}
 
 \item{...}{Other parameters to be passed to plot()}
 }
