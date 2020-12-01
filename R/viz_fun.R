@@ -243,7 +243,7 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' @export
 #'
 skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=NULL, chrom = NULL,
-                   small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, chromspace = 0.05, ...
+                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, chromspace = 0.05, ...
 ){
   #In case the markers are not in order
   neworder <- order(map$chromosome,map$position)
@@ -271,8 +271,9 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   #Calculate a lighter colour of the "col"
   if(is.null(col)) col <- select.col(1,h = h,l=l)
   lightcol <- lighten(col)
-  chrom_col <- sapply(map$chromosome,function(m) which(m == unique(map$chromosome)))
-  col <- c(lightcol,col)[chrom_col%%2+1]
+  palette(c(col, lightcol)) #gt
+  # chrom_col <- sapply(map$chromosome,function(m) which(m == unique(map$chromosome)))
+  # col <- c(lightcol,col)[chrom_col%%2+1]
 
 
   if(is.null(ylim)) ylim <- c(min(pval,na.rm = T),
@@ -285,7 +286,9 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 
   plot(new_map$axis,pval,
        ylim=ylim,axes=F,
-       ylab=ylab,xlab=xlab,col=col,pch = pch,...)
+       ylab=ylab,xlab=xlab,col=as.factor(map$chromosome),pch = pch,...)
+
+  palette("default")
 
   #Y axis
   at <- axisTicks(round(ylim),log = F); axis(2,at)
@@ -306,6 +309,12 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 
   if(!is.null(threshold)) abline(h=threshold,col="red",lwd=1.3,lty=2)
 }
+
+
+
+
+
+
 
 
 #' Axis calculator
