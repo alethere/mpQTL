@@ -38,7 +38,7 @@ order of individuals as genotypes.}
 \item{genotypes}{A matrix of genotypes, rows are markers and
 columns may be either (1) individual dosages of biallelic markers, with column
 names coinciding with phenotype individual names or (2) chromosome alleles of each
-individual (#gt: for multiallelic markers, such as haplotypes).
+individual (for multiallelic markers, such as haplotypes).
 Must follow same order of individuals as phenotypes.}
 
 \item{ploidy}{a number indicating the ploidy level. All the individuals
@@ -55,8 +55,8 @@ matrix will be used (i.e., a linear model will be applied). If T
 a K distance matrix will be calculated. A distance matrix may also
 be directly specified.}
 
-\item{Q}{NULL, T or vector identifying populations or Q design matrix (#gt: explain it). If NULL, no Q will
-be included in the model (i.e., a model without Q correction). If T, a pco
+\item{Q}{NULL, T or vector identifying populations or Q design matrix. If NULL, no Q will
+be included in the model (i.e., a model without Q correction). If T, a PCo
 decomposition will be used to estimate population differentiation. If a
 vector specifying population of each individual is passed,
 it will be used to construct a Q matrix. Vector may contain numerical
@@ -64,7 +64,7 @@ or character.}
 
 \item{Z}{Identity matrix indicating which individuals correspond to which
 genotypic effects. For instance, if multiple samples correspond to the same
-individual, this matrix should indicate so. #gt: shouldn't it be internal only?}
+individual, this matrix should indicate so.}
 
 \item{cofactor}{Possible cofactor matrix (where each column is a cofactor).}
 
@@ -72,8 +72,8 @@ individual, this matrix should indicate so. #gt: shouldn't it be internal only?}
 specifying the type ("numerical" or "categorical") of each cofactor.
 It accepts partial strings such as "cat" and "num".}
 
-\item{cM}{Numeric. K distance matrix (#gt: and Q matrix) will be calculated using markers every
-cM centiMorgans (#gt: we should change the parameter name, since the map can be in any unit). Defaults to 1.}
+\item{cM}{Numeric. K distance matrix will be calculated using markers every
+map unit (for physical maps use Mb). Defaults to 1.}
 
 \item{seed}{An integer to set a seed for random number generation in \code{sample.cM}.}
 

@@ -4,7 +4,7 @@
 \alias{thr.LiJi}
 \title{Li and Ji method for significance level in multiple testing}
 \usage{
-thr.LiJi(m, chrom, alpha, ploidy)
+thr.LiJi(m, chrom, alpha = 0.05, ploidy)
 }
 \arguments{
 \item{m}{a matrix of SNP dosages or a list of matrices with haplotype dosages,

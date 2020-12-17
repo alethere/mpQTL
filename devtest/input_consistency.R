@@ -23,6 +23,7 @@ pheno <- matrix(rnorm(20,0,1), ncol = 2)
 rownames(pheno) <- paste0("ind",1:10)
 colnames(pheno) <- c("pheno1","pheno2")
 pheno
+pheno[1] <- NA
 
 ## geno
 geno <- matrix(sample(0:4, 20*12, replace = T), ncol=12)
@@ -95,7 +96,7 @@ inputCheck_K_test <- function(K) {
             # stop("K must be either NULL or TRUE or a numeric square matrix")
     } else {
       d <- dim(K)
-      if (is.null(d)) {
+      if (length(K)>1 && is.null(d)) {
         cat("K must be either NULL, TRUE or a numeric square matrix\n"); return()
         # stop("K must be either NULL or TRUE or a numeric square matrix")
       } else {
@@ -137,7 +138,7 @@ inputCheck_Q_test <- function(Q) {
     } else {
       if (length(Q)>1 && is.vector(Q)) {
         return(list(type=3,Q=Q))
-      } else if (length(Q)>1 && length(dim(Q)==2)) {
+      } else if (length(Q)>1 && length(dim(Q))==2) {
         if (!is.matrix(Q)) {Q <- as.matrix(Q); warning("Q coerced to class matrix\n",
                                                        immediate. = T)}
         if (nrow(Q)==1 | ncol(Q)==1) {

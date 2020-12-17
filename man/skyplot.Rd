@@ -40,7 +40,8 @@ skyplot(
 T only if number of chromosomes <3.}
 
 \item{col}{Base colour to use for plotting. Odd chromosomes will be plotted with this colour,
-even chromosomes will be plotted with a lighter version of the same colour.}
+even chromosomes will be plotted with a lighter version of the same colour. Alternatively,
+a character vector specifying two colours can be provided.}
 
 \item{h}{One or two values between 0 and 360 (degrees in the colour wheel) to represent hue.
 Default is c(120,240).#' If "qualitative" or "divergent" is used, the two hues will correspond

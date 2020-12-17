@@ -7,13 +7,17 @@
 inputCheck_Q(Q)
 }
 \arguments{
-\item{K}{the input of the argument Q of map.QTL}
+\item{Q}{the input of the argument Q of map.QTL}
 }
 \value{
-Nothing. Stop with error if requirements are not met.
+When requirements are met, it returns a list with:
+* $type: number specifying the input type found: 1 for NULL, 2 for TRUE,
+ 3 for a population membership vector or 4 for a design matrix;
+* $Q: the Q object.
 }
 \description{
-Check that the argument Q is either i) NULL or ii) TRUE or
-iii) a vector.
+Check that the argument Q is either 1) NULL, 2) TRUE,
+3) a vector (num or char) indicating sub-population membership or 4) a user
+provided design matrix.
 }
 \keyword{internal}

@@ -1,0 +1,53 @@
+---
+title: "mpQTL_newvignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{mpQTL_newvignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mpQTL)
+```
+
+# Introduction
+The present vignette will show how to use `mpQTL` to run a QTL analysis. `mpQTL` is an R package for single marker association analysis in structured populations of any ploidy (e.g. multiparental populations, GWAS panels or a combination of them). Input genotypic data can be both biallelic (continuous or discrete SNP data) or multiallelic (haplotypes). The use of multiallelic markers seems particularly advantageous in describing highly diverse populations (multiparental or GWAS panels), where the number of alleles (ancestral alleles) segregating at each locus is expected to be greater than two. Local haplotypes (which are multiallelic) can be used to better describe the genetic effects of ancestral alleles. However, haplotyping methods for such unstructured populations are not available yet for polyploid species. Direct haplotyping techniques based on sequencing are recently emerging and represent a promising option for future haplotype-based applications. In our current pipeline, local haplotypes are inferred by using `PolyHaplotyper` (under development), that can phase blocks of maximum 8 SNPs for tetraploid and hexaploid species. Even though  `PolyHaplotyper` can haplotype unrelated individuals, it has been designed in a way that takes advantage of F1 families sharing a parent, resulting in higher accurate haplotypes.   
+
+The first part of this vignette will give an introduction on the genotypic data that will be used. Although `PolyHaplotyper` is not a focus of this vignette (we will use simulated haplotypes only), a short recall will be provided on the main input requirements and on possible strategies for constructing haploblocks.   
+In a second part of this document (starting from [Statistical introduction](#stat_intro)) we will discuss most of the main functions of the `mpQTL` package, their usage and interpretation as well as some of the statistical theory behind them. Firstly we will introduce some statistical concepts about the model behind `mpQTL` and its main function `map.QTL()`, then we will discuss the features included in `map.QTL()` with a series of examples, and lastly we introduce a series of visualisation functions that will aid us in interpreting our data and the results we obtain from it.
+ 
+
+```{r data_load1,echo=F}
+# source("../R/utils_fun.R")
+data <- readRDS("new_workshop_data.RDS")
+
+```
+
+# Population design
+The following analysis will be run on a simulated multiparental population, consisting of a set of connected F1 families (see the figure below).
+
+![](Pop_design.png) &nbsp; 
+ 
+Pedigree information can be provided by using a table with 3 columns for individual name, mother name and father name respectively.  
+```{r}
+## pedigree file
+ped <- data$pedigree
+# ped <- read.table("cross_workshop.ped", header = T, stringsAsFactors = F)
+# class(ped)
+head(ped,15)
+
+## parents used in each cross
+parents <- as.matrix(unique(ped[!is.na(ped[,2]) & !is.na(ped[,3]),2:3]))
+parents
+
+
+```
+

@@ -10,10 +10,13 @@ inputCheck_K(K)
 \item{K}{the input of the argument K of map.QTL}
 }
 \value{
-Nothing. Stop with error if requirements are not met.
+When requirements are met, it returns a list with:
+* $type: number specifying the input type found: 1 for NULL, 2 for TRUE
+ or 3 for a numeric square matrix;
+* $K: the K object.
 }
 \description{
-Check that the argument K is either i) NULL or ii) TRUE or
-iii) a numeric square matrix.
+Check that the argument K is either 1) NULL, 2) TRUE or
+3) a numeric square matrix.
 }
 \keyword{internal}

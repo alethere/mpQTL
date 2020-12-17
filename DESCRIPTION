@@ -13,10 +13,10 @@ Description: mpQTL offers a suite of functions to perform QTL analysis using
     using a relatedness matrix (K), and thus has no requirments regarding the 
     population structure (it accepts F1, GWAS panels, multi-parental populations...).
     Unlike other packages, mpQTL offers the possibility to apply these models 
-    in any level of ploidy using both SNPs and multi-allelic genotypes.
+    in any level of ploidy using both SNPs and multi-allelic genotypes (e.g. haplotypes).
     Besides the statistical functions, it also incorporates a set of visualization
     functions to help analyze the results of the QTL studies.
-License: What license is it under?
+License: 
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
