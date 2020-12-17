@@ -31,7 +31,7 @@
 #' @param genotypes A matrix of genotypes, rows are markers and
 #' columns may be either (1) individual dosages of biallelic markers, with column
 #' names coinciding with phenotype individual names or (2) chromosome alleles of each
-#' individual (#gt: for multiallelic markers, such as haplotypes).
+#' individual (for multiallelic markers, such as haplotypes).
 #' Must follow same order of individuals as phenotypes.
 #' @param ploidy a number indicating the ploidy level. All the individuals
 #' must have same ploidy.
@@ -39,8 +39,8 @@
 #' matrix will be used (i.e., a linear model will be applied). If T
 #' a K distance matrix will be calculated. A distance matrix may also
 #' be directly specified.
-#' @param Q NULL, T or vector identifying populations or Q design matrix (#gt: explain it). If NULL, no Q will
-#' be included in the model (i.e., a model without Q correction). If T, a pco
+#' @param Q NULL, T or vector identifying populations or Q design matrix. If NULL, no Q will
+#' be included in the model (i.e., a model without Q correction). If T, a PCo
 #' decomposition will be used to estimate population differentiation. If a
 #' vector specifying population of each individual is passed,
 #' it will be used to construct a Q matrix. Vector may contain numerical
@@ -50,14 +50,14 @@
 #' third one marker position (any map unit).
 #' Marker position is used for plotting or it could be used to sample a subset
 #' of evenly spaced markers to be used for kinship estimation.
-#' @param cM Numeric. K distance matrix (#gt: and Q matrix) will be calculated using markers every
-#' cM centiMorgans (#gt: we should change the parameter name, since the map can be in any unit). Defaults to 1.
+#' @param cM Numeric. K distance matrix will be calculated using markers every
+#' map unit (for physical maps use Mb). Defaults to 1.
 #' @param seed An integer to set a seed for random number generation in \code{sample.cM}.
 #' @param no_cores Numeric. Number of cores to be used in parallel computing
 #' of the p-values. Defaults to number of cores -1.
 #' @param Z Identity matrix indicating which individuals correspond to which
 #' genotypic effects. For instance, if multiple samples correspond to the same
-#' individual, this matrix should indicate so. #gt: shouldn't it be internal only?
+#' individual, this matrix should indicate so.
 #' @param cofactor Possible cofactor matrix (where each column is a cofactor).
 #' @param cofactor.type If a cofactor matrix is specified, a character vector
 #' specifying the type ("numerical" or "categorical") of each cofactor.
@@ -160,8 +160,8 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
 
   # input order --------------------------------------------------
   # Match and re-order individulas and markers of input matrices
-  # ordered_input <- inputOrder(geno, pheno=pheno, map=map,
-  #                        cof=cof, Q=Q, K=K)
+  # ordered_input <- inputOrder(genotypes, pheno=phenotypes, map=map,
+  #                             cof=cofactor, Q=Q, K=K)
 
 
 
@@ -262,8 +262,8 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
     }
 
     #Which are num and which are cat
-    c.num <- pmatch(cofactor.type,"numerical")
-    c.cat <- pmatch(cofactor.type,"categorical")
+    c.num <- pmatch(cofactor.type,"numerical", duplicates.ok = T)
+    c.cat <- pmatch(cofactor.type,"categorical", duplicates.ok = T)
 
     C <- lapply(1:ncol(cofactor),function(i){
 
@@ -279,6 +279,7 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
         })+1-1
 
         #Last column is taken out to be able to calculate
+        #gt: is this correct? Check!
         result <- result[,-ncol(result)]
       }
     })
@@ -505,7 +506,12 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
       #All columns are turned into vectors except the beta column
 
       for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
-      for(r in 1:length(res)) names(res[[r]]) <- markers
+      # for(r in 1:length(res)) names(res[[r]]) <- markers
+      for(r in c(1:2,4:length(res))) names(res[[r]]) <- markers
+      # names(res[[4]]) <- markers #gt: it should be individuals?
+      #gt: here there is a bug. When a phenotype contain NAs, the
+      # number of residuals will differ, including only residuals
+      # of non-missing phenotypes. The line below will split wrongly!
       res$residual <- split(res$residual,rep(1:nrow(genotypes),
                                              each=nrow(phenotypes)))
       names(res$residual) <- markers
@@ -1125,7 +1131,7 @@ pairwise_rpool <- function(hapdos,
 #' @return value of adjusted alpha.
 thr.LiJi <- function(m,
                      chrom,
-                     alpha,
+                     alpha = 0.05,
                      ploidy) {
 
   # check input data format
@@ -1703,7 +1709,7 @@ inputCheck_K <- function(K) {
       } else stop("K must be either NULL, TRUE or a numeric square matrix")
     } else {
       d <- dim(K)
-      if (is.null(d)) {
+      if (length(K)>1 && is.null(d)) {
         stop("K must be either NULL, TRUE or a numeric square matrix")
       } else {
         if (!is.matrix(K)) {K <- as.matrix(K); warning("K coerced to class matrix\n",
@@ -1742,7 +1748,7 @@ inputCheck_Q <- function(Q) {
     } else {
       if (length(Q)>1 && is.vector(Q)) {
         return(list(type=3,Q=Q))
-      } else if (length(Q)>1 && length(dim(Q)==2)) {
+      } else if (length(Q)>1 && length(dim(Q))==2) {
         if (!is.matrix(Q)) {Q <- as.matrix(Q); warning("Q coerced to class matrix\n",
                                                        immediate. = T)}
         if (nrow(Q)==1 | ncol(Q)==1) {
@@ -1762,18 +1768,15 @@ inputCheck_Q <- function(Q) {
 
 #' Subset and order input matrices based on individual names and marker names
 #'
-#' @description This function is not used yet. First we need to add
-#' individual names and marker names as arequired for all the input matrices.
+#' @description This function can be used to prepare the input matrices
+#' or vectors for \code{map.QTL}. It will match individual names and marker
+#' names of the input matrices, selecting the ones in common and putting them
+#' in the same order. Individual names and marker names are required.
 #'
-#' @param geno
-#' @param pheno
-#' @param map
-#' @param cof
-#' @param Q
-#' @param K
+#' @inheritParams map.QTL
 #'
-#' @return
-#' @keywords internal
+#' @return A list containing the re-ordered input matrices.???
+#'
 #'
 #' @examples
 inputOrder <- function(geno, pheno=NULL, map=NULL,
@@ -1781,6 +1784,11 @@ inputOrder <- function(geno, pheno=NULL, map=NULL,
 
   # geno must be provided, since is required both for individuals and
   # marker alignment
+
+  if(!is.null(geno) & (is.null(rownames(geno)) | is.null(colnames(geno)))) {
+    stop("Genotypes must have row names and column names")
+  }
+
 
   consistent_input <- list(geno=NULL,
                            pheno=NULL,
@@ -1792,7 +1800,16 @@ inputOrder <- function(geno, pheno=NULL, map=NULL,
   # individuals
   commonind <- NULL #to check wheter we order individuals
   if (!is.null(pheno)) {
+    if(is.vector(pheno)) {
+      pheno <- matrix(pheno, ncol=1,
+                           dimnames = list(names(pheno)))
+    } else if (is.data.frame(pheno)) {
+      pheno <- as.matrix(pheno)
+    }
     ## identify phenotyped and genotyped individuals
+    notpheno <- apply(pheno, 1, function(x) all(is.na(x)))
+    pheno <- pheno[!notpheno,,drop=F]
+
     commonind <- intersect(rownames(pheno), colnames(geno))
     ungen_ind <- setdiff(rownames(pheno), colnames(geno))
     unphen_ind <- setdiff( colnames(geno), rownames(pheno))
@@ -1977,6 +1994,7 @@ impute.knn <- function(
       imputed[is.na(imputed)] <- nearest
       return(imputed)
     })
+    if (!is.null(colnames(K))) colnames(result) <- colnames(K) #gt: to keep individual names
   }
 
   #The same thing must be done for haplotypes.
