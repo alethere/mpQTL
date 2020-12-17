@@ -428,3 +428,21 @@ HapCurate <- function(haplo,
   return(list(genotypes = haplo,
               map = newmap))
 }
+
+
+# Dosage probability -------------
+#' Transform dosage probabilities into B allele probabilities
+#'
+#' @param dosP A numeric matrix with dosage probabilities in columns. Columns
+#' are expected to be ordered from P0 (prob. of dosage 0) to P(ploidy).
+#'
+#' @return A vector where each element corresponds to the weighted mean
+#' of each row of dosP.
+#' @export
+#'
+#' @examples
+dosP2Bfreq <- function(dosP) {
+  ploidy <- ncol(dosP)-1
+  BfreqP <- as.matrix(dosP) %*% matrix(0:ploidy/ploidy, ncol=1)
+  return(BfreqP)
+}
