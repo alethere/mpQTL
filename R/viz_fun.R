@@ -1,4 +1,4 @@
-#Visualisation functions ----------------------------
+# Visualisation functions ----------------------------
 # This file contains functions to visualize different types of results
 # To do so, a series of helper functions have been created to use colorspace
 # in an elegant and sensible manner
@@ -7,7 +7,7 @@
 # - QQ.plot for plotting quantile-quantile plots
 # - comp.QQ.plot for comparing multiple p-value distributions
 # - pcoa.plot to generate pcoa distribution of distance matrices
-#
+
 # Color -------------------------------------------
 
 #' Colour lightening
@@ -224,7 +224,8 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' @param pval Numerical vector. Usually -log10(p-values), but other values are accepted.
 #' @param map Dataframe containing columns "chromosome" and "position"
 #' @param col Base colour to use for plotting. Odd chromosomes will be plotted with this colour,
-#' even chromosomes will be plotted with a lighter version of the same colour.
+#' even chromosomes will be plotted with a lighter version of the same colour. Alternatively,
+#' a character vector specifying two colours can be provided.
 #' @param threshold A threshold value to draw the threshold line.
 #' @param chrom A vector of chromosome names to be included in the plot
 #' @param ... Other parameters to be passed to plot()
@@ -270,7 +271,11 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 
   #Calculate a lighter colour of the "col"
   if(is.null(col)) col <- select.col(1,h = h,l=l)
-  lightcol <- lighten(col)
+  if(length(col)==1) lightcol <- lighten(col)
+  if(length(col)==2) {
+    lightcol <- col[2]
+    col <- col[1]
+  }
   palette(c(col, lightcol)) #gt
   # chrom_col <- sapply(map$chromosome,function(m) which(m == unique(map$chromosome)))
   # col <- c(lightcol,col)[chrom_col%%2+1]
