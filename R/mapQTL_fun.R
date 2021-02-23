@@ -1924,6 +1924,7 @@ impute.knn <- function(
   if (all(unique(geno) %in% c(0:ploidy, NA))){
     cat("Imputation will be performed on dosages.\n")
     haplo<-F
+    contg<-F
   #gt: add a condition for continuous genotypes
   }else if (all((unique(geno) >= 0 & unique(geno) <=1) | is.na(unique(geno)))){
     cat("Imputation will be performed on continuous genotypes.\n")
