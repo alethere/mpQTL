@@ -17,6 +17,7 @@ comp.skyplot(
   h = NULL,
   l = NULL,
   pch = NULL,
+  chromspace = 0.05,
   legspace = 0.1,
   alpha = 0.3,
   small = F,
@@ -57,6 +58,10 @@ is blue 300 is purple and 360 is back to red.}
 
 \item{pch}{numeric vector. Each point type provided will be used for
 each of the pvalue sets provided.}
+
+\item{chromspace}{numeric determining the space between chromosomes on the
+x axis. It is expressed as a proportion of the total map lenght. Values in the
+range 0 - 0.05 are recommended. Default set to 0.05.}
 
 \item{alpha}{Value between 0 (transparent) and 1 (opaque), to add some degree of
 transparency to the colour palette.}

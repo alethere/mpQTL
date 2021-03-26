@@ -38,26 +38,25 @@ order of individuals as genotypes.}
 \item{genotypes}{A matrix of genotypes, rows are markers and
 columns may be either (1) individual dosages of biallelic markers, with column
 names coinciding with phenotype individual names or (2) chromosome alleles of each
-individual (#gt: for multiallelic markers, such as haplotypes).
+individual (for multiallelic markers, such as haplotypes).
 Must follow same order of individuals as phenotypes.}
 
 \item{ploidy}{a number indicating the ploidy level. All the individuals
 must have same ploidy.}
 
-\item{map}{A table with a genetic map containing at least a "chromosome"
-and a "position" columns, specifying chromosome number and cM position.
-Used to sample marker dosages every 1 cM.
-AN ADRESS of a Pedsim map file: at least with a "chromosome"
-and "position" columns, specifying chromosome number and cM position
-of the marker at that chromosome}
+\item{map}{A data frame with 3 columns containing map information. The first
+column specifies marker names, the second column chromosome names and the
+third one marker position (any map unit).
+Marker position is used for plotting or it could be used to sample a subset
+of evenly spaced markers to be used for kinship estimation.}
 
 \item{K}{NULL, T or distance matrix. If NULL, no relatedness
 matrix will be used (i.e., a linear model will be applied). If T
 a K distance matrix will be calculated. A distance matrix may also
 be directly specified.}
 
-\item{Q}{NULL, T or vector identifying populations. If NULL, no Q will
-be included in the model (i.e., a model without Q correction). If T, a pco
+\item{Q}{NULL, T or vector identifying populations or Q design matrix. If NULL, no Q will
+be included in the model (i.e., a model without Q correction). If T, a PCo
 decomposition will be used to estimate population differentiation. If a
 vector specifying population of each individual is passed,
 it will be used to construct a Q matrix. Vector may contain numerical
@@ -69,12 +68,12 @@ individual, this matrix should indicate so.}
 
 \item{cofactor}{Possible cofactor matrix (where each column is a cofactor).}
 
-\item{cofactor.type}{If a cofactor matrix is specified, the type of cofactor
-("numerical" or "categorical") to be used for each. It accepts partial strings
-such as "cat" and "num".}
+\item{cofactor.type}{If a cofactor matrix is specified, a character vector
+specifying the type ("numerical" or "categorical") of each cofactor.
+It accepts partial strings such as "cat" and "num".}
 
-\item{cM}{Numeric. K distance matrix (#gt: and Q matrix) will be calculated using markers every
-cM centimorgans. Defaults to 1.}
+\item{cM}{Numeric. K distance matrix will be calculated using markers every
+map unit (for physical maps use Mb). Defaults to 1.}
 
 \item{seed}{An integer to set a seed for random number generation in \code{sample.cM}.}
 

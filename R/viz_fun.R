@@ -1,4 +1,4 @@
-#Visualisation functions ----------------------------
+# Visualisation functions ----------------------------
 # This file contains functions to visualize different types of results
 # To do so, a series of helper functions have been created to use colorspace
 # in an elegant and sensible manner
@@ -7,7 +7,7 @@
 # - QQ.plot for plotting quantile-quantile plots
 # - comp.QQ.plot for comparing multiple p-value distributions
 # - pcoa.plot to generate pcoa distribution of distance matrices
-#
+
 # Color -------------------------------------------
 
 #' Colour lightening
@@ -224,7 +224,8 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' @param pval Numerical vector. Usually -log10(p-values), but other values are accepted.
 #' @param map Dataframe containing columns "chromosome" and "position"
 #' @param col Base colour to use for plotting. Odd chromosomes will be plotted with this colour,
-#' even chromosomes will be plotted with a lighter version of the same colour.
+#' even chromosomes will be plotted with a lighter version of the same colour. Alternatively,
+#' a character vector specifying two colours can be provided.
 #' @param threshold A threshold value to draw the threshold line.
 #' @param chrom A vector of chromosome names to be included in the plot
 #' @param ... Other parameters to be passed to plot()
@@ -234,17 +235,31 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' @param small logical, should the small axis (per chromosome) be drawn? By default
 #' T only if number of chromosomes <3.
 #' @param pch numeric indicating the type of point to be passed to plot()
+#' @param chromspace numeric determining the space between chromosomes on the
+#' x axis. It is expressed as a proportion of the total map lenght. Values in the
+#' range 0 - 0.05 are recommended. Default set to 0.05.
 #'
 #' @inheritParams select.col
 #' @return creates a skyline plot
 #' @export
 #'
 skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=NULL, chrom = NULL,
+<<<<<<< HEAD
                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, cex.big = NULL,
                    cex.small = NULL, line.big = NULL, ...
 ){
   #In case the markers are not in order
   # map <- map[with(map,order(map$chromosome,map$position)),]
+=======
+                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, chromspace = 0.05, ...
+){
+  #In case the markers are not in order
+  neworder <- order(map$chromosome,map$position)
+  map <- map[neworder,]
+  #any marker order change must be applied to pval accordingly,
+  #since map and pval are expected to be provided in the same marker order
+  pval <- pval[neworder]
+>>>>>>> 250adb70a1ce95c7f585a3928dfc840b7af7186e
 
   #We filter per chromosome
   if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
@@ -259,14 +274,19 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   pval <- pval[chrom_filter]
 
   tot_length <- sum(sapply(split(map$position,map$chromosome),max))
-  axis_res <- map_axis(map,space = 0.05*tot_length)
+  axis_res <- map_axis(map,space = chromspace*tot_length)
   new_map <- axis_res[[1]][[1]]
 
   #Calculate a lighter colour of the "col"
   if(is.null(col)) col <- select.col(1,h = h,l=l)
-  lightcol <- lighten(col)
-  chrom_col <- sapply(map$chromosome,function(m) which(m == unique(map$chromosome)))
-  col <- c(lightcol,col)[chrom_col%%2+1]
+  if(length(col)==1) lightcol <- lighten(col)
+  if(length(col)==2) {
+    lightcol <- col[2]
+    col <- col[1]
+  }
+  palette(c(col, lightcol)) #gt
+  # chrom_col <- sapply(map$chromosome,function(m) which(m == unique(map$chromosome)))
+  # col <- c(lightcol,col)[chrom_col%%2+1]
 
 
   if(is.null(ylim)) ylim <- c(min(pval,na.rm = T),
@@ -275,11 +295,13 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
   if(is.null(xlab)) xlab <- "Chromosome"
 
-  if(is.null(pch)) pch <- 19
+  if(is.null(pch)) pch <- 16 #gt: changed to 16 to reduce plotting time (when transparent)
 
   plot(new_map$axis,pval,
        ylim=ylim,axes=F,
-       ylab=ylab,xlab=xlab,col=col,pch = pch,...)
+       ylab=ylab,xlab=xlab,col=as.factor(map$chromosome),pch = pch,...)
+
+  palette("default")
 
   #Y axis
   at <- axisTicks(round(ylim),log = F); axis(2,at)
@@ -302,6 +324,12 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 
   if(!is.null(threshold)) abline(h=threshold,col="red",lwd=1.3,lty=2)
 }
+
+
+
+
+
+
 
 
 #' Axis calculator
@@ -381,7 +409,7 @@ map_axis <- function(maplist,space = 0){
 #'
 comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, ylab = NULL,
                           xlab = NULL, legnames = NULL, coltype=NULL, h = NULL, l = NULL,
-                          pch = NULL, legspace = 0.1,alpha = 0.3,small = F,...
+                          pch = NULL, chromspace = 0.05, legspace = 0.1,alpha = 0.3,small = F,...
 ){
 
   #Pvalues must be stored in a list, there needs to be as many maps
@@ -420,7 +448,7 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   })
   #The sum of the max of each all_chromosome is the total range of the plot
   tot <- sum(tot)
-  space <- tot*0.05
+  space <- tot*chromspace
 
   #Maps with axis column
   axis_maps <- map_axis(map,space = space)
@@ -448,7 +476,7 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
 
   plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = F,xlab=xlab,...)
 
-  if(is.null(pch)) pch <- 19
+  if(is.null(pch)) pch <- 16 #gt: changed to 16 to reduce plotting time (when transparent)
   if(length(pch) > n) warning("More pch values than pvals have been provided, only the first",n,"pch values will be used.")
   if(length(pch) < n) pch <- rep(pch,n)
 

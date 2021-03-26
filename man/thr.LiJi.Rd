@@ -4,7 +4,7 @@
 \alias{thr.LiJi}
 \title{Li and Ji method for significance level in multiple testing}
 \usage{
-thr.LiJi(m, chrom, alpha, ploidy)
+thr.LiJi(m, chrom, alpha = 0.05, ploidy)
 }
 \arguments{
 \item{m}{a matrix of SNP dosages or a list of matrices with haplotype dosages,
@@ -12,7 +12,7 @@ with markers (or haplotypes) in rows and individuals in columns.}
 
 \item{chrom}{a vector defining to which chromosome markers belong.}
 
-\item{alpha}{significance level (use 0.05 for 5% significance).}
+\item{alpha}{significance level (use 0.05 for 5\% significance).}
 
 \item{ploidy}{numeric indicating the ploidy level.}
 }
