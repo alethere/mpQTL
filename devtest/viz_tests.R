@@ -191,3 +191,63 @@ return(result)
 plot(1:5,col=result,pch=19,cex=5)
 
 col2rgb(result,alpha=T)
+
+
+### Continuous legend
+plot(0,type = "n",xlim=c(0,1),ylim=c(0,1))
+
+col_mat <- select.col(100)
+
+xmax <- 1
+xleft <- 0
+ybottom <- 0
+ytop <- 1
+
+xright <- (xmax - xleft)*2 / 3
+
+
+gradient_legend <- function(cols,xleft,ybottom,ytop,xright,lab_range = NULL,cex = 1){
+  xmax <- xright
+  xright <- xleft + (xmax - xleft)*2 / 3
+
+  if(is.null(lab_range)) lab_range <- c(ybottom,ytop)
+
+  rasterImage(matrix(cols,ncol=1),
+              xleft = xleft,
+              ybottom = ybottom,
+              xright = xright,
+              ytop = ytop)
+
+  xrange <- (xmax - xleft)
+  yrange <- (ytop - ybottom)
+  if(xrange >= yrange) ran <- yrange
+  else ran <- xrange
+
+  inner_axis(xright + (xmax-xleft)*0.05,
+             ybottom,ytop,
+             tick = ran*0.02,
+             offset = ran*0.07,
+             lab_range = lab_range,
+             cex = 0.6)
+}
+
+
+gradient_legend(cols= c("red","green","black"),
+                xleft = 0.0,ybottom = 0, ytop = 01, xright = 0.8)
+
+inner_axis <- function(x,ymin,ymax,lab_range = NULL,tick = 0.05,offset = 0.05,cex = 1){
+  segments(x,ymin,x,ymax)
+  at <- seq(ymin,ymax,length.out = 10)
+  if(is.null(lab_range)) lab_range <- range(at)
+
+  lab <- round(seq(lab_range[1],lab_range[2],length.out = 10),2)
+  if(!all(lab%%1 == 0)){
+    lab <- sprintf("%.2f",lab)
+  }
+
+  ticksize <- x + tick
+  segments(x,at,ticksize,at)
+  textpos <- ticksize + offset
+  text(textpos,at,labels = lab,cex = cex)
+}
+

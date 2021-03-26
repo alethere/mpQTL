@@ -8,5 +8,5 @@ data <- readRDS("vignettes/new_workshop_data.RDS")
 save(data,file="data/data.RData")
 
 
-
-build()
+setwd("D:/Science/PhD/Code/mpQTL/mpQTL/")
+build(vignettes = F)

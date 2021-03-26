@@ -180,7 +180,7 @@ QQcalc<-function(pvals){
 #' pvals <- pnorm(rnorm(100),lower.tail = T)
 #' QQ.plot(pvals)
 QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype= NULL,
-                     h = NULL, l = NULL, legspace = 0 ,...
+                     h = NULL, l = NULL, legspace = 0 ,cex=0.7,...
 ){
   if(is.numeric(pvals)) pvals <- list(pvals)
   if(is.matrix(pvals)) pvals <- mat2list(pvals)
@@ -202,7 +202,7 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 
   for(i in 1:length(qqval)){
     qvals <- qqval[[i]]
-    points(qvals$exp,qvals$obs,col=cols[i],pch=19,cex=0.7)
+    points(qvals$exp,qvals$obs,col=cols[i],pch=19,cex=cex)
   }
 
   abline(a=0,b=1,col="red",lty=2)
@@ -240,10 +240,11 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' @export
 #'
 skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=NULL, chrom = NULL,
-                   small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, ...
+                   small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, cex.big = NULL,
+                   cex.small = NULL, line.big = NULL, ...
 ){
   #In case the markers are not in order
-  map <- map[with(map,order(map$chromosome,map$position)),]
+  # map <- map[with(map,order(map$chromosome,map$position)),]
 
   #We filter per chromosome
   if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
@@ -293,7 +294,9 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
     if(length(chrom) <= 2) small <- T
     else small <- F
   }
-  draw_chrom_axis(axis_res[[2]],small)
+  draw_chrom_axis(axis_res$chr_edges,small = small,
+                  bigcex = cex.big,
+                  smallcex = cex.small)
 
 
 
@@ -509,7 +512,8 @@ max_map <- function(map,chr = NULL){
 #'
 #' @return
 #' @keywords internal
-draw_chrom_axis <- function(ch_edges,small = F){
+draw_chrom_axis <- function(ch_edges,small = F,bigcex = 1.2,smallcex=0.7,
+                            bigspace = 1.8){
   for(i in 1:nrow(ch_edges)){
     #first we draw the main axis
     #the chromosome identity
@@ -517,13 +521,13 @@ draw_chrom_axis <- function(ch_edges,small = F){
     axis(1,ch_edg,labels = c("",""))
     #We calculate where we're gonna put them
     at <- (ch_edg[2] - ch_edg[1])/2 + ch_edg[1]
-    mtext(rownames(ch_edges)[i],1,at=at,line=1.8,cex=1.2)
+    mtext(rownames(ch_edges)[i],1,at=at,line= bigspace,cex=bigcex)
 
     #Small axis only if there's one or two chromosomes
     if(small){
       at <- round(seq(ch_edg[1],ch_edg[2],length.out = 50))
       lab <- round(seq(0,ch_edg[2]-ch_edg[1],length.out = length(at)),1)
-      axis(1,at,labels = lab,cex.axis=0.7,padj = -1)
+      axis(1,at,labels = lab,cex.axis=smallcex,padj = -1)
     }
   }
 
@@ -556,6 +560,10 @@ draw_chrom_axis <- function(ch_edges,small = F){
 #' to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
 #' names are very long, increase this number to tweak the amount of space left to the right.
 #' @param pch numeric vector containing 1 or as many values as unique values in "col"
+#' @param colmode character, either "discrete" or "continuous", "discrete" by default. If
+#' "discrete" col will be used to assign a colour to each unique value, using col as
+#' a grouping variable. If "continous", col must be numeric and will be used in a gradient
+#' of colour.
 #' @param ... Additional parameters to be passed to the \code{plot} or \code{points}
 #' method.
 #'
@@ -565,7 +573,8 @@ draw_chrom_axis <- function(ch_edges,small = F){
 #' @export
 #'
 pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=NULL,
-                       l=NULL, legspace = 0.1, legname = NULL, pch = 19, ...
+                       l=NULL, alpha = 1, legspace = 0.1, legname = NULL, pch = 19, colmode = "discrete" ,
+                       ...
 ){
   pc <- prcomp(K)
 
@@ -575,12 +584,33 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=
   }else{
     if(length(col) != ncol(K)){
       stop("col length and number of individuals do not match")}
-    n <- length(unique(col))
-    cols <- select.col(n,coltype=coltype,h=h,l=l)
-    id <- sapply(sort(unique(col)),function(i) col == i)
 
-    cols <- cols[id %*% 1:length(cols)]
+    if(colmode == "discrete"){
+      n <- length(unique(col))
+      cols <- select.col(n,coltype=coltype,h=h,l=l,alpha=alpha)
+      id <- sapply(sort(unique(col)),function(i) col == i)
+      cols <- cols[id %*% 1:length(cols)]
+
+    }else if(colmode == "continuous"){
+      if(!is.numeric(col)) stop("If colmode == continuous, col must be numeric")
+      #first we create a colour map on the colour space (if col starts at 0
+      #and ends at 1, we put 200 values between 0 and 1)
+      col_map <- seq(min(col),max(col),length.out = 200)
+      #And then we assign to each value of col, which col_map is closer to it
+      col_index <- sapply(col,function(co){
+        which.min(abs(co - col_map))
+      })
+      #We obtain the colours from the colour space
+      col_mat <- select.col(200,coltype=coltype,h=h,l=l,alpha=alpha)
+      #And we apply the colour index to the colour space
+      cols <- col_mat[col_index]
+
+    }else stop("Wrong colmode specification")
+
+
   }
+
+
 
   var.pc <- paste0("PC",1:length(pc$sdev),"  ",
                  round(pc$sdev^2/sum(pc$sdev^2)*100,2),"% variance")
@@ -594,24 +624,27 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=
 
   if(!plot_legend) legspace <- 0
 
-  xlim <- range(pc$rotation[,comp[1]])
+  xlim <- range(pc$x[,comp[1]])
   xlim[2] <- xlim[2] + legspace*(xlim[2] - xlim[1])
 
-  plot(pc$rotation[,comp],col=cols,pch=pch,...,xlim = xlim,
+  plot(pc$x[,comp],col=cols,pch=pch,xlim = xlim,
          xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
 
   if(plot_legend){
-    if(length(col)== ncol(K)){
+    if(colmode == "discrete"){
+
       if(is.null(legname)) legname <- sort(unique(col))
-
       pch_1 <- pch[!duplicated(col)][order(unique(col))]
-
       legend("topright",
              legend = legname,
              col = unique(cols)[order(unique(col))],bty="n",
              pch = pch_1)
 
+    }else if(colmode == "continuous"){
+      rasterImage(matrix(col_mat,ncol=1),
+                  xleft = 0.6,xright = 1,ytop = 1,ybottom = -1)
     }
+
   }
 }
 

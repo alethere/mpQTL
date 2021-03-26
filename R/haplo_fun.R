@@ -5,11 +5,11 @@
 #' to transform SNP phase data into haplotype data.
 
 #First we create the indeces of the SNPs we must concatenate
-.hap_indexer <- function(nmark,l,method = "adjacent"){
+.hap_indexer <- function(nmark,l,method = "adjacent",slide = 1){
   if(method == "adjacent"){
     index <- t(sapply(1:floor(nmark/l),function(n) 1:l+(n-1)*l ))
   }else if(method == "sliding"){
-    index <- t(sapply(1:(nmark-l+1),function(i) i:(i+l-1)))
+    index <- t(sapply(1:(nmark-l+slide),function(i) i:(i+l-slide)))
   }
   return(index)
 }
@@ -58,12 +58,13 @@ haplotyper <- function(
   map,
   l = NULL,
   index = NULL,
-  method = "adjacent"
+  method = "adjacent",
+  slide = 1
 ){
 
   if(!is.null(l)){
-    hap_i <- .hap_indexer(nrow(gen),l,method = method)
-  }else if(!is.null){
+    hap_i <- .hap_indexer(nrow(gen),l,method = method,slide = slide)
+  }else if(!is.null(index)){
     hap_i <- index
   }else{ stop("Either l or index must be specified")}
 
