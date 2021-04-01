@@ -504,16 +504,16 @@ map.QTL<-function( phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL, c
       res<-do.call(mapply,c(list,result))
       res<-as.list(as.data.frame(res))
       #All columns are turned into vectors except the beta column
-
-      for(r in 2:length(res)) res[[r]] <- unlist(res[[r]])
+      #gt: and except residuals (to fix the bug below)
+      for(r in c(2,4:length(res))) res[[r]] <- unlist(res[[r]])
       # for(r in 1:length(res)) names(res[[r]]) <- markers
       for(r in c(1:2,4:length(res))) names(res[[r]]) <- markers
       # names(res[[4]]) <- markers #gt: it should be individuals?
       #gt: here there is a bug. When a phenotype contain NAs, the
       # number of residuals will differ, including only residuals
       # of non-missing phenotypes. The line below will split wrongly!
-      res$residual <- split(res$residual,rep(1:nrow(genotypes),
-                                             each=nrow(phenotypes)))
+      # res$residual <- split(res$residual,rep(1:nrow(genotypes),
+      #                                        each=nrow(phenotypes)))
       names(res$residual) <- markers
       ## for permuted phenotypes store the minimum pvalue only
       if (w > npheno) {
