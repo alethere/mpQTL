@@ -430,6 +430,157 @@ HapCurate <- function(haplo,
 }
 
 
+
+
+
+
+inspect_haps <- function(results, hb_list, ind=NULL, fld, outname) {
+
+
+  fld_hap <- fld
+  if(is.null(ind)){
+    ind <- colnames(results[[1]][[1]])
+  }
+
+
+  # + NA rate per individual -------------
+  na_ind <- sapply(results, function(x){
+    is.na(x[[1]][1,ind])
+  })
+  narate_ind <- rowSums(na_ind)/ncol(na_ind)
+
+
+  # + NA rate per marker --------------------
+  narate <- sapply(results, function(x){
+    sum(is.na(x[[1]][1,ind]))/length(x[[1]][1,ind])
+  })
+  # narate[1:5]
+
+  png(paste0(fld_hap,"/NArate_sorted_",outname,".png"), width = 480, height = 480)
+  plot(sort(narate))
+  dev.off()
+
+  # plot(narate)
+
+
+  # summarize block results per window
+  # prepare plot data
+  window_fact <- sapply(strsplit(names(results),"\\."), function(x) x[[1]])
+  wfc <- factor(window_fact, levels=names(hb_list)) # factor including all the bins in hb_list
+  # class(window_fact)
+  # factor(window_fact, levels=unique(window_fact))
+  # boxplot(narate ~ factor(window_fact, levels=unique(window_fact)),
+  #         las=2, xlab = "")
+  #
+  # barplot(sapply(hb_list_chr13_25to50, length), las=2)
+
+
+  # # plot 1
+  # # make labels and margins smaller
+  # par(cex=0.7, mai=c(0.1,0.1,0.2,0.1))
+  # # define area for the histogram
+  # par(fig=c(0.1,1,0.7,1))
+  # barplot(sapply(hb_list_chr13_25to50, length), las=2)
+  # # define area for the boxplot
+  # par(fig=c(0.1,1,0.1,0.6), new=TRUE)
+  # boxplot(narate ~ factor(window_fact, levels=unique(window_fact)),
+  #         las=2, xlab = "")
+
+  # plot 2
+  # names(hb_list)[1:5]
+  # make labels and margins smaller
+  png(paste0(fld_hap,"/NArate_",outname,".png"), width = 700, height = 480)
+  par(cex=0.7, mai=c(0.2,0.7,0.2,0.1))
+  # define area for the histogram
+  par(fig=c(0,1,0.7,1))
+  barplot(sapply(hb_list, length), #xaxt='n',
+          names.arg = table(wfc), las = 2)
+  # define area for the boxplot
+  par(fig=c(0,1,0.1,0.75), new=TRUE)
+  boxplot(narate ~ wfc, #unique(window_fact)
+          ylim=c(0,1), las=2, xlab = "", ylab = "NA rate")
+  dev.off()
+
+
+
+  # # plot 3 (incorrect, scale of upper plot is different since some windows have no marker)
+  # # make labels and margins smaller
+  # par(cex=0.7, mai=c(0.1,0.1,0.2,0.1))
+  # # define area for the histogram
+  # par(fig=c(0.1,1,0.7,1))
+  # hist(map_biglip_locus$position, breaks = seq(25,50,0.5))
+  # # define area for the boxplot
+  # par(fig=c(0.1,1,0.1,0.7), new=TRUE)
+  # boxplot(narate ~ factor(window_fact, levels=unique(window_fact)),
+  #         las=2, xlab = "")
+
+
+
+  # + number of haplotypes --------------------
+
+  # str(results[1])
+  # results$chr13_1.1$hapdos[,1:5]
+
+  ## Haplotype frequency
+  hap_freq <- lapply(results, function(x) {
+    rowSums(x[[1]][,ind], na.rm = T)/(ncol(x[[1]][,ind])*4)
+  })
+  # hap_freq[1:3]
+  # hap_freq_check <- sapply(hap_freq, sum)
+
+  ## number of haplotypes
+  hap_num <- sapply(hap_freq, length)
+  # plot(sort(hap_num))
+
+  ## number of haplotypes above a certain frequency
+  hap_num_freq <- sapply(hap_freq, function(x){
+    sum(x >= 0.02)
+  })
+  # plot(sort(hap_num_freq))
+
+  # plot
+  # make labels and margins smaller
+  png(paste0(fld_hap,"/HapNum_MAF0.02_",outname,".png"), width = 700, height = 480)
+  # par(cex=0.7, mai=c(0.2,0.7,0.2,0.1))
+  # # define area for the histogram
+  # par(fig=c(0,1,0.7,1))
+  # barplot(sapply(hb_list_chr13_25to50, length), xaxt='n')
+  # # define area for the boxplot
+  # par(fig=c(0,1,0.1,0.74), new=TRUE)
+  boxplot(hap_num_freq ~ wfc,
+          las=2, xlab = "", ylab = "hap number")
+  dev.off()
+
+
+  ##
+  return(list(NArate = narate,
+              NArate_ind = narate_ind,
+              hapfreq = hap_freq))
+}
+
+
+
+# function to filter NA per window
+filter_haps <- function(results, insp, n=10, na.thr=0.25){
+
+  window_fact <- sapply(strsplit(names(results),"\\."), function(x) x[[1]])
+  window_fact <- factor(window_fact, levels=unique(window_fact))
+  # table(window_fact)
+  # length(insp$NArate) == length(window_fact)
+  out <- NULL
+  for(i in unique(window_fact)) {
+    x <- sort(insp$NArate[window_fact == i])
+    if(length(x) > n) x <- x[1:n]
+    x <- x[x < na.thr]
+
+    out <- c(out,x)
+  }
+  return(out)
+}
+
+
+
+
 # Dosage probability -------------
 #' Transform dosage probabilities into B allele probabilities
 #'
