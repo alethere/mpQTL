@@ -20,4 +20,9 @@ devtools::build()
 devtools::check_built(paste0("../mpQTL_0.3.0.tar.gz"), cran=TRUE)
 
 
+<<<<<<< HEAD
+setwd("D:/Science/PhD/Code/mpQTL/mpQTL/")
+build(vignettes = F)
+=======
 
+>>>>>>> 250adb70a1ce95c7f585a3928dfc840b7af7186e
