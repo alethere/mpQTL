@@ -2,7 +2,7 @@
 % Please edit documentation in R/viz_fun.R
 \name{select.col}
 \alias{select.col}
-\title{Color selection based on HCL model}
+\title{Colour selection based on HCL model}
 \usage{
 select.col(n, coltype = NULL, h = NULL, c = 100, l = NULL, alpha = 1)
 }
@@ -15,7 +15,7 @@ For ordered categories, such as increasingly high levels of a compound, use
 "sequential". For a gradient between two opposites, chose "divergent".}
 
 \item{h}{One or two values between 0 and 360 (degrees in the colour wheel) to represent hue.
-Default is c(120,240).#' If "qualitative" or "divergent" is used, the two hues will correspond
+Default is c(120,240). If "qualitative" or "divergent" is used, the two hues will correspond
 to each end of the colour
 gradient. Otherwise only the first hue will be used. For reference, 0 is red, 140 is green, 240
 is blue 300 is purple and 360 is back to red.}
@@ -32,7 +32,7 @@ transparency to the colour palette.}
 A colour palette of n colours.
 }
 \description{
-Choice of color palettes can have a relevant impact not only
+Choice of colour palettes can have a relevant impact not only
 in the outlook of data visualizations, but also on their interpretation.
 There exist many models of colour description, such as rgb, or cymk, but in
 this package we chose the hcl model (Hue, Chroma, Luminance). Hue is expressed as
@@ -49,7 +49,10 @@ if you whish to learn about colour spaces and the HCL colour space visit
 \href{http://hclwizard.org/why-hcl/}{"why HCL"}.
 }
 \examples{
-
+\dontrun{
 select.col(10,coltype = "qualitative")
 select.col(10,coltype = "sequential", h = 280)
 }
+
+}
+\keyword{internal}

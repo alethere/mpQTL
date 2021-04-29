@@ -16,11 +16,14 @@ If negatives are used, it darkens the colour.}
 Lightened (or darkened) colour(s)
 }
 \description{
-Returns a lighter (if lighten parameter is positiove) version of the colour(s) provided
+Returns a lighter (if lighten parameter is positive) version of the colour(s) provided.
 }
 \examples{
-
+\dontrun{
 lighten("black")
 lighten("#000000")
 lighten("red",-0.55) #this returns a darker colour
 }
+
+}
+\keyword{internal}

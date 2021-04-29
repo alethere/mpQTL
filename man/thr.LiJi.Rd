@@ -2,30 +2,46 @@
 % Please edit documentation in R/mapQTL_fun.R
 \name{thr.LiJi}
 \alias{thr.LiJi}
-\title{Li and Ji method for significance level in multiple testing}
+\title{Calculate significance level based on the effective number of independent tests}
 \usage{
-thr.LiJi(m, chrom, alpha = 0.05, ploidy)
+thr.LiJi(m, chrom, alpha = 0.05, ploidy = NULL)
 }
 \arguments{
-\item{m}{a matrix of SNP dosages or a list of matrices with haplotype dosages,
-with markers (or haplotypes) in rows and individuals in columns.}
+\item{m}{A matrix of SNP genotypes (discrete or continuous) with markers
+in rows and individuals in columns.}
 
-\item{chrom}{a vector defining to which chromosome markers belong.}
+\item{chrom}{A vector defining to which chromosome markers belong.}
 
-\item{alpha}{significance level (use 0.05 for 5\% significance).}
+\item{alpha}{Significance level (use 0.05 for 5\% significance).}
 
-\item{ploidy}{numeric indicating the ploidy level.}
+\item{ploidy}{Numeric indicating the ploidy level.}
 }
 \value{
-value of adjusted alpha.
+Value of adjusted alpha.
 }
 \description{
 This function implements a method to adjust the significance
-level for multiple testing, as proposed by Li and Ji (Li and Ji, 2005, Heredity).
+level for multiple testing based on the effective number of independent
+tests, as proposed by \href{https://www.nature.com/articles/6800717?report=reader}{Li and Ji (2005, Heredity)}.
 The Bonferroni adjusted threshold is obtained dividing a significance level
 by the number of tests, assuming tests are independent to each other.
 The Li and Ji method is more appropriate when the assumption of
 independence is not met. In this method, the eigenvalues of a correlation
 matrix are used to estimate the effective number of independent tests.
-NOT RECOMMENDED fo haplotype data, use SNP dosages only.
+}
+\examples{
+## Get example SNP dosages and a map
+data("mpsnpdose")
+data("mpmap")
+
+mpsnpdose[1:5,1:5]
+head(mpmap)
+tapply(mpmap$marker, mpmap$chromosome, length)
+identical(rownames(mpsnpdose), mpmap$marker)
+
+## excluding unmapped markers (chromosome 0)
+mapped <- mpmap$chromosome != 0
+thr <- thr.LiJi(m = mpsnpdose[mapped,],
+                chrom = mpmap$chromosome[mapped])
+-log10(thr$threshold) #log scale
 }

@@ -7,26 +7,30 @@
 pcoa.plot(
   K,
   comp = c(1, 2),
-  plot_legend = T,
+  plot_legend = TRUE,
   col = NULL,
   coltype = NULL,
   h = NULL,
   l = NULL,
+  alpha = 1,
   legspace = 0.1,
   legname = NULL,
   pch = 19,
+  colmode = "discrete",
   ...
 )
 }
 \arguments{
-\item{K}{distance matrix}
+\item{K}{A distance matrix.}
 
 \item{comp}{Vector of two integers, indicating which principal comonents to plot.
 1 and 2 by default.}
 
-\item{col}{vector for each individual in the matrix, indicating
-a grouping. For instance, c("parent1","pop1",...). Each element will be
-used to produce a colour.}
+\item{plot_legend}{Logical, whether legend should be plotted.}
+
+\item{col}{A grouping vector for the objects of the matrix. For instance,
+a population to which individuals belong. Each element will be
+associated to a colour.}
 
 \item{coltype}{Argument to be passed to \code{\link{select.col}}.Either "sequential",
 "qualitative", "divergent" or "rainbow".For a few categories, such as different treatments,
@@ -38,29 +42,47 @@ the colour palette to use.}
 
 \item{l}{Value between 0 and 100 (default 60). Represents brightness, or the amount of white}
 
+\item{alpha}{Value between 0 (transparent) and 1 (opaque), to add some degree of
+transparency to the colour palette.}
+
 \item{legspace}{Numeric indicating the proportion of space to be left for plotting the legend
 to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
 names are very long, increase this number to tweak the amount of space left to the right.}
 
+\item{legname}{The legend names for the colours chosen, automatically taken
+from "col" if not specified.}
+
 \item{pch}{numeric vector containing 1 or as many values as unique values in "col"}
+
+\item{colmode}{character, either "discrete" or "continuous", "discrete" by default. If
+"discrete" col will be used to assign a colour to each unique value, using col as
+a grouping variable. If "continuous", col must be numeric and will be used in a gradient
+of colour.}
 
 \item{...}{Additional parameters to be passed to the \code{plot} or \code{points}
 method.}
-
-\item{add}{Logical, whether to add the points to the current plot (using points()),
-or make a new plot.}
-
-\item{legend}{Logical, whether legend should be plotted.}
 }
 \value{
 calculates and plots a pcoa plot
 }
 \description{
-It produces a principal component plot for the K
-distance matrix based on the prcomp() function.
+It produces a principal coordinate plot for the K
+distance matrix based on the \code{prcomp()} function.
 }
 \examples{
+## Get example SNP dosages
+data("mpsnpdose")
+## Calculate distances between individuals
+K <- as.matrix(dist(t(mpsnpdose)))
+## Plot Principal Coordinates
+pcoa.plot(K)
 
-select.col(10,coltype = "qualitative")
-select.col(10,coltype = "sequential", h = 280)
+## Colors according to a grouping variable
+pop <- substr(colnames(K),1,2)
+pcoa.plot(K, col = pop)
+pcoa.plot(K, col = pop, h = c(0,360))
+
+}
+\seealso{
+\code{\link{select.col}} for colour related parameters.
 }

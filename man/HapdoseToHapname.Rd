@@ -2,26 +2,36 @@
 % Please edit documentation in R/utils_fun.R
 \name{HapdoseToHapname}
 \alias{HapdoseToHapname}
-\title{Convert haplotype dosages into haplotype names}
+\alias{HapnameToHapdose}
+\title{Convert haplotype dosages into haplotype names (and viceversa)}
 \usage{
 HapdoseToHapname(hapdose, ploidy)
+
+HapnameToHapdose(hapname)
 }
 \arguments{
-\item{hapdose}{Either the output of PolyHaplotyper or a list where each element
-is a numeric matrix of haplotype dosages for a certain locus and each element name
-is a locus name. Locus names must be unique.
-In each matrix, haplotypes are in rows and individuals in columns.
-Row names must contain haplotype
-names.
-Column names contain individual names.}
+\item{hapdose}{A list where each element is a numeric matrix of haplotype
+dosages for a certain locus and each element name is a locus name. Locus
+names must be unique. In each matrix, haplotypes are in rows and
+individuals in columns. Row names must contain haplotype names and
+column names contain individual names.}
 
 \item{ploidy}{numeric indicating the ploidy level (identical for all the
 individuals).}
+
+\item{hapname}{A matrix of haplotype names, with markers in rows and individual
+homologues in columns. Column names for homologues of the same individual
+are distinguished by adding the suffices "_1","_2", etc., depending on
+the ploidy.}
 }
 \value{
-a matrix of multiallelic genotypes, with loci (blocks) in rows and
-individual homologues in columns. Genotypes are indicated by using haplotype
-names.
+\code{HapdoseToHapname}: a matrix of multiallelic genotypes,
+with loci (blocks) in rows and individual homologues in columns. Genotypes
+are indicated by using haplotype names.
+
+\code{HapnameToHapdose}: a list of matrices. Each matrix contains
+haplotype dosages for one marker (or block), with haplotypes in rows and
+individuals in columns.
 }
 \description{
 A genotype of an individual can be represented either by a
@@ -29,6 +39,41 @@ numerical vector of dosages of each haplotype or by a numerical vector of
 haplotype names (numbers) for each homologue. In the former case, vector
 length will correspond to the number of haplotypes, while in the latter
 case it will be the number of homologues, that is the individual ploidy.
-This function converts a list of haplotype dosages into a matrix of
-haplotypes names.
+The function \code{HapdoseToHapname} converts a list of haplotype dosages
+into a matrix of haplotypes names, while \code{HapnameToHapdose} does the
+opposite.
+}
+\section{Functions}{
+\itemize{
+\item \code{HapdoseToHapname}: This function converts a list of haplotype
+dosages into a matrix of haplotypes names.
+
+\item \code{HapnameToHapdose}: This function converts a matrix of haplotypes
+names into a list of haplotype dosages.
+}}
+
+\examples{
+## Create random haplotype dosage data for ten tetraploid
+## individuals and three loci.
+hapdose <- lapply(1:3, function(l) {
+  sapply(1:10, function(x) {
+    tabulate(sample(1:3, 4, replace = TRUE), nbins = 3)
+  })
+})
+names(hapdose) <- paste0("locus",1:3)
+
+for(i in 1:3){ #add names to markers and individuals
+  d <- dim(hapdose[[i]])
+  rownames(hapdose[[i]]) <- paste0("hap",1:d[1])
+  colnames(hapdose[[i]]) <- paste0("ind",1:d[2])
+}
+
+colSums(hapdose$locus1) #each column sums to ploidy
+
+## Convert to Hapname format
+hapname <- HapdoseToHapname(hapdose, ploidy = 4)
+
+## and viceversa
+HapnameToHapdose(hapname)
+
 }

@@ -18,51 +18,74 @@ skyplot(
   l = NULL,
   pch = NULL,
   chromspace = 0.05,
+  cex.big = NULL,
+  cex.small = NULL,
   ...
 )
 }
 \arguments{
 \item{pval}{Numerical vector. Usually -log10(p-values), but other values are accepted.}
 
-\item{map}{Dataframe containing columns "chromosome" and "position"}
+\item{map}{Dataframe containing columns "chromosome" and "position".}
 
 \item{threshold}{A threshold value to draw the threshold line.}
 
-\item{ylab}{character, label to add on the y axis, defaults to "-log10(pval)"}
+\item{ylab}{character, label to add on the y axis, defaults to "-log10(pval)".}
 
-\item{xlab}{character, label to add on the x axis, defaults to "Chromosome"}
+\item{xlab}{character, label to add on the x axis, defaults to "Chromosome".}
 
-\item{ylim}{numeric vector of length two, minimum and maximum y axis values}
+\item{ylim}{numeric vector of length two, minimum and maximum y axis values.}
 
-\item{chrom}{A vector of chromosome names to be included in the plot}
+\item{chrom}{A vector of chromosome names to be included in the plot.}
 
 \item{small}{logical, should the small axis (per chromosome) be drawn? By default
-T only if number of chromosomes <3.}
+TRUE only if number of chromosomes <3.}
 
 \item{col}{Base colour to use for plotting. Odd chromosomes will be plotted with this colour,
 even chromosomes will be plotted with a lighter version of the same colour. Alternatively,
 a character vector specifying two colours can be provided.}
 
 \item{h}{One or two values between 0 and 360 (degrees in the colour wheel) to represent hue.
-Default is c(120,240).#' If "qualitative" or "divergent" is used, the two hues will correspond
+Default is c(120,240). If "qualitative" or "divergent" is used, the two hues will correspond
 to each end of the colour
 gradient. Otherwise only the first hue will be used. For reference, 0 is red, 140 is green, 240
 is blue 300 is purple and 360 is back to red.}
 
 \item{l}{Value between 0 and 100 (default 60). Represents brightness, or the amount of white}
 
-\item{pch}{numeric indicating the type of point to be passed to plot()}
+\item{pch}{numeric indicating the type of point to be passed to plot().}
 
 \item{chromspace}{numeric determining the space between chromosomes on the
 x axis. It is expressed as a proportion of the total map lenght. Values in the
 range 0 - 0.05 are recommended. Default set to 0.05.}
 
-\item{...}{Other parameters to be passed to plot()}
+\item{cex.big}{cex for the big axis (axis for all chromosomes).}
+
+\item{cex.small}{cex for the small axis (axis within each chromosome).}
+
+\item{...}{Other parameters to be passed to plot().}
 }
 \value{
-creates a skyline plot
+creates a skyline plot.
 }
 \description{
 Takes a vector of values and a dataframe of a genetic map containing the columns
 "chromosome" and "position", and produces a plot where values are mapped onto the genome.
+}
+\examples{
+## Create a map and set of random p-values
+map <- data.frame(marker = paste0("mrk", 1:100),
+                  chromosome = c(rep(1,50), rep(2,50)),
+                  position = c(sort(runif(50,0,60)), sort(runif(50,0,80))))
+pvals <- runif(100)
+
+## Plot -log10(pvals)
+skyplot(pval = -log10(pvals), map)
+skyplot(pval = -log10(pvals), map, small = FALSE)
+skyplot(pval = -log10(pvals), map, small = FALSE, threshold = 3)
+skyplot(pval = -log10(pvals), map, small = FALSE, threshold = 3, ylim = c(0,4))
+
+}
+\seealso{
+\code{\link{comp.skyplot}}
 }

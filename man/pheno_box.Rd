@@ -6,7 +6,7 @@
 \alias{pheno_haplo}
 \title{Phenotype boxplot}
 \usage{
-pheno_box(phe, gen, haplotype = F, ...)
+pheno_box(phe, gen, haplotype = FALSE, ...)
 
 pheno_dosage(
   phe,
@@ -14,7 +14,7 @@ pheno_dosage(
   coltype = NULL,
   h = NULL,
   l = NULL,
-  draw.points = T,
+  draw.points = TRUE,
   ...
 )
 
@@ -22,7 +22,7 @@ pheno_haplo(
   phe,
   gen,
   ploidy,
-  draw.points = T,
+  draw.points = TRUE,
   hap.select = NULL,
   coltype = NULL,
   h = NULL,
@@ -31,14 +31,14 @@ pheno_haplo(
 )
 }
 \arguments{
-\item{phe}{numeric vector of phenotypes}
+\item{phe}{numeric vector of phenotypes.}
 
-\item{gen}{if haplotype = F, numeric vector of same length as phe. If
-haplotype = T, vector of length(phe)*ploidy.}
+\item{gen}{if haplotype = FALSE, numeric vector of same length as phe. If
+haplotype = TRUE, vector of length(phe)*ploidy.}
 
 \item{haplotype}{logical, does gen contain haplotypes?}
 
-\item{...}{Additonal parameters to "plot" (not xlim and ylim)}
+\item{...}{Additonal parameters to "plot" (not xlim and ylim).}
 
 \item{coltype}{Either "sequential", "qualitative" (default), "divergent" or "rainbow".
 For a few categories, such as different treatments, choose "qualitative" or "rainbow".
@@ -46,19 +46,22 @@ For ordered categories, such as increasingly high levels of a compound, use
 "sequential". For a gradient between two opposites, chose "divergent".}
 
 \item{h}{One or two values between 0 and 360 (degrees in the colour wheel) to represent hue.
-Default is c(120,240).#' If "qualitative" or "divergent" is used, the two hues will correspond
+Default is c(120,240). If "qualitative" or "divergent" is used, the two hues will correspond
 to each end of the colour
 gradient. Otherwise only the first hue will be used. For reference, 0 is red, 140 is green, 240
 is blue 300 is purple and 360 is back to red.}
 
 \item{l}{Value between 0 and 100 (default 60). Represents brightness, or the amount of white}
 
-\item{draw.points}{logical, should points be drawn? Defaults to T}
+\item{draw.points}{logical, should points be drawn? Defaults to TRUE.}
 
-\item{ploidy}{integer, ploidy of the individual}
+\item{ploidy}{integer, ploidy of the individual.}
 
-\item{hap.select}{vector, if haplotype = T, names of the haplotypes
+\item{hap.select}{vector, if haplotype = TRUE, names of the haplotypes
 to be drawn. All by default.}
+}
+\value{
+A boxplot grouping phenotypes per dosage of each genotype.
 }
 \description{
 Plots a boxplot per dosage of SNPs / per haplotype, with overlapped
@@ -74,3 +77,17 @@ of genotypes, it plots a boxplot grouping phenotypes per dosage of each genotype
 \item \code{pheno_haplo}: method for when haplotypes are passed to pheno_box
 }}
 
+\examples{
+## Get example genotypes and phenotypes of tetraploid individuals
+data("mpsnpdose")
+mpsnpdose[1:5,1:5]
+data("mphapdose")
+mphapdose[1:5,1:9]
+data("mppheno")
+head(mppheno)
+
+## pheno_box of the first SNP
+pheno_box(phe = mppheno, gen = mpsnpdose[1,])
+pheno_box(phe = mppheno, gen = mphapdose[1,], haplotype = TRUE, ploidy = 4)
+
+}

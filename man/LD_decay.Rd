@@ -9,12 +9,12 @@ LD_decay(
   map,
   win_size = 0.1,
   max_dist = NULL,
-  per_chr = F,
+  per_chr = FALSE,
   percentile = c(0.5, 0.8, 0.9, 0.95)
 )
 }
 \arguments{
-\item{dos}{integer matrix with markers on rows and individuals in columns}
+\item{dos}{integer matrix with markers on rows and individuals in columns.}
 
 \item{map}{data.frame genetic map with columns "chromosome" "marker" and "position"}
 
@@ -24,14 +24,14 @@ Must be in the same unit as the "position" column of map.}
 \item{max_dist}{numeric, maximum distance to consider between markers. Usually, beyond
 50 cM the estimates are not informative.}
 
-\item{per_chr}{logical, whether the estimations should be performed per chromosome}
+\item{per_chr}{logical, whether the estimations should be performed per chromosome.}
 
 \item{percentile}{numeric vector, which percentiles to calculate?  By default
 0.5, 0.8, 0.9 and 0.95. Any value between 0 and 1 is allowed.}
 }
 \value{
-If per_chr = F, an LD object (list with LD estimates dataframe and
-background LD for each percentile); if per_chr = T a list of LD objects, one
+If per_chr = FALSE, an LD object (list with LD estimates dataframe and
+background LD for each percentile); if per_chr = TRUE a list of LD objects, one
 per chromosome.
 }
 \description{
@@ -44,9 +44,19 @@ markers) and can be performed over the whole genome, or per chromosome.
 }
 \examples{
 
-dosage <- sapply(1:50,function() sample(100,0:4,replace = T))
-map <- data.frame(marker = paste0("marker",1:100),
-                  chromosome = c(rep(1,30),rep(2,40),rep(3,30)),
-                  position = c(1:30,1:40,1:30))
-LD <- LD_decay(dosage,map,win_size = 0.5)
+## Get example SNP dosages and a map
+data("mpsnpdose")
+data("mpmap")
+
+mpsnpdose[1:5,1:5]
+head(mpmap)
+tapply(mpmap$marker, mpmap$chromosome, length)
+identical(rownames(mpsnpdose), mpmap$marker)
+
+## LD decay calculation
+LD <- LD_decay(mpsnpdose, mpmap, win_size = 2,
+               max_dist = 50, percentile = c(0.9,0.95))
+LD <- LD_decay(mpsnpdose, mpmap, win_size = 2,
+               per_chr = TRUE,
+               max_dist = 50, percentile = c(0.9,0.95))
 }

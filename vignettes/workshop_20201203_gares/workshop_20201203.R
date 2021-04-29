@@ -1,0 +1,308 @@
+library(mpQTL)
+
+
+
+# source("../R/utils_fun.R")
+data <- load("workshop_data.RData")
+
+
+# ff approch: subset during import -----------------------------
+## Not all the data might be necessary (e.g. one could need to focus
+## on a subset of individuals or to use only well performing markers
+## or mapped markers).
+
+library("ff")
+library("ffbase")
+
+## preview
+readLines("20180712-234650_scores.dat", 10)
+
+scores_preview <- read.delim.ffdf(file="20180712-234650_scores.dat",
+                                  nrows = 10)
+scores_preview
+
+
+# subset based on marker names (or sample names)
+names_ffdf <- read.delim.ffdf(file="20180712-234650_scores.dat",
+                                     # nrows = 10000,
+                                     transFUN = function(x, n = mrksel, m = indsel) {
+                                       idx <- x[,2] %in% n & x[,3] %in% m
+                                       x[idx, 1:3]
+                                     })
+names_ffdf
+rownames(names_ffdf) <- NULL
+
+data_ffdf <- read.delim.ffdf(file="20180712-234650_scores.dat",
+                             # nrows = 10000,
+                             transFUN = function(x, n = mrksel, m = indsel){
+                               idx <- x[,2] %in% n & x[,3] %in% m
+                               x[idx, c(4:9,12)]
+                             })
+data_ffdf
+rownames(data_ffdf) <- NULL
+
+data_ffmat <- ffbase:::as.ff_matrix.ffdf(data_ffdf)
+data_ffmat
+
+# ## save and load
+# ffsave(data_ffmat, file=""vignettes/workshop_20201203/ff_files/data_ffmat")
+# ffload("vignettes/workshop_20201203/ff_files/data_ffmat")
+
+## If no subscript selection is needed,
+## use data_ffmat[] to get the ram object.
+## Make sure that row names are not inherited by the ff object
+## using ramattribs(data_ffmat[1:10,2:6])
+ramattribs(data_ffmat[1:10,])
+data <- data_ffmat[]
+data[1:5,]
+
+## reshape ratios (snp array intensities)
+ratios <- matrix(data_ffmat[,1], nrow = length(unique(names_ffdf$MarkerName[])), byrow = T)
+dim(ratios)
+ratios[1:9]
+ratios <- round(ratios,4)
+
+rownames(ratios) <- unique(names_ffdf$MarkerName[])
+colnames(ratios) <- unique(names_ffdf$SampleName[])
+
+
+ratios[1:5,1:5]
+
+## transform dosage probabilities
+# Bfreq <- dosP2Bfreq(data[,2:6])
+Bfreq <- dosP2Bfreq(data_ffmat[,2:6])
+dim(Bfreq)
+Bfreq[1:9]
+
+attributes(Bfreq)
+class(Bfreq)
+typeof(Bfreq)
+Bfreq <- round(Bfreq,4)
+
+Bfreq <- matrix(Bfreq, nrow = length(unique(names_ffdf$MarkerName[])), byrow = T)
+dim(Bfreq)
+Bfreq[1:5,1:5]
+
+rownames(Bfreq) <- unique(names_ffdf$MarkerName[])
+colnames(Bfreq) <- unique(names_ffdf$SampleName[])
+
+
+Bfreq[1:5,1:5]
+range(c(Bfreq))
+
+## add NAs
+set.seed(3)
+naidx <- sample(1:length(ratios), 100)
+ratios[naidx] <- NA
+Bfreq[naidx] <- NA
+
+## remove ff objects and clear reference to flat files
+delete(names_ffdf, data_ffdf, data_ffmat, scores_preview)
+rm(names_ffdf, data_ffdf, data_ffmat, scores_preview)
+gc()
+detach("package:ffbase", unload=TRUE)
+detach("package:ff", unload=TRUE)
+
+
+## + Kinship matrix -----------
+## (for knn imputation or structure correction)
+## using all the markers (otherwise use sample.cM)
+Kr <- calc.K(t(ratios))
+Kr[1:5,1:5]
+
+Kp <- calc.K(t(Bfreq))
+Kp[1:5,1:5]
+
+
+# ### visualize kinship
+# pcoa.plot(Kr)
+
+## + geno imputation --------------------
+## with continuos genotypes impute.knn will use the mean of kneighbors.
+## Since we provide K, there is non need to provide a map
+sum(is.na(ratios))
+ratios2 <- impute.knn(ratios,
+                      ploidy = 4,
+                      kneighbors = 20,
+                      K=Kr)
+ratios2[1:5,1:5]
+
+
+# ratios22 <- imputeNA(ratios)
+# ratios0[naidx]
+# plot(ratios0[naidx], ratios2[naidx])
+# plot(ratios2[naidx], ratios22[naidx])
+sum(is.na(ratios))
+
+
+sum(is.na(Bfreq))
+Bfreq2 <- impute.knn(Bfreq,
+                     ploidy = 4,
+                     kneighbors = 20,
+                     K=Kp)
+Bfreq2[1:5,1:5]
+
+## input order
+ordInp_ratios <- inputOrder(ratios2, pheno = phenotypes, map = map, K = Kr)
+str(ordInp_ratios)
+ordInp_ratios$geno[1:5,1:5]
+head(ordInp_ratios$map)
+
+sapply(ordInp_ratios, dim)
+sapply(ordInp_ratios, class)
+
+
+
+## input order
+ordInp_Bfreq <- inputOrder(Bfreq2, pheno = phenotypes, map = map, K = Kp)
+str(ordInp_Bfreq)
+
+## Li & Ji threshold
+ratios_thr <- thr.LiJi(ordInp_ratios$geno,
+                       chrom = ordInp_ratios$map$chromosome,
+                       ploidy = 4)
+ratios_thr
+Bfreq_thr <- thr.LiJi(ordInp_Bfreq$geno,
+                       chrom = ordInp_Bfreq$map$chromosome,
+                       ploidy = 4)
+
+## using ratios
+ratios_naive <- map.QTL(phenotypes = ordInp_ratios$pheno,
+                        genotypes = ordInp_ratios$geno,
+                        ploidy = 4,
+                        K = ordInp_ratios$K,
+                        K_identity = T, #to force naive
+                        # impute = F, #not needed, since we provided imputed genotypes
+                        map = ordInp_ratios$map,
+                        no_cores = 6)
+str(ratios_naive$pheno01$residual)
+ratios_naive$pheno01$residual$mrk085432
+
+ratios_K <- map.QTL(phenotypes = ordInp_ratios$pheno,
+                    genotypes = ordInp_ratios$geno,
+                    ploidy = 4,
+                    K = ordInp_ratios$K,
+                    map = ordInp_ratios$map,
+                    no_cores = 6)
+
+## using dosage probabilities
+Bfreq_naive <- map.QTL(phenotypes = ordInp_Bfreq$pheno,
+                        genotypes = ordInp_Bfreq$geno,
+                        ploidy = 4,
+                        K = ordInp_Bfreq$K,
+                        K_identity = T, #to force naive
+                        # impute = F, #not needed, since we provided imputed genotypes
+                        map = ordInp_Bfreq$map,
+                        no_cores = 6)
+
+Bfreq_K <- map.QTL(phenotypes = ordInp_Bfreq$pheno,
+                   genotypes = ordInp_Bfreq$geno,
+                   ploidy = 4,
+                   K = ordInp_Bfreq$K,
+                   map = ordInp_Bfreq$map,
+                   no_cores = 6)
+
+
+## plots for ratios
+skyplot(-log10(ratios_naive$pheno01$pval),
+        map = ordInp_ratios$map,
+        chromspace = 0,
+        threshold = -log10(ratios_thr$threshold),
+        main="naive model using ratios")
+
+skyplot(-log10(ratios_K$pheno01$pval),
+        map = ordInp_ratios$map,
+        chromspace = 0,
+        threshold = -log10(ratios_thr$threshold),
+        main="K model using ratios")
+
+
+## plots for dosage prob.
+skyplot(-log10(Bfreq_naive$pheno01$pval),
+        map = ordInp_Bfreq$map,
+        chromspace = 0,
+        threshold = -log10(Bfreq_thr$threshold),
+        main="naive model using dosage prob.")
+
+skyplot(-log10(Bfreq_K$pheno01$pval),
+        map = ordInp_Bfreq$map,
+        chromspace = 0,
+        threshold = -log10(Bfreq_thr$threshold),
+        main="K model using dosage prob.")
+
+## peak marker for ratios
+ratios_K$pheno01$pval[which.max(-log10(ratios_K$pheno01$pval))]
+plot(ordInp_ratios$geno["mrk004035",],
+     ordInp_ratios$pheno[,1],
+     xlim = c(0,1),
+     xlab = "ratios",
+     ylab = "phenotype")
+
+## peak marker for dosage prob.
+Bfreq_K$pheno01$pval[which.max(-log10(Bfreq_K$pheno01$pval))]
+plot(ordInp_Bfreq$geno["mrk089717",],
+     ordInp_Bfreq$pheno[,1],
+     xlim = c(0,1),
+     xlab = "dosage Prob.",
+     ylab = "phenotype")
+
+
+
+library(scales)
+
+ordMapRatio <- inputOrder(ratios[rownames(ratios) %in% map$marker[map$chromosome != 0],], map = map)
+colnames(ordMapRatio$geno)
+str(ordMapRatio)
+
+skyplot(ordMapRatio$geno[,"ind202"],
+        map = ordMapRatio$map, #[physmap$physical_chr!=0,]
+        ylim = c(0,1.1),
+        pch = 20,
+        cex = 1,
+        ylab = "ratios",
+        col = alpha("dodgerblue4",0.2),
+        chromspace = 0,
+        main="ind202")
+
+skyplot(ordMapRatio$geno[,"ind201"],
+        map = ordMapRatio$map, #[physmap$physical_chr!=0,]
+        ylim = c(0,1.1),
+        pch = 20,
+        cex = 1,
+        ylab = "ratios",
+        col = alpha("dodgerblue4",0.2),
+        chromspace = 0,
+        main="ind201")
+
+
+
+
+hist(ordMapRatio$geno[,"ind202"],
+     breaks = 500,
+     xlim = c(0,1))
+hist(ordMapRatio$geno[,"ind201"],
+     breaks = 500,
+     xlim = c(0,1))
+
+ordMapBfreq <- inputOrder(Bfreq[rownames(Bfreq) %in% map$marker[map$chromosome != 0],], map = map)
+
+skyplot(ordMapBfreq$geno[,"ind202"],
+        map = ordMapBfreq$map, #[physmap$physical_chr!=0,]
+        ylim = c(0,1.1),
+        pch = 20,
+        cex = 1,
+        ylab = "ratios",
+        col = alpha("dodgerblue4",0.2),
+        chromspace = 0,
+        main="ind202")
+
+skyplot(ordMapBfreq$geno[,"ind201"],
+        map = ordMapBfreq$map, #[physmap$physical_chr!=0,]
+        ylim = c(0,1.1),
+        pch = 20,
+        cex = 1,
+        ylab = "ratios",
+        col = alpha("dodgerblue4",0.2),
+        chromspace = 0,
+        main="ind201")
+

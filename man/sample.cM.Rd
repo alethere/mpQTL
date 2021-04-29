@@ -2,15 +2,17 @@
 % Please edit documentation in R/mapQTL_fun.R
 \name{sample.cM}
 \alias{sample.cM}
-\title{Sample markers every X centimorgans}
+\title{Sample markers every bin of map unit (cM or Mb)}
 \usage{
 sample.cM(genotypes, map, cM = 1, seed = NULL)
 }
 \arguments{
-\item{genotypes}{Either a vector where each element is a marker, or a matrix
-where each row is a marker.}
+\item{genotypes}{Either a character vector where each element is a marker
+name, or a matrix of genotypes where each row is a marker.}
 
-\item{map}{table containing a "chromosome" (numerical) and a "position" (in cM) column.
+\item{map}{A data frame with 3 columns containing map information. The first
+column specifies marker names, the second column chromosome names and the
+third one marker position (any map unit).
 Markers with chromosome number == 0 will not be taken into account}
 
 \item{cM}{Size of bin to sample a marker from.}
@@ -19,11 +21,29 @@ Markers with chromosome number == 0 will not be taken into account}
 }
 \value{
 A table as genotypes, with as many rows as can be obtained by sampling
-markers every X centimorgans.
+markers every bin.
 }
 \description{
 Obtains a subset of markers homogeneously distributed across
-a genetic map based on a cM distance. For instance, if cM=1, will get 1 marker
+a genetic map based on a map distance. For instance, if cM=1, will get 1 marker
 for every 1 cM window if it can. Markers added on chromosome 0 are not returned
-as their genetic position is not known (and thus cannot be cM sampled)
+as their genetic position is not known (and thus cannot be cM sampled).
+}
+\examples{
+## Create a random map
+map <- data.frame(marker = paste0("mrk", 1:100),
+                  chromosome = c(rep(1,50), rep(2,50)),
+                  position = c(sort(runif(50,0,60)), sort(runif(50,0,80))))
+
+## Create a matrix of random genotypes, with markers in rows
+snpdose <- matrix(sample(0:4,1000, replace = TRUE), nrow = 100)
+rownames(snpdose) <- map$marker
+
+## Sample evenly spaced markers
+sample.cM(genotypes = snpdose, map, cM=1, seed=3)
+
+## A vector of marker names can be provided instead of genotypes
+sample.cM(genotypes = map$marker,
+          map, cM=1, seed=3)
+
 }

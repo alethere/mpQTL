@@ -21,6 +21,6 @@ provided, the function will check whether all the data fit with that ploidy.}
 a matrix
 }
 \description{
-Check format of a numeric input matrix
+Used in map.QTL and thr.LiJi
 }
 \keyword{internal}

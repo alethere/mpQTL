@@ -4,37 +4,46 @@
 \alias{calc.K}
 \title{Calculation of realized distance matrix (K)}
 \usage{
-calc.K(matrix, haplotypes = F, ploidy = NULL)
+calc.K(matrix, haplotypes = FALSE, ploidy = NULL)
 }
 \arguments{
-\item{matrix}{Numeric matrix with individuals on rows and markers on columns.}
+\item{matrix}{A matrix of SNP genotypes (continuous or discrete) or
+haplotypes (multi-allelic markers), where columns are markers and
+rows may be either (1) individuals (for biallelic markers) or (2)
+individual homologues (for multi-allelic markers, such as haplotypes).}
 
-\item{haplotypes}{logical, whether haplotypes are present in the matrix. If T,
-a matrix is expected to have p columns per individual, where p is ploidy.}
+\item{haplotypes}{Logical, whether haplotypes are present in the matrix. If TRUE,
+a matrix is expected to have p rows per individual, where p is ploidy.}
 
 \item{ploidy}{integer, the ploidy number p of all individuals. Only used if
-haplotypes = T.}
+haplotypes = TRUE.}
 }
 \value{
 A numeric matrix nxn where n is the number of rows.
 }
 \description{
-Using dosage or haplotype scores, a distance matrix is calculated
+Using SNP genotypes (discrete or continuous) or haplotype
+scores, a distance matrix is calculated
 such that the average distance of an individual with itself is 1, and
 the average with an unrelated individual is 0. Based on the "Realized
 Relationship" model found in \href{https://dl.sciencesocieties.org/publications/tpg/abstracts/9/2/plantgenome2015.08.0073}{Rosyara et al. 2016}
 }
 \examples{
-#Create 10 tetraploid individuals with 200 markers each
-inds <- lapply(1:10,function(i) round(runif(200,0,4)) )
+## Create SNP dosages for 10 tetraploid individuals (in rows) and 100 markers
+snpdose <- matrix(sample(0:4,1000, replace=TRUE), nrow=10)
 
-#Put them in a matrix or data.frame with individuals in rows
-geno <- do.call(rbind,inds)
+## Calculate K matrix
+K <- calc.K(snpdose)
 
-#K matrix of 10 individuals (each row is one individual)
-K<-calc.K(geno)
+## Create an haplotype matrix for 5 tetraploid individuals (in rows) and 100 markers
+## Each individual genotype is represented by four rows (its four homologues)
+hapdose <- matrix(sample(1:6,2000, replace=TRUE), nrow=20)
 
-#K matrix of 2 individuals (every 5 rows is one individual)
-K <- calc.K(geno, haplotye = T, ploidy = 5)
+## K matrix
+K <- calc.K(hapdose, haplotype = TRUE, ploidy = 4)
+
+## Haplotypes can be named by characters as well
+hapdose <- matrix(letters[hapdose], nrow=20)
+K <- calc.K(hapdose, haplotype = TRUE, ploidy = 4)
 
 }

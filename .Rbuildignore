@@ -3,10 +3,15 @@
 ^R/haplo_fun\.R$
 ^R/pedsim_fun\.R$
 ^R/pheno_fun\.R$
+^R/power_fun\.R$
+^R/PolyHaplotyper_fun\.R$
 ^R/Sample_dataset\.R$
+^R/all\.R$
+^R/examples\.R$
 ^devtest/*
 ^research/*
-^data/*$
+^data-raw$
 ^doc/*$
 ^Meta/*$
 ^vignettes/*$
+

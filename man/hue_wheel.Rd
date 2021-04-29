@@ -12,11 +12,11 @@ colours. Values between 20 and 100 are recommended (above and below
 not all colours exist). Defaults to 60.}
 }
 \value{
-plots a hue wheel of a specific luminance
+plots a hue wheel of a specific luminance.
 }
 \description{
 Draws the hue wheel of colorspace in order to know what number corresponds to each
-colour
+colour.
 }
 \examples{
 

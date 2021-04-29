@@ -7,7 +7,6 @@
 #Files
 PedigreeSim.7z
 PedigreeSim.jar
-VCFv4.2.pdf
 #Folders
 research/PedigreeSim/
 research/Plots/
@@ -16,6 +15,10 @@ research/output_inferredHaps/
 research/inferred_haplotypes/
 research/pop_simulations/HWE_datasets
 devtest/devdatasets/
+doc
+Meta
+inst/doc
+vignettes/
 #Extensions
 *.RDS
 *.rds
@@ -24,6 +27,4 @@ devtest/devdatasets/
 #Exceptions
 !vignettes/workshop_data.RDS
 !vignettes/new_workshop_data.RDS
-doc
-Meta
-inst/doc
+

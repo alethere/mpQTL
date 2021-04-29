@@ -1,9 +1,14 @@
+
+devtools::load_all()
+
+
 #Package building
 # library(devtools)
 
 # function documentation
 devtools::document()
-devtools::build_manual() #to add a pdf manual
+devtools::check_man() #calls document() and runs the checks for manual included in check_built()
+# devtools::build_manual() #to add a pdf manual
 
 # data
 # data to be included must be in the folder 'data' with extension .RData
@@ -14,15 +19,16 @@ devtools::build_manual() #to add a pdf manual
 # to create a template  use:
 # usethis::use_vignette("mpQTL_newvignette")
 
+
+devtools::check()
+
+
 devtools::build()
+devtools::check_built(paste0("../mpQTL_0.5.0.tar.gz"), cran=TRUE)
 
 
-devtools::check_built(paste0("../mpQTL_0.3.0.tar.gz"), cran=TRUE)
+# setwd("D:/Science/PhD/Code/mpQTL/mpQTL/")
+# build(vignettes = F)
 
-
-<<<<<<< HEAD
-setwd("D:/Science/PhD/Code/mpQTL/mpQTL/")
-build(vignettes = F)
-=======
-
->>>>>>> 250adb70a1ce95c7f585a3928dfc840b7af7186e
+# #To install it
+# install.packages("mpQTL_0.5.0.tar.gz", repos = NULL, type = "source")
