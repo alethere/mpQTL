@@ -9,10 +9,10 @@
 a single marker regression methodology in a mixed model framework. A mixed model
 approach enables to account for different levels of population structure, combining
 main fixed effect coordinates of variation with random effects based on a relatedness
-matrix (K). Although mpQTL has been initially designed for multi-parental populations,
+matrix (K). Although \code{mpQTL} has been initially designed for multi-parental populations,
 in fact it can be used to run association analyses in any structured population
 (it accepts pedigreed families, multi-parental populations, GWAS panels, etc.). Also,
-mpQTL enables to apply these models for any level of ploidy, using both SNPs (discrete
+\code{mpQTL} enables to apply these models for any level of ploidy, using both SNPs (discrete
 or continuous) and multi-allelic genotypes (e.g. haplotypes).
 Besides the statistical functions, it incorporates a set of visualization
 functions to help interpreting the results of a QTL study.

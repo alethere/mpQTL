@@ -26,13 +26,15 @@
 #' biallelic (continuous or discrete) or multiallelic markers.
 #' \code{map.QTL} implements a single-marker regression mixed model, that enables
 #' to account for different levels of population structure \href{}{(Yu et al. 2006)}:
-#' \deqn{y=\mu+X\beta+Qv+Cw+Zu+\epsilon}
-#' \deqn{var(u)~K\sigma 2G}
-#' \deqn{var(\epsilon)~R\sigma 2\epsilon}
+#' \deqn{y = \mu + X\beta + Qv + Cw + Zu + \epsilon}
+#' \deqn{var(u) ~ K\sigma^{2}G}
+#' \deqn{var(\epsilon) ~ R\sigma^{2}\epsilon}
 #' A phenotype y is modelled using an intercept \eqn{\mu}; a genetic matrix \eqn{X\beta} (containing
 #' dosages or haplotypes), a family-based correction matrix Qv; an optional set of
 #' cofactors, modelled by Cw; a random term that models kinship using K as the
-#' variance structure, and a normal error term \eqn{\epsilon}.
+#' variance structure, and a normal error term \eqn{\epsilon}. We can also talk
+#' of this parameters referring to the "genetic term" (\eqn{X\beta}), the "genetic
+#' structure correction" terms (Qv and \eqn{var(u)}) and the cofactors (Cw).
 #'
 #' @param phenotypes A numeric matrix of phenotypes,
 #' rows are individuals and columns are different phenotypes.
@@ -109,15 +111,19 @@
 #' the variance of the random term. This would be equivalent to a naive model
 #' (unless any additional fixed effect parameter is specified).
 #' @return A list of length equal to the number of phenotypes. Each element is
-#' a list with model results:
+#' a list with model coefficients and test results:
 #' \itemize{
-#'   \item $beta
-#'   \item $Fstat
-#'   \item $residual
-#'   \item $pval
-#'   \item $se
-#'   \item $Wald
-#'   \item $real.df
+#'   \item \code{$beta} A list containing the fixed effects of the model (in this
+#'   order: intercept, cofactors, structure terms, genetic term). There is a set
+#'   of estimates for each marker.
+#'   \item \code{$Fstat} A vector containing the F test results only for the genetic
+#'   component of each model.
+#'   \item \code{$residual}
+#'   \item \code{$pval} A vector containing the p-values only of the genetic model
+#'   at each marker.
+#'   \item \code{$se} A vector containing the standard error of the estimates.
+#'   \item \code{$Wald}
+#'   \item \code{$real.df}
 #' }
 #'
 #' @export
@@ -128,14 +134,55 @@
 #' data("mpmap")
 #' data("mppheno")
 #'
-#' ## Run QTL analysis
+#' ## fixed effects model (y = m + e)
+#' results <- map.QTL(phenotypes = mppheno,
+#'                    genotypes = mphapdose,
+#'                    ploidy = 4,
+#'                    map = mpmap)
+#' names(results$phenotype1)
+#' skyplot(-log10(results$phenotype1$pval), map = mpmap)
+#'
+#' ## naive model (y = m + e) - no K correction
+#' results <- map.QTL(phenotypes = mppheno,
+#'                    genotypes = mphapdose,
+#'                    ploidy = 4,
+#'                    map = mpmap,
+#'                    K = TRUE,
+#'                    K_identity = TRUE)
+#' names(results$phenotype1)
+#' skyplot(-log10(results$phenotype1$pval), map = mpmap)
+#'
+#' ## model with Q correction (y = m + Q + e)
+#' results <- map.QTL(phenotypes = mppheno,
+#'                    genotypes = mphapdose,
+#'                    ploidy = 4,
+#'                    map = mpmap,
+#'                    Q = TRUE,
+#'                    Qpco = 2,
+#'                    K = TRUE,
+#'                    K_identity = TRUE)
+#' names(results$phenotype1)
+#' skyplot(-log10(results$phenotype1$pval), map = mpmap)
+#'
+#' ## model with K correction (y = m + K + e)
 #' results <- map.QTL(phenotypes = mppheno,
 #'                    genotypes = mphapdose,
 #'                    ploidy = 4,
 #'                    map = mpmap,
 #'                    K = TRUE)
-#'
 #' names(results$phenotype1)
+#' skyplot(-log10(results$phenotype1$pval), map = mpmap)
+#'
+#' ## model with Q + K correction (y = m + Q + K + e)
+#' results <- map.QTL(phenotypes = mppheno,
+#'                    genotypes = mphapdose,
+#'                    ploidy = 4,
+#'                    map = mpmap,
+#'                    Q = TRUE,
+#'                    Qpco = 2,
+#'                    K = TRUE)
+#' names(results$phenotype1)
+#' skyplot(-log10(results$phenotype1$pval), map = mpmap)
 #'
 map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
                     cofactor=NULL, cofactor.type=NULL, cM=1, seed=NULL, Qpco=2,
