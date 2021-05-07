@@ -594,13 +594,22 @@ draw_chrom_axis <- function(ch_edges,small = FALSE,bigcex = 1.2,smallcex=0.7,
 
     #Small axis only if there's one or two chromosomes
     if(small){
-      at <- round(seq(ch_edg[1],ch_edg[2],length.out = 50))
-      lab <- round(seq(0,ch_edg[2]-ch_edg[1],length.out = length(at)),1)
+      # at <- round(seq(ch_edg[1],ch_edg[2]),length.out = 50)
+      # lab <- round(seq(0,ch_edg[2]-ch_edg[1],length.out = length(at)),1)
+
+      #gt:the two lines above label ticks incorrectly.
+      #I substituted them with the lines below.
+      #They draw ticks spaced by 1 map unit (ch_edg[1] indicate position 0).
+      #Ticks are labeled accordingly, using integers from 0 to length(at)-1.
+      at <- seq(ch_edg[1],ch_edg[2], by=1)
+      lab <- seq_along(at)-1
       axis(1,at,labels = lab,cex.axis=smallcex,padj = -1)
     }
   }
 
 }
+
+
 
 # PCoA Plots ------------------
 
