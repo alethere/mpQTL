@@ -227,7 +227,8 @@ HapCurate <- function(haplo,
 
     haplomap.temp <-
       t(sapply(hb_list[names(hb_list) %in% rownames(haplo)], function(x) {
-        tmean <- mean(map$position[map$marker %in% as.character(x)])
+        # tmean <- mean(map$position[map$marker %in% as.character(x)]) #mean
+        tmean <- mean(range(map$position[map$marker %in% as.character(x)])) #mid point of range
         tchr <- unique(map$chromosome[map$marker %in% as.character(x)])
         return(c(tchr, tmean))
       }))
