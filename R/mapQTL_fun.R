@@ -25,7 +25,7 @@
 #' @description Main wrapper function for QTL analysis in polyploids, using
 #' biallelic (continuous or discrete) or multiallelic markers.
 #' \code{map.QTL} implements a single-marker regression mixed model, that enables
-#' to account for different levels of population structure \href{}{(Yu et al. 2006)}:
+#' to account for different levels of population structure \href{https://www.nature.com/articles/ng1702}{(Yu et al. 2006)}:
 #' \deqn{y = \mu + X\beta + Qv + Cw + Zu + \epsilon}
 #' \deqn{var(u) ~ K\sigma^{2}G}
 #' \deqn{var(\epsilon) ~ R\sigma^{2}\epsilon}

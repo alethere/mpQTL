@@ -629,7 +629,7 @@ draw_chrom_axis <- function(ch_edges,small = FALSE,bigcex = 1.2,smallcex=0.7,
 #' of a compound, use "sequential". For a gradient between two opposites, chose "divergent".
 #' @param h Argument to be passed to \code{\link{select.col}}. It indicates the hue of
 #' the colour palette to use.
-#' @param comp Vector of two integers, indicating which principal comonents to plot.
+#' @param comp Vector of two integers, indicating which principal components to plot.
 #' 1 and 2 by default.
 #' @param plot_legend Logical, whether legend should be plotted.
 #' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
