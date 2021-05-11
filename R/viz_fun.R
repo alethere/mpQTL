@@ -447,7 +447,7 @@ map_axis <- function(maplist,space = 0){
 #'
 comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, ylab = NULL,
                           xlab = NULL, legnames = NULL, coltype=NULL, h = NULL, l = NULL,
-                          pch = NULL, chromspace = 0.05, legspace = 0.1,alpha = 0.3,small = FALSE,...
+                          pch = NULL, chromspace = 0.05, legspace = 0.1,alpha = 0.3,small = NULL,...
 ){
 
   #Pvalues must be stored in a list, there needs to be as many maps
@@ -539,7 +539,10 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   #Y axis
   at <- axisTicks(round(ylim),log = FALSE); axis(2,at)
 
-  if(length(all_chrom) < 3) small <- TRUE
+  if(is.null(small)){
+    if(length(all_chrom) < 3) small <- TRUE
+    else small <- FALSE
+  }
   draw_chrom_axis(ch_edges,small)
 
   if(!is.null(threshold)) segments(0,threshold,xlim[2]*(1-legspace),
