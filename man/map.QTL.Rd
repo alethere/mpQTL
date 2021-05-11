@@ -14,7 +14,7 @@ map.QTL(
   Z = NULL,
   cofactor = NULL,
   cofactor.type = NULL,
-  cM = 1,
+  binsize = 1,
   seed = NULL,
   Qpco = 2,
   no_cores = parallel::detectCores() - 1,
@@ -24,7 +24,7 @@ map.QTL(
   nperm = 100,
   alpha = 0.05,
   impute = TRUE,
-  k = 20,
+  knn = 20,
   linear = NULL,
   K_identity = FALSE
 )
@@ -72,10 +72,10 @@ individual, this matrix should indicate so.}
 specifying the type ("numerical" or "categorical") of each cofactor.
 It accepts partial strings such as "cat" and "num".}
 
-\item{cM}{Numeric. K distance matrix will be calculated using markers every
+\item{binsize}{Numeric. K distance matrix will be calculated using markers every
 map unit (for physical maps use Mb). Defaults to 1.}
 
-\item{seed}{An integer to set a seed for random number generation in \code{sample.cM}.}
+\item{seed}{An integer to set a seed for random number generation in \code{sample.marker}.}
 
 \item{Qpco}{Logical value indicating whether a PCo-based population factor should be
 estimated and included. It is useful for detecting and correcting for the
@@ -104,7 +104,7 @@ imputed using \code{impute.knn}. Defaults to True, but False is recommended (imp
 needs to be improved and with few missing values it has a small effect
 on QTL detection).}
 
-\item{k}{Number of neighbours to use in the internal function \code{impute.knn}}
+\item{knn}{Number of neighbours to use in the internal function \code{impute.knn}}
 
 \item{linear}{logical. If TRUE, linear model (without structure correction)
 is applied. If FALSE, mixed model (with structure correction) is applied. If

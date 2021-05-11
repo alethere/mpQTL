@@ -15,7 +15,7 @@ individual homologues (for multiallelic markers, such as haplotypes).}
 \item{ploidy}{Numeric indicating the ploidy level.}
 
 \item{map}{Optional. A data frame of three columns (marker, chromosome,
-position) with map information. To be used in \code{\link{sample.cM}}
+position) with map information. To be used in \code{\link{sample.marker}}
 to sample a subset of evenly distributed markers.}
 
 \item{kneighbors}{Number of nearest neighbours to use in the imputation. Default is 20.}

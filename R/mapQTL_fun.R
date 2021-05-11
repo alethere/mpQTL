@@ -537,7 +537,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
     cl<-parallel::makeCluster(no_cores)
     #atn: added object ploidy
     export<-c("phenotypes","Z","K","Hinv","genotypes","ploidy","haplo","npheno",
-              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec","std_phe","w") #gt
+              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec","std_phe") #gt
 
     #extra functions need to be exproted
     #if we don't want to use P3D approximation
@@ -806,6 +806,8 @@ dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE 
   if(!haplotype){
     alcount <- matrix(genotypes,ncol=1)
     if(normalize) alcount <- (alcount-mean(alcount))/sd(alcount)
+    rownames(alcount) <- rownames(genotypes)
+    colnames(alcount) <- "marker"
   }else{
     #we obtain the different alleles present
     unals <- unique(genotypes)

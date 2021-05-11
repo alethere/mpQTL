@@ -32,7 +32,10 @@ Must be in the same unit as the "position" column of map.}
 \value{
 If per_chr = FALSE, an LD object (list with LD estimates dataframe and
 background LD for each percentile); if per_chr = TRUE a list of LD objects, one
-per chromosome.
+per chromosome. Background LD represents the LD between unlinked markers. If per_chr = FALSE,
+background LD is the LD between markers on different chromosomes. If per_chr = TRUE,
+background LD is the LD between markers on the opposite ends of a chromosome, and thus
+is different per each chromosome.
 }
 \description{
 Calculation of linkage disequilibrium per windows across

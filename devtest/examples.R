@@ -1,72 +1,74 @@
 
 # map.QTL ---------------------------------
-# ## Get example genotypes (haplotypes in this case),
-# ## map and phenotypes for a population of tetraploid individuals
-# data("mphapdose")
-# data("mpmap")
-# data("mppheno")
-#
-# ## fixed effects model (y = m + e) LINEAR
-# results <- map.QTL(phenotypes = mppheno,
-#                    genotypes = mphapdose,
-#                    ploidy = 4,
-#                    map = mpmap)
-# names(results$phenotype1)
-# skyplot(-log10(results$phenotype1$pval), map = mpmap)
-#
-# ## naive model (y = m + e) - no K correction
-# results <- map.QTL(phenotypes = mppheno,
-#                    genotypes = mphapdose,
-#                    ploidy = 4,
-#                    map = mpmap,
-#                    K = TRUE,
-#                    K_identity = TRUE)
-# names(results$phenotype1)
-# skyplot(-log10(results$phenotype1$pval), map = mpmap)
-#
-# ## model with Q correction (y = m + Q + e) LINEAR
-# results <- map.QTL(phenotypes = mppheno,
-#                    genotypes = mphapdose,
-#                    ploidy = 4,
-#                    map = mpmap,
-#                    Q = TRUE,
-#                    Qpco = 2)
-# names(results$phenotype1)
-# results$phenotype1$beta[1]
-# skyplot(-log10(results$phenotype1$pval), map = mpmap)
-#
-# ## model with Q correction (y = m + Q + e)
-# results <- map.QTL(phenotypes = mppheno,
-#                    genotypes = mphapdose,
-#                    ploidy = 4,
-#                    map = mpmap,
-#                    Q = TRUE,
-#                    Qpco = 2,
-#                    K = TRUE,
-#                    K_identity = TRUE)
-# names(results$phenotype1)
-# results$phenotype1$beta[1]
-# skyplot(-log10(results$phenotype1$pval), map = mpmap)
-#
-# ## model with K correction (y = m + K + e)
-# results <- map.QTL(phenotypes = mppheno,
-#                    genotypes = mphapdose,
-#                    ploidy = 4,
-#                    map = mpmap,
-#                    K = TRUE)
-# names(results$phenotype1)
-# skyplot(-log10(results$phenotype1$pval), map = mpmap)
-#
-# ## model with Q + K correction (y = m + Q + K + e)
-# results <- map.QTL(phenotypes = mppheno,
-#                    genotypes = mphapdose,
-#                    ploidy = 4,
-#                    map = mpmap,
-#                    Q = TRUE,
-#                    Qpco = 2,
-#                    K = TRUE)
-# names(results$phenotype1)
-# skyplot(-log10(results$phenotype1$pval), map = mpmap)
+## Get example genotypes (haplotypes in this case),
+## map and phenotypes for a population of tetraploid individuals
+data("mphapdose")
+data("mpmap")
+data("mppheno")
+
+## fixed effects model (y = m + e) LINEAR
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## naive model (y = m + e) - no K correction
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   K = TRUE,
+                   K_identity = TRUE)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## model with Q correction (y = m + Q + e) LINEAR
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   Q = TRUE,
+                   Qpco = 2)
+names(results$phenotype1)
+results$phenotype1$beta[1]
+unique(mphapdose[1,])
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## model with Q correction (y = m + Q + e)
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   Q = TRUE,
+                   Qpco = 2,
+                   K = TRUE,
+                   K_identity = TRUE)
+names(results$phenotype1)
+results$phenotype1$beta[1]
+unique(mphapdose[1,])
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## model with K correction (y = m + K + e)
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   K = TRUE)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## model with Q + K correction (y = m + Q + K + e)
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   Q = TRUE,
+                   Qpco = 2,
+                   K = TRUE)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
 
 
 

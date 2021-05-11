@@ -20,7 +20,7 @@ comp.skyplot(
   chromspace = 0.05,
   legspace = 0.1,
   alpha = 0.3,
-  small = FALSE,
+  small = NULL,
   ...
 )
 }
