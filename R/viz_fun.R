@@ -556,6 +556,7 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
 #' @param chr optional, vector with chromosome(s) name(s) to return the
 #' maximums of.
 #'
+#' @keywords internal
 #' @noRd
 max_map <- function(map,chr = NULL){
   if(is.null(chr)) chr <- as.character(unique(map$chromosome))
@@ -580,6 +581,7 @@ max_map <- function(map,chr = NULL){
 #' @param bigspace
 #'
 #' @return
+#' @keywords internal
 #' @noRd
 draw_chrom_axis <- function(ch_edges,small = FALSE,bigcex = 1.2,smallcex=0.7,
                             bigspace = 1.8){
@@ -740,24 +742,21 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=TRUE, col=NULL, coltype=NULL,
 
 # Boxplots ----------------------------
 
-#' Phenotype boxplot
+#' Phenotype-genotype boxplot
 #'
-#' Plots a boxplot per dosage of SNPs / per haplotype, with overlapped
+#' Plots a phenotype boxplot per dosage of SNPs / per haplotype, with overlapped
 #' points.
 #'
-#' @describeIn pheno_box Provided with a vector of phenotypes and a vector
-#' of genotypes, it plots a boxplot grouping phenotypes per dosage of each genotype.
-#'
-#' @param phe numeric vector of phenotypes.
-#' @param gen if haplotype = FALSE, numeric vector of same length as phe. If
+#' @param phe Numeric vector of phenotypes.
+#' @param gen If haplotype = FALSE, numeric vector of same length as phe. If
 #' haplotype = TRUE, vector of length(phe)*ploidy.
-#' @param haplotype logical, does gen contain haplotypes?
-#' @param ploidy integer, ploidy of the individual.
-#' @param draw.points logical, should points be drawn? Defaults to TRUE.
+#' @param haplotype Logical, does gen contain haplotypes?
+#' @param ploidy Integer, if haplotype = TRUE, ploidy of the individuals.
 #' @param hap.select vector, if haplotype = TRUE, names of the haplotypes
 #' to be drawn. All by default.
+#' @param draw.points Logical, should points be drawn? Defaults to TRUE.
 #' @inheritParams select.col
-#' @param ... Additonal parameters to "plot" (not xlim and ylim).
+#' @param ... Additional parameters to \code{boxplot} (not xlim and ylim).
 #'
 #' @return A boxplot grouping phenotypes per dosage of each genotype.
 #' @export
@@ -774,16 +773,24 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=TRUE, col=NULL, coltype=NULL,
 #' pheno_box(phe = mppheno, gen = mpsnpdose[1,])
 #' pheno_box(phe = mppheno, gen = mphapdose[1,], haplotype = TRUE, ploidy = 4)
 #'
-pheno_box <- function( phe, gen, haplotype = FALSE, ... ){
+pheno_box <- function( phe, gen,
+                       haplotype = FALSE, ploidy = NULL, hap.select = NULL,
+                       coltype=NULL, h=NULL, l=NULL, draw.points = TRUE, ... ){
   if(haplotype){
-    pheno_haplo(phe,gen,...)
+    if(is.null(ploidy)) stop("when haplotype = TRUE, ploidy must be indicated")
+    pheno_haplo(phe, gen, ploidy, hap.select = hap.select,
+                coltype=coltype, h=h, l=l, draw.points = draw.points,...)
   }else{
-    pheno_dosage(phe,gen,...)
+    pheno_dosage(phe, gen,
+                 coltype=coltype, h=h, l=l, draw.points = draw.points,...)
   }
 }
 
-#' @describeIn pheno_box method for when dosages are passed to pheno_box
-pheno_dosage <- function( phe, gen, coltype=NULL, h=NULL, l=NULL, draw.points = TRUE, ... ){
+#' Pheno_box method for when dosages are passed to pheno_box
+#'
+#' @keywords internal
+#' @noRd
+pheno_dosage <- function( phe, gen, coltype=coltype, h=h, l=l, draw.points = draw.points, ... ){
   #Boxplot works the following way:
   #It transforms whatever data you give into a list in which each
   #element is a "box". It will draw as many elements as there are in the list,
@@ -811,9 +818,12 @@ pheno_dosage <- function( phe, gen, coltype=NULL, h=NULL, l=NULL, draw.points = 
 
 }
 
-#' @describeIn pheno_box method for when haplotypes are passed to pheno_box
-pheno_haplo <- function( phe, gen, ploidy, draw.points = TRUE, hap.select = NULL, coltype = NULL,
-                         h = NULL, l= NULL, ...
+#' Pheno_box method for when haplotypes are passed to pheno_box
+#'
+#' @keywords internal
+#' @noRd
+pheno_haplo <- function( phe, gen, ploidy, hap.select = NULL,
+                         coltype=coltype, h=h, l=l, draw.points = draw.points, ...
 ){
 
   #Here we obtain the matrix of dosages per haplotype
@@ -1103,6 +1113,7 @@ hue_wheel <- function(l = NULL){
 #' columns.
 #'
 #' @return
+#' @keywords internal
 #' @noRd
 mat2list <- function(matrix,rowise=FALSE){
   if(rowise){

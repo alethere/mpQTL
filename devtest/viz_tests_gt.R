@@ -2,8 +2,9 @@
 devtools::load_all()
 
 
+
 # example dataset --------------
-load("data/data.RData")
+load("data-raw/rawdata.RData")
 names(data)
 
 data$map[1:6,]
@@ -15,11 +16,12 @@ identical(data$map$marker, names(data$result$phenotype1$pval))
 
 
 
+# skyplot -------------------------
 skyplot(pval = -log10(data$result$phenotype1$pval),
         map = data$map)
 
 
-# map and pval order ---------
+# + map and pval order ---------
 
 # change order of markers in map and pval
 set.seed(3)
@@ -37,7 +39,7 @@ skyplot(pval = -log10(data$result$phenotype1$pval),
 
 
 
-# performance -----------------------------------
+# + performance -----------------------------------
 library(microbenchmark)
 
 pval <- matrix(runif(100000), ncol = 1)
@@ -78,7 +80,7 @@ microbenchmark(skyplot(pval = -log10(data$result$phenotype1$pval),
 
 
 
-# skyplot > draw_chrom_axis: wrong labelling of small axis ----------
+# + skyplot > draw_chrom_axis: wrong labelling of small axis ----------
 # test
 testmap <- data.frame(marker=paste0("m",0:10),
                       chromosome=1,
@@ -195,3 +197,18 @@ plot(testmap6$position[1:53],testmap6$pval[1:53])
 # map = testmap6
 # ch_edges = axis_res$chr_edges
 # i=2
+
+
+
+# pheno_box -------------------
+data("mppheno")
+data("mphapdose")
+
+pheno_box(phe = mppheno, gen = mphapdose[1,], haplotype = TRUE, ploidy = 4)
+pheno_box(phe = mppheno, gen = mphapdose[1,], haplotype = TRUE, h=90)
+pheno_box(phe = mppheno, gen = mphapdose[1,], haplotype = TRUE, ploidy=4, h=200)
+pheno_box(phe = mppheno, gen = mphapdose[1,], haplotype = TRUE, ploidy=4, hap.select=c("28","9"), h=10)
+
+
+
+
