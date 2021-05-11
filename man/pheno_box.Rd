@@ -2,43 +2,33 @@
 % Please edit documentation in R/viz_fun.R
 \name{pheno_box}
 \alias{pheno_box}
-\alias{pheno_dosage}
-\alias{pheno_haplo}
-\title{Phenotype boxplot}
+\title{Phenotype-genotype boxplot}
 \usage{
-pheno_box(phe, gen, haplotype = FALSE, ...)
-
-pheno_dosage(
+pheno_box(
   phe,
   gen,
-  coltype = NULL,
-  h = NULL,
-  l = NULL,
-  draw.points = TRUE,
-  ...
-)
-
-pheno_haplo(
-  phe,
-  gen,
-  ploidy,
-  draw.points = TRUE,
+  haplotype = FALSE,
+  ploidy = NULL,
   hap.select = NULL,
   coltype = NULL,
   h = NULL,
   l = NULL,
+  draw.points = TRUE,
   ...
 )
 }
 \arguments{
-\item{phe}{numeric vector of phenotypes.}
+\item{phe}{Numeric vector of phenotypes.}
 
-\item{gen}{if haplotype = FALSE, numeric vector of same length as phe. If
+\item{gen}{If haplotype = FALSE, numeric vector of same length as phe. If
 haplotype = TRUE, vector of length(phe)*ploidy.}
 
-\item{haplotype}{logical, does gen contain haplotypes?}
+\item{haplotype}{Logical, does gen contain haplotypes?}
 
-\item{...}{Additonal parameters to "plot" (not xlim and ylim).}
+\item{ploidy}{Integer, if haplotype = TRUE, ploidy of the individuals.}
+
+\item{hap.select}{vector, if haplotype = TRUE, names of the haplotypes
+to be drawn. All by default.}
 
 \item{coltype}{Either "sequential", "qualitative" (default), "divergent" or "rainbow".
 For a few categories, such as different treatments, choose "qualitative" or "rainbow".
@@ -53,30 +43,17 @@ is blue 300 is purple and 360 is back to red.}
 
 \item{l}{Value between 0 and 100 (default 60). Represents brightness, or the amount of white}
 
-\item{draw.points}{logical, should points be drawn? Defaults to TRUE.}
+\item{draw.points}{Logical, should points be drawn? Defaults to TRUE.}
 
-\item{ploidy}{integer, ploidy of the individual.}
-
-\item{hap.select}{vector, if haplotype = TRUE, names of the haplotypes
-to be drawn. All by default.}
+\item{...}{Additional parameters to \code{boxplot} (not xlim and ylim).}
 }
 \value{
 A boxplot grouping phenotypes per dosage of each genotype.
 }
 \description{
-Plots a boxplot per dosage of SNPs / per haplotype, with overlapped
+Plots a phenotype boxplot per dosage of SNPs / per haplotype, with overlapped
 points.
 }
-\section{Functions}{
-\itemize{
-\item \code{pheno_box}: Provided with a vector of phenotypes and a vector
-of genotypes, it plots a boxplot grouping phenotypes per dosage of each genotype.
-
-\item \code{pheno_dosage}: method for when dosages are passed to pheno_box
-
-\item \code{pheno_haplo}: method for when haplotypes are passed to pheno_box
-}}
-
 \examples{
 ## Get example genotypes and phenotypes of tetraploid individuals
 data("mpsnpdose")

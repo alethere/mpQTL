@@ -23,7 +23,7 @@ pcoa.plot(
 \arguments{
 \item{K}{A distance matrix.}
 
-\item{comp}{Vector of two integers, indicating which principal comonents to plot.
+\item{comp}{Vector of two integers, indicating which principal components to plot.
 1 and 2 by default.}
 
 \item{plot_legend}{Logical, whether legend should be plotted.}

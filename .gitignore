@@ -19,6 +19,7 @@ doc
 Meta
 inst/doc
 vignettes/
+man/
 #Extensions
 *.RDS
 *.rds

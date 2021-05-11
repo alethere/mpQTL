@@ -137,16 +137,16 @@ a list with model coefficients and test results:
 Main wrapper function for QTL analysis in polyploids, using
 biallelic (continuous or discrete) or multiallelic markers.
 \code{map.QTL} implements a single-marker regression mixed model, that enables
-to account for different levels of population structure \href{}{(Yu et al. 2006)}:
+to account for different levels of population structure \href{https://www.nature.com/articles/ng1702}{(Yu et al. 2006)}:
 \deqn{y = \mu + X\beta + Qv + Cw + Zu + \epsilon}
-\deqn{var(u) ~ K\sigma\exp{2}G}
-\deqn{var(\epsilon)~R\sigma 2\epsilon}
+\deqn{var(u) ~ K\sigma^{2}G}
+\deqn{var(\epsilon) ~ R\sigma^{2}\epsilon}
 A phenotype y is modelled using an intercept \eqn{\mu}; a genetic matrix \eqn{X\beta} (containing
 dosages or haplotypes), a family-based correction matrix Qv; an optional set of
 cofactors, modelled by Cw; a random term that models kinship using K as the
 variance structure, and a normal error term \eqn{\epsilon}. We can also talk
 of this parameters referring to the "genetic term" (\eqn{X\beta}), the "genetic
-structure correction" terms (Qv and \eqn{var(u)~K\sigma 2G}) and the cofactors (Cw).
+structure correction" terms (Qv and \eqn{var(u)}) and the cofactors (Cw).
 }
 \details{
 The arguments \code{linear} and \code{K} can be used to define either a fixed
