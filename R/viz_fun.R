@@ -723,7 +723,7 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=TRUE, col=NULL, coltype=NULL,
   xlim[2] <- xlim[2] + legspace*(xlim[2] - xlim[1])
 
   plot(pc$x[,comp],col=cols,pch=pch,xlim = xlim,
-         xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
+         xlab=var.pc[comp[1]],ylab=var.pc[comp[2]],...)
 
   if(plot_legend){
     if(colmode == "discrete"){

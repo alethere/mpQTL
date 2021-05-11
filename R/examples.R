@@ -181,7 +181,7 @@
 #                max_dist = 50, percentile = c(0.9,0.95))
 
 
-# plot.LD ------------------------------
+# plot_LD ------------------------------
 # # ## Get example SNP dosages and a map
 # data("mpsnpdose")
 # data("mpmap")
@@ -191,12 +191,15 @@
 # tapply(mpmap$marker, mpmap$chromosome, length)
 # identical(rownames(mpsnpdose), mpmap$marker)
 #
-# ## LD decay calculation
+# ## LD decay calculation and plotting
 # LD <- LD_decay(mpsnpdose, mpmap, win_size = 1,
 #                max_dist = 100, percentile = c(0.9,0.95))
 #
-# ## plot LD decay
-# plot.LD(LD, max_dist = NULL, main=NULL)
+# plot_LD(LD, max_dist = NULL, main=NULL)
+#
+# LD <- LD_decay(mpsnpdose, mpmap, win_size = 1,
+#                max_dist = 100, percentile = c(0.9,0.95), per_chr = TRUE)
+# plot_LD(LD[[1]])
 
 
 
