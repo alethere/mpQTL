@@ -103,7 +103,7 @@
 
 
 
-# sample.cM --------------------------------
+# sample.marker --------------------------------
 # ## Create a random map
 # map <- data.frame(marker = paste0("mrk", 1:100),
 #                   chromosome = c(rep(1,50), rep(2,50)),
@@ -114,11 +114,11 @@
 # rownames(snpdose) <- map$marker
 #
 # ## Sample evenly spaced markers
-# sample.cM(genotypes = snpdose, map, cM=1, seed=3)
+# sample.marker(genotypes = snpdose, map, binsize=1, seed=3)
 #
 # ## A vector of marker names can be provided instead of genotypes
-# sample.cM(genotypes = map$marker,
-#           map, cM=1, seed=3)
+# sample.marker(genotypes = map$marker,
+#               map, binsize=1, seed=3)
 
 
 

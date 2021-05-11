@@ -62,9 +62,9 @@
 #' third one marker position (any map unit).
 #' Marker position is used for plotting or it could be used to sample a subset
 #' of evenly spaced markers to be used for kinship estimation.
-#' @param cM Numeric. K distance matrix will be calculated using markers every
+#' @param binsize Numeric. K distance matrix will be calculated using markers every
 #' map unit (for physical maps use Mb). Defaults to 1.
-#' @param seed An integer to set a seed for random number generation in \code{sample.cM}.
+#' @param seed An integer to set a seed for random number generation in \code{sample.marker}.
 #' @param no_cores Numeric. Number of cores to be used in parallel computing
 #' of the p-values. Defaults to number of cores -1.
 #' @param Z Identity matrix indicating which individuals correspond to which
@@ -185,7 +185,7 @@
 #' skyplot(-log10(results$phenotype1$pval), map = mpmap)
 #'
 map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
-                    cofactor=NULL, cofactor.type=NULL, cM=1, seed=NULL, Qpco=2,
+                    cofactor=NULL, cofactor.type=NULL, binsize=1, seed=NULL, Qpco=2,
                     no_cores=parallel::detectCores()-1, approximate = TRUE,
                     permutation = NULL, fam=NULL, nperm = 100, alpha = 0.05,
                     impute=TRUE, k=20, linear = NULL, K_identity = FALSE){
@@ -269,14 +269,14 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
   #There are three options
   #1) K=NULL, no K is used. We go linear.
   #2) K=TRUE, K is calculated using homogeneously distributed markers along a map.
-  #   using sample.cM and calc.K
+  #   using sample.marker and calc.K
   #3) K=K matrix, check dimensions, message is printed and K is used.
 
 
   if(!is.null(K)){ #gt: added because when K=NULL the condition below is TRUE
     if(all(K==TRUE)){ #gt: why are you using all?
       #Option 2)
-      K<-sample.cM(genotypes,map,cM = cM, seed=seed)
+      K<-sample.marker(genotypes,map,binsize = binsize, seed=seed)
       K<-calc.K(t(K),ploidy = ploidy,haplotypes = haplo)
 
     }else if(nrow(K)==nrow(phenotypes)){
@@ -295,7 +295,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
   if(impute){
     if(is.null(K)){
       #first we sample homogeneously markers along the genome
-      K <- sample.cM(genotypes,map,cM = cM, seed=seed)
+      K <- sample.marker(genotypes,map,binsize = binsize, seed=seed)
       #then we calculate the distance
       K <- calc.K(t(K),ploidy=ploidy,haplotypes = haplo)
     }
@@ -321,7 +321,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
       #Option 2)
       if(is.null(K)){
         #first we sample homogeneously markers along the genome
-        K<-sample.cM(genotypes,map,cM = cM, seed=seed)
+        K<-sample.marker(genotypes,map,binsize = binsize, seed=seed)
         #then we calculate the distance
         K<-calc.K(t(K),ploidy=ploidy,haplotypes = haplo)
       }
@@ -1289,9 +1289,9 @@ original_order <- function(y,X){
 #' Sample markers every bin of map unit (cM or Mb)
 #'
 #' @description Obtains a subset of markers homogeneously distributed across
-#' a genetic map based on a map distance. For instance, if cM=1, will get 1 marker
-#' for every 1 cM window if it can. Markers added on chromosome 0 are not returned
-#' as their genetic position is not known (and thus cannot be cM sampled).
+#' a genetic map based on a map distance (in any unit). For instance, for if binsize=1,
+#' will get 1 marker for every 1 unit window, if it can. Markers added on chromosome 0
+#' are not returned as their position is not known (and thus they cannot be sampled per window).
 #'
 #' @param genotypes Either a character vector where each element is a marker
 #' name, or a matrix of genotypes where each row is a marker.
@@ -1299,7 +1299,7 @@ original_order <- function(y,X){
 #' column specifies marker names, the second column chromosome names and the
 #' third one marker position (any map unit).
 #' Markers with chromosome number == 0 will not be taken into account
-#' @param cM Size of bin to sample a marker from.
+#' @param binsize Size of bin to sample a marker from.
 #' @param seed An integer to set a seed for random number generation.
 #'
 #' @return A table as genotypes, with as many rows as can be obtained by sampling
@@ -1316,16 +1316,16 @@ original_order <- function(y,X){
 #' rownames(snpdose) <- map$marker
 #'
 #' ## Sample evenly spaced markers
-#' sample.cM(genotypes = snpdose, map, cM=1, seed=3)
+#' sample.marker(genotypes = snpdose, map, binsize=1, seed=3)
 #'
 #' ## A vector of marker names can be provided instead of genotypes
-#' sample.cM(genotypes = map$marker,
-#'           map, cM=1, seed=3)
+#' sample.marker(genotypes = map$marker,
+#'               map, binsize=1, seed=3)
 #'
-sample.cM<-function(
+sample.marker<-function(
   genotypes,
   map,
-  cM=1,
+  binsize=1,
   seed=NULL
 ){
   if(is.vector(genotypes)) genotypes<-matrix(genotypes,ncol=1)
@@ -1336,7 +1336,7 @@ sample.cM<-function(
 
   result <- lapply(unique(map$chromosome),function(x){
     pos <- map$position[map$chromosome == x]
-    selpos <- seq(0,max(pos),by = cM)
+    selpos <- seq(0,max(pos),by = binsize)
 
     markers <- sapply(selpos,function(k){
       #what is the closest position to this marker
@@ -1703,7 +1703,7 @@ imputeNA <- function(m,
 #' individual homologues (for multiallelic markers, such as haplotypes).
 #' @param ploidy Numeric indicating the ploidy level.
 #' @param map Optional. A data frame of three columns (marker, chromosome,
-#' position) with map information. To be used in \code{\link{sample.cM}}
+#' position) with map information. To be used in \code{\link{sample.marker}}
 #' to sample a subset of evenly distributed markers.
 #' @param kneighbors Number of nearest neighbours to use in the imputation. Default is 20.
 #' @param K Optionally, provide the similarity matrix (K) directly.
@@ -1751,7 +1751,7 @@ impute.knn <- function(
   #Calculate K distance matrix. If possible using fewer markers
   #homogeneously distributed across the genome.
   if(is.null(K)){
-    if (!is.null(map)) genoK <- sample.cM(geno, map)
+    if (!is.null(map)) genoK <- sample.marker(geno, map)
     else genoK <- geno
     K <- calc.K(t(genoK), ploidy = ploidy, haplotypes = haplo)
   }
