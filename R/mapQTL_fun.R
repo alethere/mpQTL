@@ -1373,7 +1373,7 @@ sample.cM<-function(
 #' the mean and sd per column as well as standaridzed matrix
 #'
 #' @param phenotypes numeric matrix
-#'
+#' @keywords internal
 #' @noRd
 stndrdz.pheno <- function(phenotypes) {
   if(is.vector(phenotypes)) {
@@ -2154,7 +2154,10 @@ thr.LiJi <- function(m,
 #'
 #' @return If per_chr = FALSE, an LD object (list with LD estimates dataframe and
 #' background LD for each percentile); if per_chr = TRUE a list of LD objects, one
-#' per chromosome.
+#' per chromosome. Background LD represents the LD between unlinked markers. If per_chr = FALSE,
+#' background LD is the LD between markers on different chromosomes. If per_chr = TRUE,
+#' background LD is the LD between markers on the opposite ends of a chromosome, and thus
+#' is different per each chromosome.
 #' @export
 #' @examples
 #'
@@ -2226,10 +2229,12 @@ LD_decay <- function(
     }))
 
     #We calculate the background correlation between chromosomes
-    dos_sample <- lapply(dos_per_chr,function(d) d[sample(1:nrow(d),100),] )
-    dos_sample <- do.call(rbind,dos_sample)
-    back_ld <- cor(t(dos_sample))^2
-    back_ld <- back_ld[lower.tri(back_ld,diag=FALSE)]
+    #In this case, background LD represents LD between markers on different chromosomes
+    back_ld <- lapply(1:length(dos_per_chr),function(chr){
+      cors <- lapply(dos_per_chr[-chr],function(d) cor(t(d),t(dos_per_chr[[chr]]))^2 )
+      do.call(c,cors)
+    })
+    back_ld <- do.call(c,test)
     back_ld <- quantile(back_ld,percentile,na.rm = TRUE)
 
     #We add some extra features
@@ -2250,6 +2255,8 @@ LD_decay <- function(
         return(quantile(ld[sel],percentile,na.rm=TRUE))
       }))
 
+      #Background LD represents the LD between the ends of the chromosomes
+      #More specifically, between markers at a distance of >90% of max distance
       back_ld <- quantile(ld[d > max(d,na.rm=TRUE)*0.9],percentile)
 
       #We add some extra features
