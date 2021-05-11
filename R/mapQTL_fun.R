@@ -326,6 +326,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
         K<-calc.K(t(K),ploidy=ploidy,haplotypes = haplo)
       }
       Q <- cmdscale(1-K, k=Qpco, eig = FALSE, add = FALSE, x.ret = FALSE)
+      colnames(Q) <- paste0("Q",1:ncol(Q))
 
     }else if(is.vector(Q)){
       #Option 3)
@@ -536,7 +537,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
     cl<-parallel::makeCluster(no_cores)
     #atn: added object ploidy
     export<-c("phenotypes","Z","K","Hinv","genotypes","ploidy","haplo","npheno",
-              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec") #gt
+              "mm.solve","dosage.X","Q","C","test.compatibility","comp.vec","std_phe","w") #gt
 
     #extra functions need to be exproted
     #if we don't want to use P3D approximation
@@ -561,7 +562,9 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
         # if(any(is.na(genotypes[k,]))) X<-X[,-ncol(X)] #Eliminate NA as factor
         nparX <- ncol(X) #total number of genetic parameters
         X <- cbind(Q,C,X) #add population and cofactor parameters
+        dimnameX <- dimnames(X)
         X <- matrix(as.numeric(X),ncol=ncol(X))
+        dimnames(X) <- dimnameX
         no.test<-ncol(X)-nparX #number of non genetic parameters
 
         #If not P3D/EMMAX, then Hinv will be NULL (and cannot be subindexed)
@@ -588,6 +591,18 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
             wald = NA,
             real.df = NA
           ))
+        }else{
+          #This turns the standardized effects into un-standardized and adds
+          #the mean of the population as a parameter (intercept). Technically this
+          #is not very accurate...
+          solveout <- lapply(1:length(solveout),function(sol){
+            res <- solveout[[sol]]
+            par_names <- rownames(res$beta)
+            res$beta <- rbind(std_phe$mean[sol], solveout[[sol]]$beta*std_phe$sd[sol])
+            rownames(res$beta) <- c("",par_names)
+            return(res)
+          })
+          names(solveout) <- colnames(phenotypes)
         }
 
         return(solveout)
@@ -805,7 +820,8 @@ dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE 
       }
       return(m)
     })
-
+    colnames(match) <- unals
+    rownames(match) <- rownames(genotypes)
 
     #we count the number of each allele for each individual
     #For haplotypes we need to combine ploidy columns into one count
@@ -826,7 +842,7 @@ dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE 
     #   s <- names(genotypes)[j]
     # })
 
-    inds <- unique(substr(names(genotypes), 1, nchar(names(genotypes)) - 2))
+    inds <- unique(substr(rownames(genotypes), 1, nchar(rownames(genotypes)) - 2))
     rownames(alcount) <- inds
     colnames(alcount) <- unals
   }
