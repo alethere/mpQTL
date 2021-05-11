@@ -921,14 +921,17 @@ pheno_haplo <- function( phe, gen, ploidy, hap.select = NULL,
 #' tapply(mpmap$marker, mpmap$chromosome, length)
 #' identical(rownames(mpsnpdose), mpmap$marker)
 #'
-#' ## LD decay calculation
+#' ## LD decay calculation and plotting
 #' LD <- LD_decay(mpsnpdose, mpmap, win_size = 1,
 #'                max_dist = 100, percentile = c(0.9,0.95))
 #'
-#' ## plot LD decay
-#' \dontrun{plot_LD(LD, max_dist = NULL, main=NULL)}
+#' plot_LD(LD, max_dist = NULL, main=NULL)
 #'
-plot.LD <- function(
+#' LD <- LD_decay(mpsnpdose, mpmap, win_size = 1,
+#'                max_dist = 100, percentile = c(0.9,0.95), per_chr = TRUE)
+#' plot_LD(LD[[1]])
+#'
+plot_LD <- function(
   LD,
   max_dist = NULL,
   main=NULL
@@ -949,7 +952,7 @@ plot.LD <- function(
 
   cols <- colorspace::qualitative_hcl(4)
   halflife <- c()
-  for(i in 1:4){
+  for(i in 1:(ncol(linkage)-1)){
     ld <- linkage[,i][linkage$distance <= max_dist]
     dis <- linkage$distance[linkage$distance <= max_dist]
 
