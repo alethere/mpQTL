@@ -91,7 +91,7 @@
 #' needs to be improved and with few missing values it has a small effect
 #' on QTL detection).
 #' @param nperm number of permutations, if \code{permutation} is not null.
-#' @param k Number of neighbours to use in the internal function \code{impute.knn}
+#' @param knn Number of neighbours to use in the internal function \code{impute.knn}
 #' @param linear logical. If TRUE, linear model (without structure correction)
 #' is applied. If FALSE, mixed model (with structure correction) is applied. If
 #' not specified, it looks at the value of K, and only applied linear model
@@ -188,7 +188,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
                     cofactor=NULL, cofactor.type=NULL, binsize=1, seed=NULL, Qpco=2,
                     no_cores=parallel::detectCores()-1, approximate = TRUE,
                     permutation = NULL, fam=NULL, nperm = 100, alpha = 0.05,
-                    impute=TRUE, k=20, linear = NULL, K_identity = FALSE){
+                    impute=TRUE, knn=20, linear = NULL, K_identity = FALSE){
 
 
   # input check ---------------------------------------------
@@ -299,7 +299,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
       #then we calculate the distance
       K <- calc.K(t(K),ploidy=ploidy,haplotypes = haplo)
     }
-    genotypes<-impute.knn(genotypes,ploidy,map,kneighbors=k,K=K)
+    genotypes<-impute.knn(genotypes,ploidy,map,kneighbors=knn,K=K)
     cat("Imputation performed.\n")
   }else{
     cat("No imputation will be performed.\n")
@@ -1779,7 +1779,7 @@ impute.knn <- function(
         error<-paste("Nearest neighbours of individual",d,
                      "have over 50% missing values at:",
                      paste(markers,collapse=" "),
-                     "\nNon confident imputation. Try increasing k? Remove markers?")
+                     "\nNon confident imputation. Try increasing the number of neighbours? Remove markers?")
         warning(error)
       }
 
