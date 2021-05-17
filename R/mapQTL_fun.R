@@ -2252,7 +2252,7 @@ LD_decay <- function(
       cors <- lapply(dos_per_chr[-chr],function(d) cor(t(d),t(dos_per_chr[[chr]]))^2 )
       do.call(c,cors)
     })
-    back_ld <- do.call(c,test)
+    back_ld <- do.call(c,back_ld)
     back_ld <- quantile(back_ld,percentile,na.rm = TRUE)
 
     #We add some extra features
@@ -2275,7 +2275,7 @@ LD_decay <- function(
 
       #Background LD represents the LD between the ends of the chromosomes
       #More specifically, between markers at a distance of >90% of max distance
-      back_ld <- quantile(ld[d > max(d,na.rm=TRUE)*0.9],percentile)
+      back_ld <- quantile(ld[d > max(d,na.rm=TRUE)*0.9],percentile,na.rm=TRUE)
 
       #We add some extra features
       res <- list(LD = data.frame(ld_estimates,distance = windows),
