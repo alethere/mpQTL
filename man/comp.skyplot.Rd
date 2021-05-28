@@ -20,7 +20,7 @@ comp.skyplot(
   chromspace = 0.05,
   legspace = 0.1,
   alpha = 0.3,
-  small = F,
+  small = NULL,
   ...
 )
 }
@@ -28,20 +28,21 @@ comp.skyplot(
 \item{pval}{list or matrix (per column) of pvalues to be plotted together.}
 
 \item{map}{list of map dataframes. If there is only a data.frame, it will be assumed
-that all p-value sets have the same underlying genetic map.
-#' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
-to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
-names are very long, increase this number to tweak the amount of space left to the right.}
+that all p-value sets have the same underlying genetic map.}
 
 \item{threshold}{A threshold value to draw the threshold line.}
 
-\item{chrom}{A vector of chromosome names to be included in the plot}
+\item{chrom}{A vector of chromosome names to be included in the plot.}
 
-\item{ylim}{numeric vector of length two, minimum and maximum y axis values}
+\item{ylim}{numeric vector of length two, minimum and maximum y axis values.}
 
-\item{ylab}{character, label to add on the y axis, defaults to "-log10(pval)"}
+\item{ylab}{character, label to add on the y axis, defaults to "-log10(pval)".}
 
-\item{xlab}{character, label to add on the x axis, defaults to "Chromosome"}
+\item{xlab}{character, label to add on the x axis, defaults to "Chromosome".}
+
+\item{legnames}{A vector of names for the legend elements. If not provided,
+it will be read from the pvalue list, and if the list has no names, it will
+be simply labelled pval 1, pval 2, etc.}
 
 \item{coltype}{Either "sequential", "qualitative" (default), "divergent" or "rainbow".
 For a few categories, such as different treatments, choose "qualitative" or "rainbow".
@@ -49,7 +50,7 @@ For ordered categories, such as increasingly high levels of a compound, use
 "sequential". For a gradient between two opposites, chose "divergent".}
 
 \item{h}{One or two values between 0 and 360 (degrees in the colour wheel) to represent hue.
-Default is c(120,240).#' If "qualitative" or "divergent" is used, the two hues will correspond
+Default is c(120,240). If "qualitative" or "divergent" is used, the two hues will correspond
 to each end of the colour
 gradient. Otherwise only the first hue will be used. For reference, 0 is red, 140 is green, 240
 is blue 300 is purple and 360 is back to red.}
@@ -63,20 +64,42 @@ each of the pvalue sets provided.}
 x axis. It is expressed as a proportion of the total map lenght. Values in the
 range 0 - 0.05 are recommended. Default set to 0.05.}
 
+\item{legspace}{Numeric indicating the proportion of space to be left for plotting the legend
+to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
+names are very long, increase this number to tweak the amount of space left to the right.}
+
 \item{alpha}{Value between 0 (transparent) and 1 (opaque), to add some degree of
 transparency to the colour palette.}
 
 \item{small}{logical, should the small axis (per chromosome) be drawn? By default
-T only if number of chromosomes <3.}
+TRUE only if number of chromosomes <3.}
 
 \item{...}{additional parameters to be passed to plot() (not xlim or ylim)}
 }
 \value{
-A comparative manhattan plot
+A comparative manhattan plot.
 }
 \description{
 Similar to \code{skyplot}, it creates a skyline plot, but of multiple
 p-value distributions. It takes a list or matrix of pvalues, and a single or
 multiple maps identifying the position of each p-value set, and creates
 a single plot that allows to compare multiple skyline plots at once.
+}
+\examples{
+## Create a map and two sets of random p-values
+map <- data.frame(marker = paste0("mrk", 1:100),
+                  chromosome = c(rep(1,50), rep(2,50)),
+                  position = c(sort(runif(50,0,60)), sort(runif(50,0,80))))
+
+pvals <- matrix(runif(200), ncol = 2) # matrix
+colnames(pvals) <- paste0("pval",1:2)
+
+## Plot -log10(pvals)
+comp.skyplot(-log10(pvals), map)
+comp.skyplot(-log10(pvals), map, small = FALSE)
+comp.skyplot(pval = -log10(pvals), map, small = FALSE, threshold = 3, ylim = c(0,4))
+
+}
+\seealso{
+\code{\link{skyplot}}
 }

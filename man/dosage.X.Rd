@@ -4,7 +4,7 @@
 \alias{dosage.X}
 \title{X matrix calculator}
 \usage{
-dosage.X(genotypes, haplotype = F, ploidy = NULL, normalize = F)
+dosage.X(genotypes, haplotype = FALSE, ploidy = NULL, normalize = FALSE)
 }
 \arguments{
 \item{genotypes}{vector of dosages per individual, or p haplotypes per individual
@@ -17,8 +17,8 @@ dosage.X(genotypes, haplotype = F, ploidy = NULL, normalize = F)
 \item{normalize}{logical, should the X matrix be normalized?}
 }
 \value{
-if haplotypes = F, a matrix is returned whith a single column
-containing the same values that were provided. If haplotypes = T, a design matrix
+if haplotypes = FALSE, a matrix is returned whith a single column
+containing the same values that were provided. If haplotypes = TRUE, a design matrix
 is created with ncol = number of haplotypes and nrow = number of individuals.
 }
 \description{
@@ -28,9 +28,12 @@ normalization.
 }
 \examples{
 
-dos <- round(runif(100,0,4))
-dosage.X(dos)
+## SNP dosages of 10 tetraploid individuals
+snpdose <- sample(0:4, 10, replace = TRUE)
+dosage.X(snpdose)
 
-hap <- round(sample(400,1:20))
-dosage.X(haplotype,haplotype = T, ploidy = 4)
+## Haplotypes of 10 tetraploid individuals for a locus with 5 haplotypes
+hapdose <- sample(1:5,40, replace = TRUE)
+dosage.X(genotypes = hapdose, haplotype = TRUE, ploidy = 4)
 }
+\keyword{internal}

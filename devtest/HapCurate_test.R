@@ -1,33 +1,16 @@
 
-source("D:/OneDrive - WageningenUR/polyploids/software/haploutils/NAMhaplo_utils.R")
+devtools::load_all()
 
-
-
-outf <- "research/inferred_haplotypes/output_inferredHaps"
-
-f <- "D:/OneDrive - WageningenUR/polyploids/workpackage4/data/PedigreeSim/NAMcrosses"
-map <- read.table(paste0(f,"/Potato.map"),
-                  header = T)
-
-
-crs <- "cross200"
-h <- "0.5"
-ws <- "1"
-nmrk <- "6"
-
-
-# load inferred haplotypes
-load(paste0(outf,"/QTL1loop/",crs,".results.",ws,"_",nmrk,"_QTL1peak.RData"))
-results[[2]]$hapdos[,1:9]
+# data
+load("data-raw/rawdata.RData")
+results <- data$PolyHap_res
+map <- data$map
 
 # extract hb_list
 hb_list <- lapply(results, function(x) {
   x$markers
 })
 names(hb_list)[1:3]
-
-
-
 
 
 # test HapdoseToHapname ------------------
@@ -81,7 +64,7 @@ hap3 <- HapCurate(haplo = results, #results of PolyHaplotyper
                   use.SNPs = F
                   # snpdose
 )
-
+hap3$map[1:9,]
 
 identical(haplo.test[order(rownames(haplo.test)),],
           hap3$genotypes[order(rownames(hap3$genotypes)),])

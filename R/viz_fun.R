@@ -12,25 +12,26 @@
 
 #' Colour lightening
 #'
-#' Returns a lighter (if lighten parameter is positiove) version of the colour(s) provided
+#' Returns a lighter (if lighten parameter is positive) version of the colour(s) provided.
 #'
 #' @param col One or more colours.
 #' @param lighten Lightening factor as a value between 0 and 1 (default 0.55).
 #' If negatives are used, it darkens the colour.
-#'
 #' @return Lightened (or darkened) colour(s)
-#'
+#' @keywords internal
 #' @examples
-#'
+#' \dontrun{
 #' lighten("black")
 #' lighten("#000000")
 #' lighten("red",-0.55) #this returns a darker colour
+#' }
+#'
 lighten <- function(
   col,
   factor=0.55
 ){
 
-  light<-col2rgb(col,alpha = T)
+  light<-col2rgb(col,alpha = TRUE)
   alpha <- light["alpha",]
   if(factor>0){ result<-round(light+(255-light)*factor)
   }else{result<-round(light+light*factor)}
@@ -41,9 +42,9 @@ lighten <- function(
 
 }
 
-#' Color selection based on HCL model
+#' Colour selection based on HCL model
 #'
-#' Choice of color palettes can have a relevant impact not only
+#' Choice of colour palettes can have a relevant impact not only
 #' in the outlook of data visualizations, but also on their interpretation.
 #' There exist many models of colour description, such as rgb, or cymk, but in
 #' this package we chose the hcl model (Hue, Chroma, Luminance). Hue is expressed as
@@ -65,7 +66,7 @@ lighten <- function(
 #' For ordered categories, such as increasingly high levels of a compound, use
 #' "sequential". For a gradient between two opposites, chose "divergent".
 #' @param h One or two values between 0 and 360 (degrees in the colour wheel) to represent hue.
-#' Default is c(120,240).#' If "qualitative" or "divergent" is used, the two hues will correspond
+#' Default is c(120,240). If "qualitative" or "divergent" is used, the two hues will correspond
 #' to each end of the colour
 #' gradient. Otherwise only the first hue will be used. For reference, 0 is red, 140 is green, 240
 #' is blue 300 is purple and 360 is back to red.
@@ -74,25 +75,25 @@ lighten <- function(
 #' @param l Value between 0 and 100 (default 60). Represents brightness, or the amount of white
 #' @param alpha Value between 0 (transparent) and 1 (opaque), to add some degree of
 #' transparency to the colour palette.
-#'
 #' @return A colour palette of n colours.
-#' @export
-#'
+#' @keywords internal
 #' @examples
-#'
+#' \dontrun{
 #' select.col(10,coltype = "qualitative")
 #' select.col(10,coltype = "sequential", h = 280)
+#' }
+#'
 select.col <- function( n, coltype = NULL, h = NULL, c = 100, l = NULL, alpha = 1
 ){
 
-  extra <- F
+  extra <- FALSE
   if(is.null(coltype)) coltype <- "qualitative"
 
   if(all(is.null(h))){
     if(coltype == "qualitative"){
       if(n < 7){
         h <- c(140,500)
-        extra <- T}
+        extra <- TRUE}
       else h <- c(120,240)
     }
 
@@ -101,7 +102,7 @@ select.col <- function( n, coltype = NULL, h = NULL, c = 100, l = NULL, alpha = 
     if(coltype == "divergent") h <- c(240,20)
   }
 
-  if(length(h) >1) if(h[1] == abs(h[2]-360)) extra <- T
+  if(length(h) >1) if(h[1] == abs(h[2]-360)) extra <- TRUE
 
   if(all(is.null(l))){
     if(coltype == "qualitative") l <- 60
@@ -140,11 +141,9 @@ select.col <- function( n, coltype = NULL, h = NULL, c = 100, l = NULL, alpha = 
 #' @param pvals a vector of p-values.
 #'
 #' @return observed and expected p-values
-#'
-#' @keywords internal
-#'
+#' @noRd
 QQcalc<-function(pvals){
-  o <- -log10(sort(pvals,decreasing=F))
+  o <- -log10(sort(pvals,decreasing=FALSE))
   e <- -log10(1:length(o)/length(o))
   e <- e
   return(data.frame(exp=e,obs=o))
@@ -165,31 +164,42 @@ QQcalc<-function(pvals){
 #' @param pvals Vector, matrix or list of p-values.
 #' Colnames/list names will be used for the legend.
 #' @param ... extra parameters to be passed to plot() (not xlim or ylim)
-#' @param ylim vector of two, the limits of y axis, defaults to range(pval)
+#' @param ylim Vector of two, the limits of y axis, defaults to range(pval)
+#' @param cex Numeric to control point size.
 #' @param plot_legend logical, should legend be plotted?
-#' @param legnames vector of names for the legend, defaults to column/list names of
+#' @param legnames A vector of names for the legend, defaults to column/list names of
 #' pvals. If empty "pval 1", "pval 2" etc.
-#'
+#' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
+#' to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
+#' names are very long, increase this number to tweak the amount of space left to the right.
 #' @inheritParams select.col
 #'
 #' @return Draws a QQ plot
 #' @export
-#'
 #' @examples
-#'
-#' pvals <- pnorm(rnorm(100),lower.tail = T)
+#' ## One set of random p-values
+#' pvals <- runif(100)
 #' QQ.plot(pvals)
-QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype= NULL,
+#'
+#' ## two sets of p-values
+#' pvals <- matrix(runif(200), ncol = 2) # matrix
+#' colnames(pvals) <- paste0("pval",1:2)
+#' QQ.plot(pvals)
+#'
+#' pvals <- list(pval1 = runif(100), # list
+#'               pval2 = runif(100))
+#' QQ.plot(pvals)
+QQ.plot <- function( pvals, ylim = NULL, plot_legend = TRUE, legnames=NULL, coltype= NULL,
                      h = NULL, l = NULL, legspace = 0 ,cex=0.7,...
 ){
-  if(is.numeric(pvals)) pvals <- list(pvals)
+  if(is.vector(pvals) & !inherits(pvals, "list")) pvals <- list(pvals)
   if(is.matrix(pvals)) pvals <- mat2list(pvals)
 
   qqval <- lapply(pvals,function(p) QQcalc(p))
 
 
-  if(is.null(ylim)) ylim <- c(0,max(-log10(unlist(pvals)),na.rm=T))
-  xlim <- range(unlist(sapply(qqval,'[',1)),na.rm = T)
+  if(is.null(ylim)) ylim <- c(0,max(-log10(unlist(pvals)),na.rm=TRUE))
+  xlim <- range(unlist(sapply(qqval,'[',1)),na.rm = TRUE)
   xlim[1] <- xlim[1] - legspace*(xlim[2] - xlim[1])
 
   plot(0,type="l",col="red",
@@ -222,33 +232,65 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' "chromosome" and "position", and produces a plot where values are mapped onto the genome.
 #'
 #' @param pval Numerical vector. Usually -log10(p-values), but other values are accepted.
-#' @param map Dataframe containing columns "chromosome" and "position"
+#' @param map Dataframe containing columns "chromosome" and "position".
 #' @param col Base colour to use for plotting. Odd chromosomes will be plotted with this colour,
 #' even chromosomes will be plotted with a lighter version of the same colour. Alternatively,
 #' a character vector specifying two colours can be provided.
 #' @param threshold A threshold value to draw the threshold line.
-#' @param chrom A vector of chromosome names to be included in the plot
-#' @param ... Other parameters to be passed to plot()
-#' @param ylab character, label to add on the y axis, defaults to "-log10(pval)"
-#' @param xlab character, label to add on the x axis, defaults to "Chromosome"
-#' @param ylim numeric vector of length two, minimum and maximum y axis values
+#' @param chrom A vector of chromosome names to be included in the plot.
+#' @param ... Other parameters to be passed to plot().
+#' @param ylab character, label to add on the y axis, defaults to "-log10(pval)".
+#' @param xlab character, label to add on the x axis, defaults to "Chromosome".
+#' @param ylim numeric vector of length two, minimum and maximum y axis values.
 #' @param small logical, should the small axis (per chromosome) be drawn? By default
-#' T only if number of chromosomes <3.
-#' @param pch numeric indicating the type of point to be passed to plot()
+#' TRUE only if number of chromosomes <3.
+#' @param cex.big cex for the big axis (axis for all chromosomes).
+#' @param cex.small cex for the small axis (axis within each chromosome).
+#' @param pch numeric indicating the type of point to be passed to plot().
 #' @param chromspace numeric determining the space between chromosomes on the
 #' x axis. It is expressed as a proportion of the total map lenght. Values in the
 #' range 0 - 0.05 are recommended. Default set to 0.05.
-#'
 #' @inheritParams select.col
-#' @return creates a skyline plot
+#' @return creates a skyline plot.
 #' @export
+#' @seealso \code{\link{comp.skyplot}}
+#' @examples
+#' ## Create a map and set of random p-values
+#' map <- data.frame(marker = paste0("mrk", 1:100),
+#'                   chromosome = c(rep(1,50), rep(2,50)),
+#'                   position = c(sort(runif(50,0,60)), sort(runif(50,0,80))))
+#' pvals <- runif(100)
+#'
+#' ## Plot -log10(pvals)
+#' skyplot(pval = -log10(pvals), map)
+#' skyplot(pval = -log10(pvals), map, small = FALSE)
+#' skyplot(pval = -log10(pvals), map, small = FALSE, threshold = 3)
+#' skyplot(pval = -log10(pvals), map, small = FALSE, threshold = 3, ylim = c(0,4))
 #'
 skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=NULL, chrom = NULL,
+<<<<<<< HEAD
                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, cex.big = NULL,
                    cex.small = NULL, line.big = NULL, ...
 ){
   #In case the markers are not in order
   # map <- map[with(map,order(map$chromosome,map$position)),]
+=======
+                   small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, chromspace = 0.05, cex.big = NULL,
+                   cex.small = NULL, ...
+){
+  #In case the markers are not in order
+  neworder <- order(map$chromosome,map$position)
+  map <- map[neworder,]
+  #any marker order change must be applied to pval accordingly,
+  #since map and pval are expected to be provided in the same marker order
+  if(!is.null(names(pval))){
+    pval <- pval[map$marker]
+  }else{
+    pval <- pval[neworder]
+  }
+
+
+>>>>>>> bc24c4fba3442826720010c0bdf3571f5e28e630
   #We filter per chromosome
   if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
 
@@ -277,8 +319,8 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   # col <- c(lightcol,col)[chrom_col%%2+1]
 
 
-  if(is.null(ylim)) ylim <- c(min(pval,na.rm = T),
-                              ceiling(max(pval,na.rm = T)/10)*10)
+  if(is.null(ylim)) ylim <- c(min(pval,na.rm = TRUE),
+                              ceiling(max(pval,na.rm = TRUE)/10)*10)
 
   if(is.null(ylab)) ylab <- expression(-log[10](italic(p)))
   if(is.null(xlab)) xlab <- "Chromosome"
@@ -286,23 +328,23 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   if(is.null(pch)) pch <- 16 #gt: changed to 16 to reduce plotting time (when transparent)
 
   plot(new_map$axis,pval,
-       ylim=ylim,axes=F,
+       ylim=ylim,axes=FALSE,
        ylab=ylab,xlab=xlab,col=as.factor(map$chromosome),pch = pch,...)
 
   palette("default")
 
   #Y axis
-  at <- axisTicks(round(ylim),log = F); axis(2,at)
+  at <- axisTicks(round(ylim),log = FALSE); axis(2,at)
 
   #big X axis
   #This line allows us to calculate the geometric position at which
   #each chromosome starts and ends
-  ch_pos <- sapply(split(new_map$axis,map$chromosome),range)[,as.character(chrom),drop=F]
+  ch_pos <- sapply(split(new_map$axis,map$chromosome),range)[,as.character(chrom),drop=FALSE]
   if(is.vector(ch_pos)) ch_pos <- matrix(ch_pos,nrow=2)
   #For each chromosome we draw a "big axis" specifying which chromosome it is
   if(is.null(small)){
-    if(length(chrom) <= 2) small <- T
-    else small <- F
+    if(length(chrom) <= 2) small <- TRUE
+    else small <- FALSE
   }
   draw_chrom_axis(axis_res$chr_edges,small = small,
                   bigcex = cex.big,
@@ -331,7 +373,6 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 #'
 #' @return a maplist with the original maps and an extra "axis" column, and
 #' a data.frame with the axis chromosomes start and end, for axis plotting.
-#'
 #' @keywords internal
 map_axis <- function(maplist,space = 0){
   if(class(maplist) != "list") maplist <- list(maplist)
@@ -350,7 +391,7 @@ map_axis <- function(maplist,space = 0){
   })
 
   #Total chromosome max
-  ch_max <- unlist(lapply(ch_max,max,na.rm=T))
+  ch_max <- unlist(lapply(ch_max,max,na.rm=TRUE))
   ch_max <- c(0, ch_max)
   names(ch_max) <- c(chroms,"end")
 
@@ -385,19 +426,36 @@ map_axis <- function(maplist,space = 0){
 #' @param pval list or matrix (per column) of pvalues to be plotted together.
 #' @param map list of map dataframes. If there is only a data.frame, it will be assumed
 #' that all p-value sets have the same underlying genetic map.
-#' #' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
+#' @param legnames A vector of names for the legend elements. If not provided,
+#' it will be read from the pvalue list, and if the list has no names, it will
+#' be simply labelled pval 1, pval 2, etc.
+#' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
 #' to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
 #' names are very long, increase this number to tweak the amount of space left to the right.
 #' @param ... additional parameters to be passed to plot() (not xlim or ylim)
 #' @param pch numeric vector. Each point type provided will be used for
 #' each of the pvalue sets provided.
 #'
-#' @return A comparative manhattan plot
+#' @return A comparative manhattan plot.
 #' @export
+#' @seealso \code{\link{skyplot}}
+#' @examples
+#' ## Create a map and two sets of random p-values
+#' map <- data.frame(marker = paste0("mrk", 1:100),
+#'                   chromosome = c(rep(1,50), rep(2,50)),
+#'                   position = c(sort(runif(50,0,60)), sort(runif(50,0,80))))
+#'
+#' pvals <- matrix(runif(200), ncol = 2) # matrix
+#' colnames(pvals) <- paste0("pval",1:2)
+#'
+#' ## Plot -log10(pvals)
+#' comp.skyplot(-log10(pvals), map)
+#' comp.skyplot(-log10(pvals), map, small = FALSE)
+#' comp.skyplot(pval = -log10(pvals), map, small = FALSE, threshold = 3, ylim = c(0,4))
 #'
 comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, ylab = NULL,
                           xlab = NULL, legnames = NULL, coltype=NULL, h = NULL, l = NULL,
-                          pch = NULL, chromspace = 0.05, legspace = 0.1,alpha = 0.3,small = F,...
+                          pch = NULL, chromspace = 0.05, legspace = 0.1,alpha = 0.3,small = NULL,...
 ){
 
   #Pvalues must be stored in a list, there needs to be as many maps
@@ -432,7 +490,7 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   all_chrom <- lapply(map,function(m) as.character(unique(m$chromosome)))
   all_chrom <- unique(unlist(all_chrom))
   tot <- sapply(all_chrom,function(ch){
-    max(sapply(map,max_map,ch),na.rm=T)
+    max(sapply(map,max_map,ch),na.rm=TRUE)
   })
   #The sum of the max of each all_chromosome is the total range of the plot
   tot <- sum(tot)
@@ -449,8 +507,8 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   #then we calculate the maximum pvalue
   if(is.null(ylim)){
     ylim <- sapply(pval,function(pv){
-      c(min(pv,na.rm = T),
-        ceiling(max(pv,na.rm = T)/10)*10)
+      c(min(pv,na.rm = TRUE),
+        ceiling(max(pv,na.rm = TRUE)/10)*10)
     })
     ylim <- c(min(ylim[1,]),max(ylim[2,]))
   }
@@ -459,10 +517,10 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   if(is.null(xlab)) xlab <- "Chromosomes"
 
   #Create the xlim
-  xlim <- c(0,max(sapply(new_maps,function(x) max(x$axis,na.rm=T))))
+  xlim <- c(0,max(sapply(new_maps,function(x) max(x$axis,na.rm=TRUE))))
   xlim[2] <- xlim[2] + legspace*(xlim[2] - xlim[1])
 
-  plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = F,xlab=xlab,...)
+  plot(0,type="n",ylim=ylim,ylab=ylab,xlim=xlim,axes = FALSE,xlab=xlab,...)
 
   if(is.null(pch)) pch <- 16 #gt: changed to 16 to reduce plotting time (when transparent)
   if(length(pch) > n) warning("More pch values than pvals have been provided, only the first",n,"pch values will be used.")
@@ -487,9 +545,12 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
   legend("topright",legend = legnames,pch=pch[1:n],col=cols,bty="n")
 
   #Y axis
-  at <- axisTicks(round(ylim),log = F); axis(2,at)
+  at <- axisTicks(round(ylim),log = FALSE); axis(2,at)
 
-  if(length(all_chrom) < 3) small <- T
+  if(is.null(small)){
+    if(length(all_chrom) < 3) small <- TRUE
+    else small <- FALSE
+  }
   draw_chrom_axis(ch_edges,small)
 
   if(!is.null(threshold)) segments(0,threshold,xlim[2]*(1-legspace),
@@ -507,6 +568,7 @@ comp.skyplot <- function( pval, map, threshold=NULL, chrom = NULL, ylim=NULL, yl
 #' maximums of.
 #'
 #' @keywords internal
+#' @noRd
 max_map <- function(map,chr = NULL){
   if(is.null(chr)) chr <- as.character(unique(map$chromosome))
 
@@ -519,16 +581,20 @@ max_map <- function(map,chr = NULL){
 
 #' Chromosome axis drawer
 #'
-#' Helper function for \code{link\{skyplot}}
+#' Helper function for \code{\link{skyplot}}
 #'
 #' @param ch_edges data.frame with first column having the axis start of each
 #' chromosome, and the second column the axis end. Row names must have the
 #' names of each chromosome. This data.frame can be obtained using \code{map_axis}
 #' @param small logical, should small axis be also drawn?
+#' @param bigcex cex for the big axis (axis for all chromosomes)
+#' @param smallcex cex for the small axis (axis within each chromosome)
+#' @param bigspace
 #'
 #' @return
 #' @keywords internal
-draw_chrom_axis <- function(ch_edges,small = F,bigcex = 1.2,smallcex=0.7,
+#' @noRd
+draw_chrom_axis <- function(ch_edges,small = FALSE,bigcex = 1.2,smallcex=0.7,
                             bigspace = 1.8){
   for(i in 1:nrow(ch_edges)){
     #first we draw the main axis
@@ -541,54 +607,75 @@ draw_chrom_axis <- function(ch_edges,small = F,bigcex = 1.2,smallcex=0.7,
 
     #Small axis only if there's one or two chromosomes
     if(small){
-      at <- round(seq(ch_edg[1],ch_edg[2],length.out = 50))
-      lab <- round(seq(0,ch_edg[2]-ch_edg[1],length.out = length(at)),1)
+      # at <- round(seq(ch_edg[1],ch_edg[2]),length.out = 50)
+      # lab <- round(seq(0,ch_edg[2]-ch_edg[1],length.out = length(at)),1)
+
+      #gt:the two lines above label ticks incorrectly.
+      #I substituted them with the lines below.
+      #They draw ticks spaced by 1 map unit (ch_edg[1] indicate position 0).
+      #Ticks are labeled accordingly, using integers from 0 to length(at)-1.
+      at <- seq(ch_edg[1],ch_edg[2], by=1)
+      lab <- seq_along(at)-1
       axis(1,at,labels = lab,cex.axis=smallcex,padj = -1)
     }
   }
 
 }
 
+
+
 # PCoA Plots ------------------
 
 #' PCoA plotter
 #'
-#' It produces a principal component plot for the K
-#' distance matrix based on the prcomp() function.
-#' @inherit select.col
+#' It produces a principal coordinate plot for the K
+#' distance matrix based on the \code{prcomp()} function.
+## #' @inherit select.col
 #'
-#' @param K distance matrix
-#' @param col vector for each individual in the matrix, indicating
-#' a grouping. For instance, c("parent1","pop1",...). Each element will be
-#' used to produce a colour.
+#' @param K A distance matrix.
+#' @param col A grouping vector for the objects of the matrix. For instance,
+#' a population to which individuals belong. Each element will be
+#' associated to a colour.
 #' @param coltype Argument to be passed to \code{\link{select.col}}.Either "sequential",
 #' "qualitative", "divergent" or "rainbow".For a few categories, such as different treatments,
 #' choose "qualitative" or "rainbow". For ordered categories, such as increasingly high levels
 #' of a compound, use "sequential". For a gradient between two opposites, chose "divergent".
 #' @param h Argument to be passed to \code{\link{select.col}}. It indicates the hue of
 #' the colour palette to use.
-#' @param comp Vector of two integers, indicating which principal comonents to plot.
+#' @param comp Vector of two integers, indicating which principal components to plot.
 #' 1 and 2 by default.
-#' @param add Logical, whether to add the points to the current plot (using points()),
-#' or make a new plot.
-#' @param legend Logical, whether legend should be plotted.
+#' @param plot_legend Logical, whether legend should be plotted.
 #' @param legspace Numeric indicating the proportion of space to be left for plotting the legend
 #' to the right of the plot. By default takes value 0.1 (10% of the x-value range). If legend
 #' names are very long, increase this number to tweak the amount of space left to the right.
+#' @param legname The legend names for the colours chosen, automatically taken
+#' from "col" if not specified.
 #' @param pch numeric vector containing 1 or as many values as unique values in "col"
 #' @param colmode character, either "discrete" or "continuous", "discrete" by default. If
 #' "discrete" col will be used to assign a colour to each unique value, using col as
-#' a grouping variable. If "continous", col must be numeric and will be used in a gradient
+#' a grouping variable. If "continuous", col must be numeric and will be used in a gradient
 #' of colour.
 #' @param ... Additional parameters to be passed to the \code{plot} or \code{points}
 #' method.
-#'
-#'
 #' @inheritParams select.col
+#'
 #' @return calculates and plots a pcoa plot
 #' @export
+#' @seealso \code{\link{select.col}} for colour related parameters.
+#' @examples
+#' ## Get example SNP dosages
+#' data("mpsnpdose")
+#' ## Calculate distances between individuals
+#' K <- as.matrix(dist(t(mpsnpdose)))
+#' ## Plot Principal Coordinates
+#' pcoa.plot(K)
 #'
-pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=NULL,
+#' ## Colors according to a grouping variable
+#' pop <- substr(colnames(K),1,2)
+#' pcoa.plot(K, col = pop)
+#' pcoa.plot(K, col = pop, h = c(0,360))
+#'
+pcoa.plot <- function( K, comp=c(1,2), plot_legend=TRUE, col=NULL, coltype=NULL, h=NULL,
                        l=NULL, alpha = 1, legspace = 0.1, legname = NULL, pch = 19, colmode = "discrete" ,
                        ...
 ){
@@ -596,7 +683,7 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=
 
   if(is.null(col)){
     cols <- "black"
-    plot_legend <- F
+    plot_legend <- FALSE
   }else{
     if(length(col) != ncol(K)){
       stop("col length and number of individuals do not match")}
@@ -644,7 +731,7 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=
   xlim[2] <- xlim[2] + legspace*(xlim[2] - xlim[1])
 
   plot(pc$x[,comp],col=cols,pch=pch,xlim = xlim,
-         xlab=var.pc[comp[1]],ylab=var.pc[comp[2]])
+         xlab=var.pc[comp[1]],ylab=var.pc[comp[2]],...)
 
   if(plot_legend){
     if(colmode == "discrete"){
@@ -666,38 +753,55 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=T, col=NULL, coltype=NULL, h=
 
 # Boxplots ----------------------------
 
-#' Phenotype boxplot
+#' Phenotype-genotype boxplot
 #'
-#' Plots a boxplot per dosage of SNPs / per haplotype, with overlapped
+#' Plots a phenotype boxplot per dosage of SNPs / per haplotype, with overlapped
 #' points.
 #'
-#' @describeIn pheno_box Provided with a vector of phenotypes and a vector
-#' of genotypes, it plots a boxplot grouping phenotypes per dosage of each genotype.
-#'
-#' @param phe numeric vector of phenotypes
-#' @param gen if haplotype = F, numeric vector of same length as phe. If
-#' haplotype = T, vector of length(phe)*ploidy.
-#' @param haplotype logical, does gen contain haplotypes?
-#' @param ploidy integer, ploidy of the individual
-#' @param draw.points logical, should points be drawn? Defaults to T
-#' @param hap.select vector, if haplotype = T, names of the haplotypes
+#' @param phe Numeric vector of phenotypes.
+#' @param gen If haplotype = FALSE, numeric vector of same length as phe. If
+#' haplotype = TRUE, vector of length(phe)*ploidy.
+#' @param haplotype Logical, does gen contain haplotypes?
+#' @param ploidy Integer, if haplotype = TRUE, ploidy of the individuals.
+#' @param hap.select vector, if haplotype = TRUE, names of the haplotypes
 #' to be drawn. All by default.
+#' @param draw.points Logical, should points be drawn? Defaults to TRUE.
 #' @inheritParams select.col
+#' @param ... Additional parameters to \code{boxplot} (not xlim and ylim).
 #'
-#' @param ... Additonal parameters to "plot" (not xlim and ylim)
-#'
+#' @return A boxplot grouping phenotypes per dosage of each genotype.
 #' @export
+#' @examples
+#' ## Get example genotypes and phenotypes of tetraploid individuals
+#' data("mpsnpdose")
+#' mpsnpdose[1:5,1:5]
+#' data("mphapdose")
+#' mphapdose[1:5,1:9]
+#' data("mppheno")
+#' head(mppheno)
 #'
-pheno_box <- function( phe, gen, haplotype = F, ... ){
+#' ## pheno_box of the first SNP
+#' pheno_box(phe = mppheno, gen = mpsnpdose[1,])
+#' pheno_box(phe = mppheno, gen = mphapdose[1,], haplotype = TRUE, ploidy = 4)
+#'
+pheno_box <- function( phe, gen,
+                       haplotype = FALSE, ploidy = NULL, hap.select = NULL,
+                       coltype=NULL, h=NULL, l=NULL, draw.points = TRUE, ... ){
   if(haplotype){
-    pheno_haplo(phe,gen,...)
+    if(is.null(ploidy)) stop("when haplotype = TRUE, ploidy must be indicated")
+    pheno_haplo(phe, gen, ploidy, hap.select = hap.select,
+                coltype=coltype, h=h, l=l, draw.points = draw.points,...)
   }else{
-    pheno_dosage(phe,gen,...)
+    pheno_dosage(phe, gen,
+                 coltype=coltype, h=h, l=l, draw.points = draw.points,...)
   }
 }
 
-#' @describeIn pheno_box method for when dosages are passed to pheno_box
-pheno_dosage <- function( phe, gen, coltype=NULL, h=NULL, l=NULL, draw.points = T, ... ){
+#' Pheno_box method for when dosages are passed to pheno_box
+#'
+#' @keywords internal
+#' @noRd
+pheno_dosage <- function( phe, gen, coltype=coltype, h=h, l=l, draw.points = draw.points, ... ){
   #Boxplot works the following way:
   #It transforms whatever data you give into a list in which each
   #element is a "box". It will draw as many elements as there are in the list,
@@ -705,7 +809,7 @@ pheno_dosage <- function( phe, gen, coltype=NULL, h=NULL, l=NULL, draw.points = 
   #So, you can create an empty space in the boxplot by creating a list
   #that has all the levels you need, but with one of them empty.
   boxlist <- split(phe,gen)
-  box_class <- min(gen):max(gen)
+  box_class <- min(gen, na.rm = TRUE):max(gen, na.rm = TRUE)
   new_boxlist <- boxlist[as.character(box_class)]
   names(new_boxlist) <- box_class
 
@@ -713,26 +817,30 @@ pheno_dosage <- function( phe, gen, coltype=NULL, h=NULL, l=NULL, draw.points = 
 
   boxplot(new_boxlist,
           border = col,
-          outline = F,
-          ylim=range(phe),...)
+          outline = FALSE,
+          ylim=range(phe, na.rm = TRUE),...)
 
   if(draw.points){
     set.seed(7)
-    points(jitter(unlist(gen)+1,amount = 0.25)-min(gen),
-           phe,col=col[gen-min(gen)+1],
+    points(jitter(unlist(gen)+1,amount = 0.25)-min(gen, na.rm = TRUE),
+           phe,col=col[gen-min(gen, na.rm = TRUE)+1],
            pch=19,cex=0.85)
   }
 
 }
 
-#' @describeIn pheno_box method for when haplotypes are passed to pheno_box
-pheno_haplo <- function( phe, gen, ploidy, draw.points = T, hap.select = NULL, coltype = NULL,
-                         h = NULL, l= NULL, ...
+#' Pheno_box method for when haplotypes are passed to pheno_box
+#'
+#' @keywords internal
+#' @noRd
+pheno_haplo <- function( phe, gen, ploidy, hap.select = NULL,
+                         coltype=coltype, h=h, l=l, draw.points = draw.points, ...
 ){
 
   #Here we obtain the matrix of dosages per haplotype
-  data <- dosage.X(gen,haplotype = T,ploidy=ploidy)
-  data <- data[,as.character(colnames(data)),drop=F]
+  data <- dosage.X(gen,haplotype = TRUE,ploidy=ploidy)
+  data <- data[,!is.na(colnames(data)),drop=FALSE] # to exclude column for NA
+  data <- data[,as.character(colnames(data)),drop=FALSE]
 
   #Filtering
   if(is.null(hap.select)) hap.select <- colnames(data)
@@ -742,7 +850,7 @@ pheno_haplo <- function( phe, gen, ploidy, draw.points = T, hap.select = NULL, c
          " not found in provided haplotypes:\n",
          paste(unique(gen),collapse = " "))
   }
-  data <- data[,as.character(hap.select),drop=F]
+  data <- data[,as.character(hap.select),drop=FALSE]
 
   #Create some basic parameters
   n_hap <- ncol(data)
@@ -771,12 +879,12 @@ pheno_haplo <- function( phe, gen, ploidy, draw.points = T, hap.select = NULL, c
   #Here we create the list of boxes for the boxplot
   #We split phenotypes according to haplotype dosage
   boxlist <- apply(data,2,function(x) split(phe,x))
-  boxlist <- unlist(boxlist,recursive = F)
+  boxlist <- unlist(boxlist,recursive = FALSE)
 
   #We draw the boxplots
-  boxplot(boxlist,at = at,outline = F,
-          border = col,axes = F,
-          ylim=range(phe),...)
+  boxplot(boxlist,at = at,outline = FALSE,
+          border = col,axes = FALSE,
+          ylim=range(phe, na.rm = TRUE),...)
 
   #We add the observation points
   if(draw.points){
@@ -795,27 +903,46 @@ pheno_haplo <- function( phe, gen, ploidy, draw.points = T, hap.select = NULL, c
   }
 
   #Drawing the axis of the boxplot
-  axis(2,pretty(range(phe)))
+  axis(2,pretty(range(phe, na.rm = TRUE)))
   lab <- unlist(apply(data,2,function(x) sort(unique(x))))
   axis(1,at,labels = lab,cex.axis = 0.5,padj = - 2)
-  axis(1,at = big_at, lab = colnames(data),tick = F,padj=1)
+  axis(1,at = big_at, labels = colnames(data),tick = FALSE,padj=1)
 
 }
 
 # LD plots ---------------------------
-#' Method for LD plotting
+#' Plotting linkage disequilibrium (LD) decay
 #'
 #' Given an LD list object (obtained via \code{LD_decay} function), it creates an LD
 #' decay plot using all the percentiles calculated in \code{LD_decay}.
 #'
-#' @param LD LD list object as generated by \code{LD_decay}
-#' @param max_dist numeric, maximum distance to plot
-#' @param main character, title for the plot
+#' @param LD LD list object as generated by \code{LD_decay}.
+#' @param max_dist numeric, maximum distance to plot.
+#' @param main character, title for the plot.
 #'
-#' @return creates a plot
+#' @return creates a plot.
 #' @export
+#' @examples
+#' # ## Get example SNP dosages and a map
+#' data("mpsnpdose")
+#' data("mpmap")
 #'
-plot.LD <- function(
+#' mpsnpdose[1:5,1:5]
+#' head(mpmap)
+#' tapply(mpmap$marker, mpmap$chromosome, length)
+#' identical(rownames(mpsnpdose), mpmap$marker)
+#'
+#' ## LD decay calculation and plotting
+#' LD <- LD_decay(mpsnpdose, mpmap, win_size = 1,
+#'                max_dist = 100, percentile = c(0.9,0.95))
+#'
+#' plot_LD(LD, max_dist = NULL, main=NULL)
+#'
+#' LD <- LD_decay(mpsnpdose, mpmap, win_size = 1,
+#'                max_dist = 100, percentile = c(0.9,0.95), per_chr = TRUE)
+#' plot_LD(LD[[1]])
+#'
+plot_LD <- function(
   LD,
   max_dist = NULL,
   main=NULL
@@ -836,7 +963,7 @@ plot.LD <- function(
 
   cols <- colorspace::qualitative_hcl(4)
   halflife <- c()
-  for(i in 1:4){
+  for(i in 1:(ncol(linkage)-1)){
     ld <- linkage[,i][linkage$distance <= max_dist]
     dis <- linkage$distance[linkage$distance <= max_dist]
 
@@ -852,7 +979,7 @@ plot.LD <- function(
     sp <- smooth.spline(dis,ld,spar = 0.6)
     lines(sp,lwd=2,col= lighten(cols[i]))
 
-    top <- max(ld,na.rm=T)
+    top <- max(ld,na.rm=TRUE)
     halfpoint <- (top - LD$background[i])/2 + LD$background[i]
     abline(v = sp$x[which.min(abs(sp$y - halfpoint))],
            col=cols[i],
@@ -903,7 +1030,7 @@ colour_wheel <- function(res,cen = c(0,0), r = 1,l=NULL,...){
   loc <- angle2coord(angles,cen,r)
 
   lim <- c(-r*1.1+cen[1],r*1.1+cen[2])
-  plot(cen,type="n",axes=F, xlim = lim,ylim = lim,...)
+  plot(cen,type="n",axes=FALSE, xlim = lim,ylim = lim,...)
 
   for(i in 1:res){
     polygon(x = c(cen[1],loc$x[i],loc$x[i+1]),
@@ -928,7 +1055,7 @@ axis_wheel <- function(res, cen = c(0,0),r=1,...){
   angles <- seq(0,2*pi,length.out = res +1)[-(res+1)]
   loc <- angle2coord(angles,cen,r)
 
-  text(loc*1.2,labels = paste0(angles*360/(2*pi)),xpd = T) # something wrong with the symbol for degree, when building the3 package
+  text(loc*1.2,labels = paste0(angles*360/(2*pi)),xpd = TRUE) # something wrong with the symbol for degree, when building the3 package
   ticks <- cbind(loc*1.05,loc*1.1)
   segments(ticks[,1],ticks[,2],ticks[,3],ticks[,4],...)
   circle(r = 1.05)
@@ -943,7 +1070,6 @@ axis_wheel <- function(res, cen = c(0,0),r=1,...){
 #'
 #' @return plots a circle
 #' @keywords internal
-#'
 circle <- function(cen = c(0,0),r=1,res = 1200,...){
 
   angles <- seq(0,2*pi,length.out = res + 1)
@@ -972,15 +1098,14 @@ tick_wheel <- function(n,cen = c(0,0),r=1){
 #' Hue wheel
 #'
 #' Draws the hue wheel of colorspace in order to know what number corresponds to each
-#' colour
+#' colour.
 #'
 #' @param l luminance parameter, which can be modified to obtain lighter/darker
 #' colours. Values between 20 and 100 are recommended (above and below
 #' not all colours exist). Defaults to 60.
 #'
-#' @return plots a hue wheel of a specific luminance
+#' @return plots a hue wheel of a specific luminance.
 #' @export
-#'
 #' @examples
 #'
 #' hue_wheel() #luminance = 60 by default
@@ -994,7 +1119,17 @@ hue_wheel <- function(l = NULL){
 }
 
 # Miscellaneous ---------------
-mat2list <- function(matrix,rowise=F){
+
+#' From matrix to list
+#'
+#' @param matrix a matrix.
+#' @param rowise logical. If rowise we transpose the matrix so that rows are
+#' columns.
+#'
+#' @return
+#' @keywords internal
+#' @noRd
+mat2list <- function(matrix,rowise=FALSE){
   if(rowise){
     #if rowise we transpose the matrix so that rows are columns
     matrix<-t(matrix)

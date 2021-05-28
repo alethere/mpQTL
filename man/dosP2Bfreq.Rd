@@ -17,3 +17,16 @@ of each row of dosP.
 \description{
 Transform dosage probabilities into B allele probabilities
 }
+\examples{
+## Create an example matrix of dosage probabilities for a tetraploid individual
+dosP <- matrix(c(1,0,0,0,0,
+                 0,1,0,0,0,
+                 0,0,0,0,1,
+                 0,0,0.5,0.5,0,
+                 0,0,0.2,0.8,0,
+                 0,0.95,0.05,0,0), ncol = 5, byrow = TRUE)
+colnames(dosP) <- paste0("D",0:4)
+
+## Convert dosage probabilities into B allele probabilities
+dosP2Bfreq(dosP)
+}

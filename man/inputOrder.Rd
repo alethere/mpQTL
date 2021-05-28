@@ -13,17 +13,17 @@ third one marker position (any map unit).
 Marker position is used for plotting or it could be used to sample a subset
 of evenly spaced markers to be used for kinship estimation.}
 
-\item{Q}{NULL, T or vector identifying populations or Q design matrix. If NULL, no Q will
-be included in the model (i.e., a model without Q correction). If T, a PCo
-decomposition will be used to estimate population differentiation. If a
-vector specifying population of each individual is passed,
-it will be used to construct a Q matrix. Vector may contain numerical
-or character.}
+\item{Q}{It can be 1) NULL, 2) TRUE, 3) a vector identifying populations
+or 4) a Q design matrix. If NULL, no Q will be included in the model (i.e. a
+model without Q correction). If TRUE, a PCo decomposition will be used to
+estimate population differentiation. If a vector specifying population of
+each individual is passed, it will be used to construct a Q matrix. Vector
+may contain numerical or character.}
 
-\item{K}{NULL, T or distance matrix. If NULL, no relatedness
-matrix will be used (i.e., a linear model will be applied). If T
-a K distance matrix will be calculated. A distance matrix may also
-be directly specified.}
+\item{K}{It can be 1) NULL, 2) TRUE or 3) a distance matrix. If NULL, no relatedness
+matrix will be used (i.e. a linear model will be applied). If TRUE,
+a K distance matrix will be calculated. Otherwise, a pre-calculated
+distance matrix may also be directly specified.}
 }
 \value{
 A list containing the re-ordered input matrices.???
@@ -34,3 +34,4 @@ or vectors for \code{map.QTL}. It will match individual names and marker
 names of the input matrices, selecting the ones in common and putting them
 in the same order. Individual names and marker names are required.
 }
+\keyword{internal}

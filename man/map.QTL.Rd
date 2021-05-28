@@ -14,19 +14,19 @@ map.QTL(
   Z = NULL,
   cofactor = NULL,
   cofactor.type = NULL,
-  cM = 1,
+  binsize = 1,
   seed = NULL,
   Qpco = 2,
   no_cores = parallel::detectCores() - 1,
-  approximate = T,
+  approximate = TRUE,
   permutation = NULL,
   fam = NULL,
   nperm = 100,
   alpha = 0.05,
-  impute = T,
-  k = 20,
+  impute = TRUE,
+  knn = 20,
   linear = NULL,
-  K_identity = F
+  K_identity = FALSE
 )
 }
 \arguments{
@@ -35,14 +35,14 @@ rows are individuals and columns are different phenotypes.
 Not updated for vector phenotypes yet. Must follow same
 order of individuals as genotypes.}
 
-\item{genotypes}{A matrix of genotypes, rows are markers and
-columns may be either (1) individual dosages of biallelic markers, with column
-names coinciding with phenotype individual names or (2) chromosome alleles of each
-individual (for multiallelic markers, such as haplotypes).
-Must follow same order of individuals as phenotypes.}
+\item{genotypes}{A matrix of SNP genotypes (continuous or discrete) or
+haplotypes (multi-allelic markers), where rows are markers and
+columns may be either (1) individuals (for biallelic markers) or (2)
+individual homologues (for multi-allelic markers, such as haplotypes).
+Genotypes must follow the same order of individuals as phenotypes.}
 
-\item{ploidy}{a number indicating the ploidy level. All the individuals
-must have same ploidy.}
+\item{ploidy}{A number indicating the ploidy level. All the individuals
+must have the same ploidy.}
 
 \item{map}{A data frame with 3 columns containing map information. The first
 column specifies marker names, the second column chromosome names and the
@@ -50,17 +50,17 @@ third one marker position (any map unit).
 Marker position is used for plotting or it could be used to sample a subset
 of evenly spaced markers to be used for kinship estimation.}
 
-\item{K}{NULL, T or distance matrix. If NULL, no relatedness
-matrix will be used (i.e., a linear model will be applied). If T
-a K distance matrix will be calculated. A distance matrix may also
-be directly specified.}
+\item{K}{It can be 1) NULL, 2) TRUE or 3) a distance matrix. If NULL, no relatedness
+matrix will be used (i.e. a linear model will be applied). If TRUE,
+a K distance matrix will be calculated. Otherwise, a pre-calculated
+distance matrix may also be directly specified.}
 
-\item{Q}{NULL, T or vector identifying populations or Q design matrix. If NULL, no Q will
-be included in the model (i.e., a model without Q correction). If T, a PCo
-decomposition will be used to estimate population differentiation. If a
-vector specifying population of each individual is passed,
-it will be used to construct a Q matrix. Vector may contain numerical
-or character.}
+\item{Q}{It can be 1) NULL, 2) TRUE, 3) a vector identifying populations
+or 4) a Q design matrix. If NULL, no Q will be included in the model (i.e. a
+model without Q correction). If TRUE, a PCo decomposition will be used to
+estimate population differentiation. If a vector specifying population of
+each individual is passed, it will be used to construct a Q matrix. Vector
+may contain numerical or character.}
 
 \item{Z}{Identity matrix indicating which individuals correspond to which
 genotypic effects. For instance, if multiple samples correspond to the same
@@ -72,26 +72,26 @@ individual, this matrix should indicate so.}
 specifying the type ("numerical" or "categorical") of each cofactor.
 It accepts partial strings such as "cat" and "num".}
 
-\item{cM}{Numeric. K distance matrix will be calculated using markers every
+\item{binsize}{Numeric. K distance matrix will be calculated using markers every
 map unit (for physical maps use Mb). Defaults to 1.}
 
-\item{seed}{An integer to set a seed for random number generation in \code{sample.cM}.}
+\item{seed}{An integer to set a seed for random number generation in \code{sample.marker}.}
 
 \item{Qpco}{Logical value indicating whether a PCo-based population factor should be
-estimated and included. Is useful for detecting and correcting for population
-structure.}
+estimated and included. It is useful for detecting and correcting for the
+main axes of genetic variation (i.e. population structure).}
 
 \item{no_cores}{Numeric. Number of cores to be used in parallel computing
 of the p-values. Defaults to number of cores -1.}
 
 \item{approximate}{Logical value indicating whether P3D/EMMAX approach should be
-used for computational efficiency (if F, expect much longer waiting times)}
+used for computational efficiency (if FALSE, expect much longer waiting times)}
 
 \item{permutation}{permutation strategy. Can be "pop" (permutation over the
 whole population) or "fam" (permutation within families). If it is NULL, no
 permutation will be run.}
 
-\item{fam}{If permutation = "fam", provide here a vector indicating the family
+\item{fam}{If \code{permutation = "fam"}, provide here a vector indicating the family
 membership (or a population structure membership) of each individual.}
 
 \item{nperm}{number of permutations, if \code{permutation} is not null.}
@@ -102,25 +102,118 @@ chance of observing a false positive experiment-wise.}
 \item{impute}{Logical value indicating whether missing genotypes should be
 imputed using \code{impute.knn}. Defaults to True, but False is recommended (imputation algorithm
 needs to be improved and with few missing values it has a small effect
-on QTL detection)}
+on QTL detection).}
 
-\item{k}{Number of neighbours to use in the internal function \code{impute.knn}}
+\item{knn}{Number of neighbours to use in the internal function \code{impute.knn}}
 
-\item{linear}{logical. If True, linear model (without structure correction)
-is applied. If False, mixed model (with structure correction) is applied. If
+\item{linear}{logical. If TRUE, linear model (without structure correction)
+is applied. If FALSE, mixed model (with structure correction) is applied. If
 not specified, it looks at the value of K, and only applied linear model
 if K = NULL.}
 
 \item{K_identity}{logical. If TRUE, an identity matrix is used in the
 random term of a mixed model. This is to run a mixed model with no kinship
 correction, even if a kinship matrix is provided or calculated for other
-purposes (e.g. imputation of missing genotypes, calculation of the Q matrix)}
+purposes (e.g. imputation of missing genotypes, calculation of the Q matrix).}
 }
 \value{
-a pvalue matrix containing the pvalue of each marker with each phenotype passed.
+A list of length equal to the number of phenotypes. Each element is
+a list with model coefficients and test results:
+\itemize{
+  \item \code{$beta} A list containing the fixed effects of the model (in this
+  order: intercept, cofactors, structure terms, genetic term). There is a set
+  of estimates for each marker.
+  \item \code{$Fstat} A vector containing the F test results only for the genetic
+  component of each model.
+  \item \code{$residual}
+  \item \code{$pval} A vector containing the p-values only of the genetic model
+  at each marker.
+  \item \code{$se} A vector containing the standard error of the estimates.
+  \item \code{$Wald}
+  \item \code{$real.df}
+}
 }
 \description{
-Main function and wrapper for QTL analysis in polyploids using
-biallelic or multiallelic markers. For a full description of the function please
-see the official vignette.
+Main wrapper function for QTL analysis in polyploids, using
+biallelic (continuous or discrete) or multiallelic markers.
+\code{map.QTL} implements a single-marker regression mixed model, that enables
+to account for different levels of population structure \href{https://www.nature.com/articles/ng1702}{(Yu et al. 2006)}:
+\deqn{y = \mu + X\beta + Qv + Cw + Zu + \epsilon}
+\deqn{var(u) ~ K\sigma^{2}G}
+\deqn{var(\epsilon) ~ R\sigma^{2}\epsilon}
+A phenotype y is modelled using an intercept \eqn{\mu}; a genetic matrix \eqn{X\beta} (containing
+dosages or haplotypes), a family-based correction matrix Qv; an optional set of
+cofactors, modelled by Cw; a random term that models kinship using K as the
+variance structure, and a normal error term \eqn{\epsilon}. We can also talk
+of this parameters referring to the "genetic term" (\eqn{X\beta}), the "genetic
+structure correction" terms (Qv and \eqn{var(u)}) and the cofactors (Cw).
+}
+\details{
+The arguments \code{linear} and \code{K} can be used to define either a fixed
+effects or a mixed effects model. By default they are both NULL, that will
+result in applying a fixed effects linear model.
+If \code{K} is not NULL (either TRUE or a distance matrix) a mixed model will
+be used. If a distance matrix is provided for other purposes than kinship
+correction (e.g. imputation of missing genotypes, calculation of the Q matrix),
+specify \code{K_identity} = TRUE to use an identity matrix for structuring
+the variance of the random term. This would be equivalent to a naive model
+(unless any additional fixed effect parameter is specified).
+}
+\examples{
+## Get example genotypes (haplotypes in this case),
+## map and phenotypes for a population of tetraploid individuals
+data("mphapdose")
+data("mpmap")
+data("mppheno")
+
+## fixed effects model (y = m + e)
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## naive model (y = m + e) - no K correction
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   K = TRUE,
+                   K_identity = TRUE)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## model with Q correction (y = m + Q + e)
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   Q = TRUE,
+                   Qpco = 2,
+                   K = TRUE,
+                   K_identity = TRUE)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## model with K correction (y = m + K + e)
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   K = TRUE)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
+## model with Q + K correction (y = m + Q + K + e)
+results <- map.QTL(phenotypes = mppheno,
+                   genotypes = mphapdose,
+                   ploidy = 4,
+                   map = mpmap,
+                   Q = TRUE,
+                   Qpco = 2,
+                   K = TRUE)
+names(results$phenotype1)
+skyplot(-log10(results$phenotype1$pval), map = mpmap)
+
 }

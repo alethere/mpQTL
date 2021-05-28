@@ -51,7 +51,7 @@ read_QTL <- function(pv,map,threshold = 10^-3, space = 3,log10 = F){
     #to which QTL peak of that chromosome does each marker belong
     peak <- 1; q <- 1
     for(d in distance){
-      if(d > space) q <- q+1
+      if(d >= space) q <- q+1
       peak <- c(peak,q)
     }
     peak <- paste0("QTL",peak)

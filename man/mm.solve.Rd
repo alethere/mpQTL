@@ -4,7 +4,7 @@
 \alias{mm.solve}
 \title{Mixed Model Solver}
 \usage{
-mm.solve(y, X, Z, K, Hinv = NULL, random = F, no.test = 0)
+mm.solve(y, X, Z, K, Hinv = NULL, random = FALSE, no.test = 0)
 }
 \arguments{
 \item{y}{Numeric vector of response variable}
@@ -40,6 +40,7 @@ If \code{random} is set to \code{True} an extra row "random" is added, containin
 random terms -at the cost of computational efficiency.
 }
 \description{
-Mixed model solver based on the rrBLUP package mixed.solve function
+Mixed model solver. This function is partly based on the
+\code{mixed.solve} function from the rrBLUP package \href{https://doi:10.3835/plantgenome2011.08.0024}{Endelman 2011}.
 }
 \keyword{internal}
