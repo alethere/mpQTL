@@ -18,7 +18,7 @@ for(w in files){
                               anc_alleles=matrix(0:399,nrow=40),
                               seed=7,
                               anc_sd=1)
-  
+
   polygen<-genotypes[polyg,]
   set.seed(7)
   effects.polyg<-apply(polygen,1,function(gen){
@@ -26,7 +26,7 @@ for(w in files){
     names(e)<-unique(gen)
     return(e)
   })
-  
+
   phenotypes<-lapply(herit,function(h2){
       pheno2(genotypes = rbind(QTL,polygen),
              effects = c(effects.QTL,effects.polyg),
@@ -42,6 +42,7 @@ saveRDS(phe,"phenotypes.RDS")
 
 phe<-readRDS("phenotypes.RDS")
 # Results 1. Pop Simulation ---------------
+
 parents<-as.data.frame(data.table::fread("../mpQTL v0/PedigreeSIM/Parents/Total_pop.txt"))
 sapply(paste0("A",0:9),function(name){
   AG<-parents[,grep(name,colnames(parents))]
@@ -61,7 +62,7 @@ id<-apply(id,2,function(i){
 })
 id<-do.call(cbind,id)
 
-AGs<-apply(id[1:10,],1,which) 
+AGs<-apply(id[1:10,],1,which)
 # col<-colorspace::divergex_hcl(7,palette="Tropic")
 col<-colorspace::sequential_hcl(length(unique(AGs[-1])),h=240)
 col<-col[c(unique(AGs[-1]),AGs[-1])]
@@ -102,7 +103,7 @@ mtext(side = 2,xpd=T,text = "Ancestral Groups",outer=T,line=1.8)
 lab<-sapply(unique(AGs[-1]),function(A){
   mid<- sum(A==AGs[-1])*offspring/2
   before <- sum(A>AGs[-1])*offspring
-  return(mid+before+nparents) 
+  return(mid+before+nparents)
 })
 at1<-(ncol(K)-c(nparents/2,lab))/ncol(K)
 labs <- c("P",paste0("A1xA",unique(AGs[-1])))
@@ -111,7 +112,7 @@ axis(2,at=at1,labels=labs,line = 0.3,col="white",las=2)
 lab<-sapply(unique(AGs[-1]),function(A){
   mid<- sum(A==AGs[-1])*offspring
   before <- sum(A>AGs[-1])*offspring
-  return(mid+before+nparents) 
+  return(mid+before+nparents)
 })
 at2 <- (ncol(K)-c(1,nparents,lab))/ncol(K)
 axis(2,at=at2,line=0.3,labels=NA)
@@ -174,7 +175,7 @@ colors = colorspace::hcl_palettes("YlGnBu",3)
 colors = colorspace::sequential_hcl(palette="YlGnBu",9)[c(1,5,8)]
 
 
-#First we calculate the positions based on cumulative cM 
+#First we calculate the positions based on cumulative cM
 chroms<-unique(map$chromosome)
 ch.length<-sapply(chroms,function(i) max(map$position[map$chromosome==i]))
 space<-sum(ch.length)*0.1/(length(chroms)-1)
@@ -212,7 +213,7 @@ View(map[QTLb,])
 View(maph[QTLh,])
 
 pos.calc <- function(map,space=0.1,ch.length=NULL){
-  #First we calculate the positions based on cumulative cM 
+  #First we calculate the positions based on cumulative cM
   if(is.null(ch.length)){
     chroms<-unique(map$chromosome)
     ch.length<-sapply(chroms,function(i) max(map$position[map$chromosome==i]))
@@ -225,6 +226,6 @@ pos.calc <- function(map,space=0.1,ch.length=NULL){
   abschlen<-c(0,abschlen)
   ch.start<-abschlen[-length(abschlen)]+spaces
   ch.end<-abschlen[-1]+spaces
-  
+
   abspos<-map$position+ch.start[map$chromosome]
 }

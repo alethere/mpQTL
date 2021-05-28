@@ -57,7 +57,7 @@ hap_data <- parallel::parLapply(cl,marker_num,function(m){
 parallel::stopCluster(cl)
 saveRDS(hap_data,"Haplo_map_density.RDS")
 
-hap_data <- readRDS("Haplo_map_density.RDS")
+hap_data <- readRDS("research/true_haplotypes/Haplo_map_density.RDS")
 pheno <- phe$cross200$`0.5`
 hap_res <- lapply(marker_num,function(m){
   i <- which(m == marker_num)

@@ -139,7 +139,7 @@ for(i in 1:length(pval)){
 ```
 
 ```{r}
-
+source("../../R/pheno_fun.R")
 genotypes<-link_NAM(crossfile="PedigreeSIM/NAM_crosses/3_ancestral/cross200_founderalleles.dat",
                     totallele="PedigreeSIM/Parents/Total_pop.txt")
 #main QTLs

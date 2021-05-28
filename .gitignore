@@ -7,6 +7,7 @@
 #Files
 PedigreeSim.7z
 PedigreeSim.jar
+research.7z
 #Folders
 research/PedigreeSim/
 research/Plots/
@@ -25,6 +26,8 @@ man/
 *.rds
 *.rda
 *test.R
+*genotypes.dat
+*.7z
 #Exceptions
 !vignettes/workshop_data.RDS
 !vignettes/new_workshop_data.RDS
