@@ -244,23 +244,11 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = T, legnames=NULL, coltype
 #' @export
 #'
 skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=NULL, chrom = NULL,
-<<<<<<< HEAD
                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, cex.big = NULL,
                    cex.small = NULL, line.big = NULL, ...
 ){
   #In case the markers are not in order
   # map <- map[with(map,order(map$chromosome,map$position)),]
-=======
-                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, chromspace = 0.05, ...
-){
-  #In case the markers are not in order
-  neworder <- order(map$chromosome,map$position)
-  map <- map[neworder,]
-  #any marker order change must be applied to pval accordingly,
-  #since map and pval are expected to be provided in the same marker order
-  pval <- pval[neworder]
->>>>>>> 250adb70a1ce95c7f585a3928dfc840b7af7186e
-
   #We filter per chromosome
   if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
 
