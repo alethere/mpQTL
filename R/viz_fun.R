@@ -268,13 +268,6 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = TRUE, legnames=NULL, colt
 #' skyplot(pval = -log10(pvals), map, small = FALSE, threshold = 3, ylim = c(0,4))
 #'
 skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=NULL, chrom = NULL,
-<<<<<<< HEAD
-                   small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, cex.big = NULL,
-                   cex.small = NULL, line.big = NULL, ...
-){
-  #In case the markers are not in order
-  # map <- map[with(map,order(map$chromosome,map$position)),]
-=======
                    small = NULL, col = NULL, h = NULL, l = NULL, pch = NULL, chromspace = 0.05, cex.big = NULL,
                    cex.small = NULL, ...
 ){
@@ -289,8 +282,6 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
     pval <- pval[neworder]
   }
 
-
->>>>>>> bc24c4fba3442826720010c0bdf3571f5e28e630
   #We filter per chromosome
   if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
 
