@@ -2042,6 +2042,8 @@ thr.LiJi <- function(m,
     # dosages.
     # To enable the method, 1) source rpool and pairwise_rpool,
     # 2) uncomment all the if(inherits(m, "list")) chunks of code.
+    # See an alternative method in the Li and Ji paper, that is based on
+    # joint entropy and mutual information.
     stop("m is not a matrix of SNP dosages")
   }
 
