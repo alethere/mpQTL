@@ -170,7 +170,8 @@ data("mppheno")
 results <- map.QTL(phenotypes = mppheno,
                    genotypes = mphapdose,
                    ploidy = 4,
-                   map = mpmap)
+                   map = mpmap,
+                   no_cores = 2)
 names(results$phenotype1)
 skyplot(-log10(results$phenotype1$pval), map = mpmap)
 
@@ -180,7 +181,8 @@ results <- map.QTL(phenotypes = mppheno,
                    ploidy = 4,
                    map = mpmap,
                    K = TRUE,
-                   K_identity = TRUE)
+                   K_identity = TRUE,
+                   no_cores = 2)
 names(results$phenotype1)
 skyplot(-log10(results$phenotype1$pval), map = mpmap)
 
@@ -192,7 +194,8 @@ results <- map.QTL(phenotypes = mppheno,
                    Q = TRUE,
                    Qpco = 2,
                    K = TRUE,
-                   K_identity = TRUE)
+                   K_identity = TRUE,
+                   no_cores = 2)
 names(results$phenotype1)
 skyplot(-log10(results$phenotype1$pval), map = mpmap)
 
@@ -201,7 +204,8 @@ results <- map.QTL(phenotypes = mppheno,
                    genotypes = mphapdose,
                    ploidy = 4,
                    map = mpmap,
-                   K = TRUE)
+                   K = TRUE,
+                   no_cores = 2)
 names(results$phenotype1)
 skyplot(-log10(results$phenotype1$pval), map = mpmap)
 
@@ -212,7 +216,8 @@ results <- map.QTL(phenotypes = mppheno,
                    map = mpmap,
                    Q = TRUE,
                    Qpco = 2,
-                   K = TRUE)
+                   K = TRUE,
+                   no_cores = 2)
 names(results$phenotype1)
 skyplot(-log10(results$phenotype1$pval), map = mpmap)
 
