@@ -1,7 +1,7 @@
 Package: mpQTL
 Type: Package
 Title: Multi-parental QTL analysis
-Version: 0.5.0
+Version: 0.6.0
 Authors@R: c(
     person("Giorgio", "Tumino", email = "giorgio.tumino@wur.nl",
            role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6505-7652")),

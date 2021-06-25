@@ -1,14 +1,25 @@
 
-# mpQTL 0.5.0
+# mpQTL 0.6.0
+
+## Minor changes
+- In the function **map.QTL** the argument **k** has been renamed **knn**, to
+  avoid confusion with the **K** argument used for kinship. 
+- **sample.cM** has been renamed **sample.markers** and the **cM** parameter
+  renamed **binsize**. 
+- **plot.LD** renamed **plot_LD**.
 
 ## Bug fixes
 
-- The displacement of residuals was fixed. It was incorrect when a phenotype
-  contained missing values.
+- The output residuals table was fixed. It had an incorrect order for
+  phenotypes containing missing values.
+- Fix a small bug in **plot_LD** causing an error when using less than four 
+  quantiles.
 - Error in **sample.cM** when using a vector of marker names as input.
 - Error in **QQ.plot** using a list of p-values as input.
 - Fix bugs in **pheno_box**, that was returning errors when NAs were in
   SNP dosages or haplotypes or phenotypes.
+- Fix a bug introduced in a late version of **impute.knn**.
+  
 
 ## Fulfill CRAN requirements
 

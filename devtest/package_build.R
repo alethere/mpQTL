@@ -24,7 +24,7 @@ devtools::check()
 
 
 devtools::build()
-devtools::check_built(paste0("../mpQTL_0.5.0.tar.gz"), cran=TRUE)
+devtools::check_built(paste0("../mpQTL_0.6.0.tar.gz"), cran=TRUE)
 
 
 # setwd("D:/Science/PhD/Code/mpQTL/mpQTL/")
