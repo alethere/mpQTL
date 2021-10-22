@@ -9,7 +9,8 @@ PedigreeSim.7z
 PedigreeSim.jar
 research.7z
 #Folders
-research/*
+research/
+devtest/
 doc
 Meta
 inst/doc
