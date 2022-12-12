@@ -229,10 +229,10 @@ QQ.plot <- function( pvals, ylim = NULL, plot_legend = TRUE, legnames=NULL, colt
 #' Manhattan Skyline Plot
 #'
 #' Takes a vector of values and a dataframe of a genetic map containing the columns
-#' "chromosome" and "position", and produces a plot where values are mapped onto the genome.
+#' "marker", "chromosome" and "position", and produces a plot where values are mapped onto the genome.
 #'
 #' @param pval Numerical vector. Usually -log10(p-values), but other values are accepted.
-#' @param map Dataframe containing columns "chromosome" and "position".
+#' @param map Dataframe containing columns "marker", "chromosome" and "position".
 #' @param col Base colour to use for plotting. Odd chromosomes will be plotted with this colour,
 #' even chromosomes will be plotted with a lighter version of the same colour. Alternatively,
 #' a character vector specifying two colours can be provided.
