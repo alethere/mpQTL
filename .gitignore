@@ -9,13 +9,9 @@ PedigreeSim.7z
 PedigreeSim.jar
 research.7z
 #Folders
-research/PedigreeSim/
-research/Plots/
-research/test.R
-research/output_inferredHaps/
-research/inferred_haplotypes/
-research/pop_simulations/HWE_datasets
-devtest/devdatasets/
+research/
+data-raw/
+devtest/
 doc
 Meta
 inst/doc

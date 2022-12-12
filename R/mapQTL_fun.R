@@ -607,7 +607,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
             rownames(res$beta) <- c("",par_names)
             return(res)
           })
-          names(solveout) <- colnames(phenotypes)
+          names(solveout) <- colnames(phenotypes)[w]
         }
 
         return(solveout)
