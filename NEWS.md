@@ -1,3 +1,7 @@
+# mpQTL 0.6.1
+## Bug fixes
+- Solved a phenotype naming bug in the mixed model output of **map.QTL**.
+
 
 # mpQTL 0.6.0
 

@@ -102,11 +102,26 @@ refineBlocks <- function(hb_list,
   if(method=="random") {
     hb_list <- lapply(hb_list, function(x) {
       if(length(x) > maxnmrk) {
-        # x[sort(sample(1:length(x), maxnmrk))]
-        a <- lapply(1:nrand, function(i) {
-          x[sort(sample(1:length(x), maxnmrk))]
+
+        # alternative 1
+        # First enumerate all the unique combination, then sample n combinations.
+        # if length(x) is high, there will be too many combinations (waste of
+        # memory and time).
+        combs <- combn(1:length(x), maxnmrk)
+        combs_sel <- sample(1:ncol(combs), min(nrand,ncol(combs)))
+        a <- lapply(1:length(combs_sel), function(i) {
+          x[combs[,combs_sel[i]]]
         })
-        names(a) <- as.character(1:nrand)
+        names(a) <- as.character(1:length(combs_sel))
+
+        # alternative 2
+        # Sample a combination n times independently (duplicated combinations
+        # could be sampled).
+        # a <- lapply(1:nrand, function(i) {
+        #   x[sort(sample(1:length(x), maxnmrk))]
+        # })
+        # names(a) <- as.character(1:nrand)
+
         return(a)
       } else {
         # x
@@ -387,7 +402,20 @@ inspect_haps <- function(results, hb_list, ind=NULL, fld, outname) {
 
 
 
-# function to filter NA per window
+
+#' Filter out low quality haploblocks
+#'
+#' @param results Output of PolyHaplotyper (haplotyping results).
+#' @param insp Output of inspect_haps (stats of haplotyping results).
+#' @param n Integer indicating the max number of haploblocks to be selected per
+#' bin (window).
+#' @param na.thr A number in the range 0-1 indicating the max proportion of
+#' missingness allowed per haploblock.
+#'
+#' @return A named vector with missingness (and names) of selected haploblocks.
+#' @export
+#'
+#' @examples
 filter_haps <- function(results, insp, n=10, na.thr=0.25){
 
   window_fact <- sapply(strsplit(names(results),"\\."), function(x) x[[1]])

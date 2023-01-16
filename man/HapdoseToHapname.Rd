@@ -45,13 +45,13 @@ opposite.
 }
 \section{Functions}{
 \itemize{
-\item \code{HapdoseToHapname}: This function converts a list of haplotype
+\item \code{HapdoseToHapname()}: This function converts a list of haplotype
 dosages into a matrix of haplotypes names.
 
-\item \code{HapnameToHapdose}: This function converts a matrix of haplotypes
+\item \code{HapnameToHapdose()}: This function converts a matrix of haplotypes
 names into a list of haplotype dosages.
-}}
 
+}}
 \examples{
 ## Create random haplotype dosage data for ten tetraploid
 ## individuals and three loci.

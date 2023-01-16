@@ -26,7 +26,7 @@ skyplot(
 \arguments{
 \item{pval}{Numerical vector. Usually -log10(p-values), but other values are accepted.}
 
-\item{map}{Dataframe containing columns "chromosome" and "position".}
+\item{map}{Dataframe containing columns "marker", "chromosome" and "position".}
 
 \item{threshold}{A threshold value to draw the threshold line.}
 
@@ -70,7 +70,7 @@ creates a skyline plot.
 }
 \description{
 Takes a vector of values and a dataframe of a genetic map containing the columns
-"chromosome" and "position", and produces a plot where values are mapped onto the genome.
+"marker", "chromosome" and "position", and produces a plot where values are mapped onto the genome.
 }
 \examples{
 ## Create a map and set of random p-values

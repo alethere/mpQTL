@@ -2,29 +2,32 @@
 devtools::load_all()
 
 
-#Package building
+# Package building ------------------------------------
 # library(devtools)
 
-# function documentation
+## function documentation --------------
 devtools::document()
 devtools::check_man() #calls document() and runs the checks for manual included in check_built()
 # devtools::build_manual() #to add a pdf manual
 
-# data
+# ## data ----------------
 # data to be included must be in the folder 'data' with extension .RData
 # data <- readRDS("vignettes/new_workshop_data.RDS")
 # save(data,file="data/data.RData")
 
-# vignettes
+# ## vignettes ------------
 # to create a template  use:
 # usethis::use_vignette("mpQTL_newvignette")
 
-
+## check before building ------------
 devtools::check()
+devtools::check_win_devel()
 
-
+## build -----------------
 devtools::build()
-devtools::check_built(paste0("../mpQTL_0.6.0.tar.gz"), cran=TRUE)
+
+## check after building -------------
+devtools::check_built(paste0("../mpQTL_0.6.1.tar.gz"), cran=TRUE)
 
 
 # setwd("D:/Science/PhD/Code/mpQTL/mpQTL/")
