@@ -396,8 +396,8 @@ map.QTL.notparallel <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NU
   if(linear){
     #First set up cluster
 
-    cluster <- parallel::makeCluster(no_cores)
-    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo")
+    # cluster <- parallel::makeCluster(no_cores)
+    # export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo")
 
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
@@ -407,15 +407,15 @@ map.QTL.notparallel <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NU
       cat("Linear model with Q correction will be used.\n")
     }
 
-    parallel::clusterExport(cl=cluster,export,
-                            envir=environment()) #needed again? #gt: yes, because
+    # parallel::clusterExport(cl=cluster,export,
+    #                         envir=environment()) #needed again? #gt: yes, because
     # we want to use variables defined in this executing environment, not in the
     # global one. Although the function dosage.X is not present in this
     # environment, clusterExport will search it and will find it in the parent environments
 
     #Testing
     result <- lapply(1:ncol(phenotypes),function(w){
-      res <- parallel::parLapply(cluster,1:nrow(genotypes),function(k){
+      res <- lapply(1:nrow(genotypes),function(k){
         X <- dosage.X(genotypes[k,],ploidy = 4,haplotype = haplo,normalize = FALSE)
         if(haplo) X <- X[,-ncol(X)]
         #We create the naive and full matrices. The naive
@@ -463,7 +463,7 @@ map.QTL.notparallel <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NU
       return(res)
     })
 
-    parallel::stopCluster(cluster)
+    # parallel::stopCluster(cluster)
 
     # #Reformatting of results so that they fit standard output
     # result <- lapply(1:ncol(phenotypes),function(w){
@@ -534,7 +534,7 @@ map.QTL.notparallel <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NU
 
     # #gt version: markers in parallel (parallelization works even with one phenotype)
     result<-lapply(1:ncol(phenotypes),function(w){#NOT parallely over each phenotype
-      result<-sapply(cl,1:nrow(genotypes),FUN=function(k){#parallely over markers, calculate the pvalue for each marker
+      result<-sapply(1:nrow(genotypes),FUN=function(k){#parallely over markers, calculate the pvalue for each marker
 
         #DEFINITION OF X (matrix of fixed effects)
         X <- dosage.X(as.matrix(genotypes[k,]),

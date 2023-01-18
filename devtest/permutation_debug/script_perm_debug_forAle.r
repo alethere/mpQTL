@@ -10,6 +10,7 @@ pheno <- matrix(c(sample(c(5:10), 10, replace = T),
                   sample(c(5:10), 10, replace = T),
                   sample(c(5:10,NA), 10, replace = T)), ncol = 3)
 colnames(pheno) <- c("A","B","C")
+head(pheno)
 
 set.seed(5)
 geno <- matrix(sample(0:4, 5*10, replace = T), ncol = 10)
@@ -32,7 +33,7 @@ map
 ## run the analysis below comparing different phenotype datasets:
 
 ## 1) only pheno "A" (a phenotype without NAs)
-res1 <- map.QTL(phenotypes = pheno[,"A"],
+res1 <- map.QTL(phenotypes = pheno[,"A",drop=F],
                genotypes = geno, #genotype matrix
                ploidy = 4,
                map = map, #genetic map table
@@ -41,7 +42,7 @@ res1 <- map.QTL(phenotypes = pheno[,"A"],
                Z=NULL,
                cofactor=NULL,
                cofactor.type=NULL,
-               cM=1, #
+               binsize=1, #
                seed=NULL,
                Qpco=2, #number of axis used for pco decomposition
                no_cores=parallel::detectCores()-1,
@@ -53,7 +54,7 @@ res1 <- map.QTL(phenotypes = pheno[,"A"],
                k=20,
                linear = NULL,
                K_identity = F)
-
+str(res1)
 
 ## 2) pheno "A" and "B" (adding a phenotype without NAs)
 res2 <- map.QTL(phenotypes = pheno[,c("A","B")],
@@ -65,7 +66,7 @@ res2 <- map.QTL(phenotypes = pheno[,c("A","B")],
                 Z=NULL,
                 cofactor=NULL,
                 cofactor.type=NULL,
-                cM=1, #
+                binsize=1, #
                 seed=NULL,
                 Qpco=2, #number of axis used for pco decomposition
                 no_cores=parallel::detectCores()-1,
@@ -88,7 +89,7 @@ res3 <- map.QTL(phenotypes = pheno,
                 Z=NULL,
                 cofactor=NULL,
                 cofactor.type=NULL,
-                cM=1, #
+                binsize=1, #
                 seed=NULL,
                 Qpco=2, #number of axis used for pco decomposition
                 no_cores=parallel::detectCores()-1,
@@ -101,20 +102,49 @@ res3 <- map.QTL(phenotypes = pheno,
                 linear = NULL,
                 K_identity = F)
 
+
+
 data <- test.compatibility(pheno,dosage.X(geno[1,]),Z = diag(nrow(pheno)), K = diag(nrow(pheno)))
 length(data)
 ## compare the p-values of pheno "A" across the three analyses (for the first marker only)
 res1[[1]]$pval
 res2[[1]]$pval
 res3[[1]]$pval
-## res1 and res returned the same pval (0.0706), but in res3 it is different (0.0851)
-## the results for one phenotype should not be affected by other phenotypes
-## this situation is exacerbated in permutation tests
-
 
 sapply(res1,'[[',"pval")
 sapply(res3,'[[',"pval")
 
+## res1 and res returned the same pval (0.0706), but in res3 it is different (0.0851)
+## the results for one phenotype should not be affected by other phenotypes
+## this situation is exacerbated in permutation tests
+
+res4 <- map.QTL(phenotypes = pheno,
+                genotypes = geno, #genotype matrix
+                ploidy = 4,
+                map = map, #genetic map table
+                K=NULL, #distance matrix
+                Q=NULL, #population effect matrix
+                Z=NULL,
+                cofactor=NULL,
+                cofactor.type=NULL,
+                binsize=1, #
+                seed=NULL,
+                Qpco=2, #number of axis used for pco decomposition
+                no_cores=parallel::detectCores()-1,
+                approximate = T,
+                permutation = "pop", #permutation strategy: "pop" or "fam"
+                nperm = 10, #number of permutations
+                alpha = 0.95,
+                impute=T,
+                k=20,
+                linear = NULL,
+                K_identity = F)
+
+
+str(res4)
+
+sapply(res3,'[[',"pval")
+sapply(res3,'[[',"pval")
 
 
 

@@ -54,9 +54,12 @@
 #' @param Q It can be 1) NULL, 2) TRUE, 3) a vector identifying populations
 #' or 4) a Q design matrix. If NULL, no Q will be included in the model (i.e. a
 #' model without Q correction). If TRUE, a PCo decomposition will be used to
-#' estimate population differentiation. If a vector specifying population of
+#' estimate population stratification. If a vector specifying population of
 #' each individual is passed, it will be used to construct a Q matrix. Vector
 #' may contain numerical or character.
+#' @param Qpco If Q = TRUE, integer indicating the number of Principal Coordinates to be
+#' estimated and included. It is useful for detecting and correcting for the
+#' main axes of genetic variation (i.e. population structure).
 #' @param map A data frame with 3 columns containing map information. The first
 #' column specifies marker names, the second column chromosome names and the
 #' third one marker position (any map unit).
@@ -74,9 +77,6 @@
 #' @param cofactor.type If a cofactor matrix is specified, a character vector
 #' specifying the type ("numerical" or "categorical") of each cofactor.
 #' It accepts partial strings such as "cat" and "num".
-#' @param Qpco Logical value indicating whether a PCo-based population factor should be
-#' estimated and included. It is useful for detecting and correcting for the
-#' main axes of genetic variation (i.e. population structure).
 #' @param approximate Logical value indicating whether P3D/EMMAX approach should be
 #' used for computational efficiency (if FALSE, expect much longer waiting times)
 #' @param permutation permutation strategy. Can be "pop" (permutation over the
@@ -407,7 +407,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
                       replicate(nperm, do.call("c",lapply(famid, sample))))
     }
     phenotypes <- do.call("cbind",lapply(1:ncol(permid), function(i) {
-      phenotypes[permid[,i],]
+      phenotypes[permid[,i],,drop=FALSE]
     }))
   }
 
