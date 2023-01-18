@@ -1,11 +1,15 @@
-# mpQTL 0.6.1
+# mpQTL 0.6.2
+
 ## Bug fixes
-- Solved a phenotype naming bug in the mixed model output of **map.QTL**.
+
+- Solved a phenotype naming bug. The original phenotype names were not kept in
+  the output of **map.QTL**.
 
 
 # mpQTL 0.6.0
 
 ## Minor changes
+
 - In the function **map.QTL** the argument **k** has been renamed **knn**, to
   avoid confusion with the **K** argument used for kinship. 
 - **sample.cM** has been renamed **sample.markers** and the **cM** parameter
