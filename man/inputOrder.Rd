@@ -16,7 +16,7 @@ of evenly spaced markers to be used for kinship estimation.}
 \item{Q}{It can be 1) NULL, 2) TRUE, 3) a vector identifying populations
 or 4) a Q design matrix. If NULL, no Q will be included in the model (i.e. a
 model without Q correction). If TRUE, a PCo decomposition will be used to
-estimate population differentiation. If a vector specifying population of
+estimate population stratification. If a vector specifying population of
 each individual is passed, it will be used to construct a Q matrix. Vector
 may contain numerical or character.}
 

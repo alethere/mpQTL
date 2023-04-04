@@ -58,7 +58,7 @@ distance matrix may also be directly specified.}
 \item{Q}{It can be 1) NULL, 2) TRUE, 3) a vector identifying populations
 or 4) a Q design matrix. If NULL, no Q will be included in the model (i.e. a
 model without Q correction). If TRUE, a PCo decomposition will be used to
-estimate population differentiation. If a vector specifying population of
+estimate population stratification. If a vector specifying population of
 each individual is passed, it will be used to construct a Q matrix. Vector
 may contain numerical or character.}
 
@@ -77,7 +77,7 @@ map unit (for physical maps use Mb). Defaults to 1.}
 
 \item{seed}{An integer to set a seed for random number generation in \code{sample.marker}.}
 
-\item{Qpco}{Logical value indicating whether a PCo-based population factor should be
+\item{Qpco}{If Q = TRUE, integer indicating the number of Principal Coordinates to be
 estimated and included. It is useful for detecting and correcting for the
 main axes of genetic variation (i.e. population structure).}
 

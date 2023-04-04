@@ -1,0 +1,13 @@
+citHeader("To cite mpQTL in publications use:")
+
+citEntry(
+  entry    = "Article",
+  title    = "Multiallelic models for QTL mapping in diverse polyploid populations",
+  author   = "Alejandro Therese Navarro, Giorgio Tumino, Roeland E. Voorrips, Paul Arens, Marinus J. M. Smulders, Eric van de Weg & Chris Maliepaard",
+  journal  = "BMC Bioinformatics",
+  year     = 2022,
+  volume   = 23,
+  number   = 67,
+  textVersion = NULL,
+  doi      = "10.1186/s12859-022-04607-z"
+)
