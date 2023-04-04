@@ -1,6 +1,6 @@
 #Main ignores
 .Rproj.user
-.Rproj
+*.Rproj
 .Rhistory
 .RData
 .Ruserdata
