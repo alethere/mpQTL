@@ -46,7 +46,7 @@ in generating pleasant and adequate palettes for data visualization. For more
 information on how to choose colour palettes be sure to visit the
 \href{http://colorspace.r-forge.r-project.org/articles/hcl_palettes.html}{colorspace blog}. Or
 if you whish to learn about colour spaces and the HCL colour space visit
-\href{http://hclwizard.org/why-hcl/}{"why HCL"}.
+\href{https://hclwizard.org/why-hcl/}{"why HCL"}.
 }
 \examples{
 \dontrun{

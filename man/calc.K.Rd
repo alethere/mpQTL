@@ -26,7 +26,7 @@ Using SNP genotypes (discrete or continuous) or haplotype
 scores, a distance matrix is calculated
 such that the average distance of an individual with itself is 1, and
 the average with an unrelated individual is 0. Based on the "Realized
-Relationship" model found in \href{https://dl.sciencesocieties.org/publications/tpg/abstracts/9/2/plantgenome2015.08.0073}{Rosyara et al. 2016}
+Relationship" model found in \href{https://doi.org/10.3835/plantgenome2015.08.0073}{Rosyara et al. 2016}
 }
 \examples{
 ## Create SNP dosages for 10 tetraploid individuals (in rows) and 100 markers

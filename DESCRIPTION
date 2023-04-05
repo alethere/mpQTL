@@ -1,13 +1,13 @@
 Package: mpQTL
 Type: Package
-Title: Multi-parental QTL analysis
+Title: Multi-Parental QTL Analysis
 Version: 0.6.2
 Authors@R: c(
     person("Giorgio", "Tumino", email = "giorgio.tumino@wur.nl",
            role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6505-7652")),
     person("Alejandro", "Thérèse Navarro", email = "alejandro.theresenavarro@wur.nl",
            role = c("aut")))
-Description: mpQTL offers a suite of functions to perform QTL analysis using
+Description: A suite of functions to perform QTL analysis using
     a single marker regression methodology in a mixed model framework. Such a mixed model
     approach enables to account for different levels of population structure, combining 
     main fixed effect coordinates of variation with random effects based on a relatedness

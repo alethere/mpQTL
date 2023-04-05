@@ -41,6 +41,6 @@ random terms -at the cost of computational efficiency.
 }
 \description{
 Mixed model solver. This function is partly based on the
-\code{mixed.solve} function from the rrBLUP package \href{https://doi:10.3835/plantgenome2011.08.0024}{Endelman 2011}.
+\code{mixed.solve} function from the rrBLUP package \href{https://doi.org/10.3835/plantgenome2011.08.0024}{Endelman 2011}.
 }
 \keyword{internal}
