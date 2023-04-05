@@ -58,7 +58,7 @@ lighten <- function(
 #' information on how to choose colour palettes be sure to visit the
 #' \href{http://colorspace.r-forge.r-project.org/articles/hcl_palettes.html}{colorspace blog}. Or
 #' if you whish to learn about colour spaces and the HCL colour space visit
-#' \href{http://hclwizard.org/why-hcl/}{"why HCL"}.
+#' \href{https://hclwizard.org/why-hcl/}{"why HCL"}.
 #'
 #' @param n Integer. Number of colours to return.
 #' @param coltype Either "sequential", "qualitative" (default), "divergent" or "rainbow".
@@ -366,7 +366,7 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
 #' a data.frame with the axis chromosomes start and end, for axis plotting.
 #' @keywords internal
 map_axis <- function(maplist,space = 0){
-  if(class(maplist) != "list") maplist <- list(maplist)
+  if(!inherits(maplist, "list")) maplist <- list(maplist)
 
   #All chromosomes present in all maps
   chroms <- lapply(maplist,function(m){

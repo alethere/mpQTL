@@ -447,7 +447,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
         solveout <- try(lm_compare(X,N,y),silent = TRUE)
 
         ## mantain the usual output structure in case of error
-        if (class(solveout) == "try-error") {
+        if (inherits(solveout, "try-error")) {
           # write(solveout, file="lm_compare_errors.txt", append = TRUE)
 
           #ATN the "original structure" requires iterators with as many elements
@@ -585,7 +585,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
         solveout <- try(mm.solve(phenotypes[,w,drop=FALSE],X,Z,K,H,no.test = no.test), silent = TRUE)
 
         ## mantain the usual output structure in case of error
-        if (class(solveout) == "try-error") {
+        if (inherits(solveout, "try-error")) {
           # write(solveout, file="mm.solve_errors.txt", append = TRUE)
           solveout <- list(list(
             beta = matrix(NA),
@@ -703,7 +703,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
 #' scores, a distance matrix is calculated
 #' such that the average distance of an individual with itself is 1, and
 #' the average with an unrelated individual is 0. Based on the "Realized
-#' Relationship" model found in \href{https://dl.sciencesocieties.org/publications/tpg/abstracts/9/2/plantgenome2015.08.0073}{Rosyara et al. 2016}
+#' Relationship" model found in \href{https://doi.org/10.3835/plantgenome2015.08.0073}{Rosyara et al. 2016}
 #'
 #' @param matrix A matrix of SNP genotypes (continuous or discrete) or
 #' haplotypes (multi-allelic markers), where columns are markers and
@@ -971,7 +971,7 @@ calc.Hinv<-function( y, X, Z, K=NULL, bounds=c(1e-09,1e+09), method="REML" ){
 #' Mixed Model Solver
 #'
 #' @description Mixed model solver. This function is partly based on the
-#' \code{mixed.solve} function from the rrBLUP package \href{https://doi:10.3835/plantgenome2011.08.0024}{Endelman 2011}.
+#' \code{mixed.solve} function from the rrBLUP package \href{https://doi.org/10.3835/plantgenome2011.08.0024}{Endelman 2011}.
 #'
 #' @param y Numeric vector of response variable
 #' @param X Fixed effect design matrix. Must include an intercept. Generally this
