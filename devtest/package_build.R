@@ -12,7 +12,7 @@ usethis::use_citation()
 # library(devtools)
 
 ## function documentation --------------
-# devtools::document()
+devtools::document()
 devtools::check_man() #calls document() and runs the checks for manual included in check_built()
 # devtools::build_manual() #to add a pdf manual
 
