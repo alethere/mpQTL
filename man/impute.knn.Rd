@@ -35,7 +35,7 @@ For continuous SNP genotypes, the nearest neighbours mean is used instead of
 the most common dosage/haplotype.
 }
 \examples{
-
+\dontrun{
 ## Get simulated genotypes for tetraploid individuals
 data("mpsnpdose") # SNP dosages
 data("mphapdose") # haplotypes
@@ -45,5 +45,6 @@ mphapdose[sample(1:length(mphapdose),500)] <- NA  # add NAs randomly
 ## Imputation
 mpsnpdose <- impute.knn(mpsnpdose, ploidy = 4, kneighbors = 50)
 mphapdose <- impute.knn(mphapdose, ploidy = 4, kneighbors = 50)
+}
 
 }

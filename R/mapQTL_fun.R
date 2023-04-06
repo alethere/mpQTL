@@ -87,9 +87,9 @@
 #' @param alpha Permutation threshold alpha value, default to 0.05. Alpha is the
 #' chance of observing a false positive experiment-wise.
 #' @param impute Logical value indicating whether missing genotypes should be
-#' imputed using \code{impute.knn}. Defaults to True, but False is recommended (imputation algorithm
-#' needs to be improved and with few missing values it has a small effect
-#' on QTL detection).
+#'   imputed using \code{impute.knn}. Defaults to True, but False is recommended
+#'   (imputation algorithm needs to be improved and with few missing values it
+#'   has a small effect on QTL detection).
 #' @param nperm number of permutations, if \code{permutation} is not null.
 #' @param knn Number of neighbours to use in the internal function \code{impute.knn}
 #' @param linear logical. If TRUE, linear model (without structure correction)
@@ -128,6 +128,7 @@
 #'
 #' @export
 #' @examples
+#' \dontrun{
 #' ## Get example genotypes (haplotypes in this case),
 #' ## map and phenotypes for a population of tetraploid individuals
 #' data("mphapdose")
@@ -188,6 +189,7 @@
 #'                    no_cores = 2)
 #' names(results$phenotype1)
 #' skyplot(-log10(results$phenotype1$pval), map = mpmap)
+#' }
 #'
 map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
                     cofactor=NULL, cofactor.type=NULL, binsize=1, seed=NULL, Qpco=2,
@@ -703,7 +705,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
 #' scores, a distance matrix is calculated
 #' such that the average distance of an individual with itself is 1, and
 #' the average with an unrelated individual is 0. Based on the "Realized
-#' Relationship" model found in \href{https://doi.org/10.3835/plantgenome2015.08.0073}{Rosyara et al. 2016}
+#' Relationship" model found in Rosyara et al. (2016).
 #'
 #' @param matrix A matrix of SNP genotypes (continuous or discrete) or
 #' haplotypes (multi-allelic markers), where columns are markers and
@@ -715,6 +717,10 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
 #' haplotypes = TRUE.
 #'
 #' @return A numeric matrix nxn where n is the number of rows.
+#' @references
+#' Rosyara U.R., De Jong W.S., Douches D.S., Endelman J.B. (2016). Software for
+#' Genome-Wide Association Studies in Autopolyploids and Its Application to
+#' Potato. *Plant Genome* 9:2. doi: 10.3835/plantgenome2015.08.0073
 #' @export
 #' @examples
 #' ## Create SNP dosages for 10 tetraploid individuals (in rows) and 100 markers
@@ -971,7 +977,7 @@ calc.Hinv<-function( y, X, Z, K=NULL, bounds=c(1e-09,1e+09), method="REML" ){
 #' Mixed Model Solver
 #'
 #' @description Mixed model solver. This function is partly based on the
-#' \code{mixed.solve} function from the rrBLUP package \href{https://doi.org/10.3835/plantgenome2011.08.0024}{Endelman 2011}.
+#' \code{mixed.solve} function from the rrBLUP package (Endelman 2011).
 #'
 #' @param y Numeric vector of response variable
 #' @param X Fixed effect design matrix. Must include an intercept. Generally this
@@ -997,6 +1003,10 @@ calc.Hinv<-function( y, X, Z, K=NULL, bounds=c(1e-09,1e+09), method="REML" ){
 #' wald (Wald test values), and real.df (realized degrees of freedom, df approximation).
 #' If \code{random} is set to \code{True} an extra row "random" is added, containing the
 #' random terms -at the cost of computational efficiency.
+#' @references
+#' Endelman J.B. (2011). Ridge regression and other kernels for genomic
+#' selection with r package rrBLUP. *Plant Genome* 4, 250-255.
+#' doi: 10.3835/plantgenome2011.08.0024
 #' @keywords internal
 mm.solve <- function( y,  X, Z, K, Hinv = NULL, random = FALSE, no.test = 0){
 
@@ -1734,7 +1744,7 @@ imputeNA <- function(m,
 #' @return A complete matrix of haplotypes, SNP dosages or continuous SNP genotypes.
 #' @export
 #' @examples
-#'
+#' \dontrun{
 #' ## Get simulated genotypes for tetraploid individuals
 #' data("mpsnpdose") # SNP dosages
 #' data("mphapdose") # haplotypes
@@ -1744,6 +1754,7 @@ imputeNA <- function(m,
 #' ## Imputation
 #' mpsnpdose <- impute.knn(mpsnpdose, ploidy = 4, kneighbors = 50)
 #' mphapdose <- impute.knn(mphapdose, ploidy = 4, kneighbors = 50)
+#' }
 #'
 impute.knn <- function(
   geno,

@@ -100,9 +100,9 @@ membership (or a population structure membership) of each individual.}
 chance of observing a false positive experiment-wise.}
 
 \item{impute}{Logical value indicating whether missing genotypes should be
-imputed using \code{impute.knn}. Defaults to True, but False is recommended (imputation algorithm
-needs to be improved and with few missing values it has a small effect
-on QTL detection).}
+imputed using \code{impute.knn}. Defaults to True, but False is recommended
+(imputation algorithm needs to be improved and with few missing values it
+has a small effect on QTL detection).}
 
 \item{knn}{Number of neighbours to use in the internal function \code{impute.knn}}
 
@@ -160,6 +160,7 @@ the variance of the random term. This would be equivalent to a naive model
 (unless any additional fixed effect parameter is specified).
 }
 \examples{
+\dontrun{
 ## Get example genotypes (haplotypes in this case),
 ## map and phenotypes for a population of tetraploid individuals
 data("mphapdose")
@@ -220,5 +221,6 @@ results <- map.QTL(phenotypes = mppheno,
                    no_cores = 2)
 names(results$phenotype1)
 skyplot(-log10(results$phenotype1$pval), map = mpmap)
+}
 
 }

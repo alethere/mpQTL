@@ -26,7 +26,7 @@ Using SNP genotypes (discrete or continuous) or haplotype
 scores, a distance matrix is calculated
 such that the average distance of an individual with itself is 1, and
 the average with an unrelated individual is 0. Based on the "Realized
-Relationship" model found in \href{https://doi.org/10.3835/plantgenome2015.08.0073}{Rosyara et al. 2016}
+Relationship" model found in Rosyara et al. (2016).
 }
 \examples{
 ## Create SNP dosages for 10 tetraploid individuals (in rows) and 100 markers
@@ -46,4 +46,9 @@ K <- calc.K(hapdose, haplotype = TRUE, ploidy = 4)
 hapdose <- matrix(letters[hapdose], nrow=20)
 K <- calc.K(hapdose, haplotype = TRUE, ploidy = 4)
 
+}
+\references{
+Rosyara U.R., De Jong W.S., Douches D.S., Endelman J.B. (2016). Software for
+Genome-Wide Association Studies in Autopolyploids and Its Application to
+Potato. *Plant Genome* 9:2. doi: 10.3835/plantgenome2015.08.0073
 }
