@@ -1706,6 +1706,7 @@ inputOrder <- function(geno, pheno=NULL, map=NULL,
 #' missing values by a number.
 #'
 #' @return a matrix with no missing values.
+#' @export
 #' @keywords internal
 imputeNA <- function(m,
                      miss = NULL) {
