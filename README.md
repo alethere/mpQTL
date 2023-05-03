@@ -13,5 +13,3 @@ If you have access to our gitlab and want to install it from there, please conta
 ## Vignette
 
 We are working on a vignette that will be published soon to help you better use this software.
-
-
