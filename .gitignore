@@ -14,7 +14,7 @@ data-raw/
 devtest/
 doc
 Meta
-vignettes/
+vignettes/*
 man/
 #Extensions
 *.RDS
