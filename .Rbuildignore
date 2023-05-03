@@ -8,8 +8,6 @@
 ^R/Sample_dataset\.R$
 ^R/all\.R$
 ^R/examples\.R$
-^devtest/*
-^research/*
 ^data-raw$
 ^doc/*$
 ^Meta/*$
