@@ -24,6 +24,6 @@ man/
 *genotypes.dat
 *.7z
 #Exceptions
-!vignettes/workshop_data.RDS
-!vignettes/new_workshop_data.RDS
+#!vignettes/workshop_data.RDS
+#!vignettes/new_workshop_data.RDS
 
