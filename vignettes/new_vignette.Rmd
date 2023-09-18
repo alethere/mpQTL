@@ -17,7 +17,6 @@ theme: flatly
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(mpQTL)
-source("mpqtl/R/viz_fun.R")
 ```
 
 # Introduction
