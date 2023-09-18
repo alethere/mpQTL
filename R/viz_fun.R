@@ -808,7 +808,7 @@ pheno_dosage <- function( phe, gen, coltype=coltype, h=h, l=l, draw.points = dra
 
   boxplot(new_boxlist,
           border = col,
-          outline = FALSE,
+          outline = FALSE,col = "white",
           ylim=range(phe, na.rm = TRUE),...)
 
   if(draw.points){
@@ -825,13 +825,12 @@ pheno_dosage <- function( phe, gen, coltype=coltype, h=h, l=l, draw.points = dra
 #' @keywords internal
 #' @noRd
 pheno_haplo <- function( phe, gen, ploidy, hap.select = NULL,
-                         coltype=coltype, h=h, l=l, draw.points = draw.points, ...
+                         coltype=coltype, h=NULL, l=NULL, draw.points = draw.points, ...
 ){
 
   #Here we obtain the matrix of dosages per haplotype
-  data <- dosage.X(gen,haplotype = TRUE,ploidy=ploidy)
+  data <- dosage.X(gen,haplotype = TRUE,ploidy = ploidy)
   data <- data[,!is.na(colnames(data)),drop=FALSE] # to exclude column for NA
-  data <- data[,as.character(colnames(data)),drop=FALSE]
 
   #Filtering
   if(is.null(hap.select)) hap.select <- colnames(data)
@@ -841,7 +840,7 @@ pheno_haplo <- function( phe, gen, ploidy, hap.select = NULL,
          " not found in provided haplotypes:\n",
          paste(unique(gen),collapse = " "))
   }
-  data <- data[,as.character(hap.select),drop=FALSE]
+  data <- data[,hap.select,drop=FALSE]
 
   #Create some basic parameters
   n_hap <- ncol(data)
@@ -874,7 +873,7 @@ pheno_haplo <- function( phe, gen, ploidy, hap.select = NULL,
 
   #We draw the boxplots
   boxplot(boxlist,at = at,outline = FALSE,
-          border = col,axes = FALSE,
+          border = col,axes = FALSE, col = "white",
           ylim=range(phe, na.rm = TRUE),...)
 
   #We add the observation points

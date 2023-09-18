@@ -849,12 +849,6 @@ dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE 
     if(normalize & ncol(alcount)!= 1) alcount <- apply(alcount,2,function(a) (a-mean(a))/sd(a))
     else if(normalize) alcount <- apply(alcount,2,function(a) (a-mean(a)))
 
-    # #This part is also not nice
-    # inds <- sapply(1:n,function(i){
-    #   j <- 1:ploidy + (i - 1) * ploidy
-    #   s <- names(genotypes)[j]
-    # })
-
     inds <- unique(substr(rownames(genotypes), 1, nchar(rownames(genotypes)) - 2))
     rownames(alcount) <- inds
     colnames(alcount) <- unals
