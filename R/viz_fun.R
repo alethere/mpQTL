@@ -676,8 +676,8 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=TRUE, col=NULL, coltype=NULL,
     cols <- "black"
     plot_legend <- FALSE
   }else{
-    if(length(col) != ncol(K)){
-      stop("col length and number of individuals do not match")}
+    if(length(col) != nrow(K)){
+      stop("row length and number of individuals do not match")}
 
     if(colmode == "discrete"){
       n <- length(unique(col))
@@ -710,7 +710,7 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=TRUE, col=NULL, coltype=NULL,
                  round(pc$sdev^2/sum(pc$sdev^2)*100,2),"% variance")
 
   if(length(pch) == 1){
-    pch <- rep(pch,ncol(K))
+    pch <- rep(pch,nrow(K))
   }else{
     pch <- rep(pch,ncol(id))
     pch <- pch[id %*% 1:ncol(id)]
@@ -731,7 +731,7 @@ pcoa.plot <- function( K, comp=c(1,2), plot_legend=TRUE, col=NULL, coltype=NULL,
       pch_1 <- pch[!duplicated(col)][order(unique(col))]
       legend("topright",
              legend = legname,
-             col = unique(cols)[order(unique(col))],bty="n",
+             col = unique(cols)[order(unique(col))], bty="n",
              pch = pch_1)
 
     }else if(colmode == "continuous"){
