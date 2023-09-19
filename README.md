@@ -1,8 +1,6 @@
 # Multi-parental QTL analysis
 
-This repository contains the R package mpQTL, which you can find published in our paper:
-
-[Multiallelic models for QTL mapping in diverse polyploid populations](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04607-z)
+This repository contains the R package mpQTL, which you can find published in [our paper.](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04607-z "Multiallelic models for QTL mapping in diverse polyploid populations")
 
 ### What can I use `mpQTL` for?
 
@@ -22,7 +20,7 @@ If you have access to our gitlab and want to install it from there, please conta
 
 You can access the [online vignette here](https://alethere.github.io/mpQTL/ "QTL analysis with the R package mpQTL").
 
-If you want to access your vignette locally you need to build it on install (this will take some time)
+If you want to access your vignette locally you need to build it on install (this will take some time).
 
 ```
 devtools::install_github("https://github.com/alethere/mpqtl", build_vignette = T)
