@@ -1,7 +1,7 @@
 ---
 title: "QTL analysis with the R package mpQTL"
 author:
-  - Alejandro ThÃ©rÃ¨se Navarro^[Wageningen University & Research, alejandro.theresenavarro@wur.nl]
+  - Alejandro Thérèse Navarro^[Wageningen University & Research, alejandro.theresenavarro@wur.nl]
   - Giorgio Tumino^[Wageningen University & Research, giorgio.tumino@wur.nl]
 date: "`r Sys.Date()`"
 output:
