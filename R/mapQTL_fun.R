@@ -821,7 +821,7 @@ dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE 
     colnames(alcount) <- "marker"
   }else{
     #we obtain the different alleles present
-    unals <- unique(genotypes)
+    unals <- unique(unlist(genotypes))
     #we obtain a design matrix indicating the allele of each chromosome
     #atn: changed this function to add a NA column
     match <- sapply(unals, function(x) {
