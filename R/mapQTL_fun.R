@@ -14,10 +14,6 @@
 # Developed by Alejandro Therese Navarro & Giorgio Tumino
 # October 2019
 
-
-
-
-
 # Main wrapper -------------------------
 
 #' QTL mapping of a matrix of phenotypes
@@ -746,10 +742,10 @@ calc.K <- function(  matrix,  haplotypes=FALSE,  ploidy=NULL){
     if(is.null(ploidy))
       stop("For haplotype distance calculation ploidy must be defined.")
     #Create an ANOVA type matrix for all haplotypes
-    matrix<-lapply(1:ncol(matrix),function(i){
+    matrix <-lapply(1:ncol(matrix),function(i){
       dosage.X(matrix[,i],haplotype = TRUE,ploidy=ploidy,normalize = FALSE)
     })
-    matrix<-do.call(cbind,matrix)
+    matrix <- do.call(cbind,matrix)
   } else {
     #impute NAs. Let's leave this here, useful for our imputator
     matrix <- imputeNA(matrix)
@@ -821,6 +817,7 @@ dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE 
     colnames(alcount) <- "marker"
   }else{
     #we obtain the different alleles present
+    rn <- rownames(genotypes)
     unals <- unique(unlist(genotypes))
     #we obtain a design matrix indicating the allele of each chromosome
     #atn: changed this function to add a NA column
