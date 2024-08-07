@@ -283,7 +283,7 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   }
 
   #We filter per chromosome
-  if(is.null(chrom)) chrom <- as.character(unique(map$chromosome))
+  if(is.null(chrom)) chrom <- unique(map$chromosome)
 
   chrom_filter <- sapply(map$chromosome,function(x) any(x == chrom))
 
@@ -294,7 +294,7 @@ skyplot<-function( pval, map, threshold = NULL, ylab = NULL, xlab = NULL, ylim=N
   map <- map[chrom_filter, ]
   pval <- pval[chrom_filter]
 
-  tot_length <- sum(sapply(split(map$position,map$chromosome),max))
+  tot_length <- sum(sapply(split(map$position,map$chromosome),max, na.rm = TRUE))
   axis_res <- map_axis(map,space = chromspace*tot_length)
   new_map <- axis_res[[1]][[1]]
 
