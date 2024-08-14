@@ -810,6 +810,11 @@ calc.Q<-function(pop, names=NULL
 #' dosage.X(genotypes = hapdose, haplotype = TRUE, ploidy = 4)
 dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE ){
 
+  if(is.vector(genotypes)){
+    inds <- names(genotypes)
+    genotypes <- matrix(genotypes,ncol = 1)
+    rownames(genotypes) <- inds
+  }
   if(!haplotype){
     alcount <- matrix(genotypes,ncol=1)
     if(normalize) alcount <- (alcount-mean(alcount))/sd(alcount)
@@ -846,7 +851,7 @@ dosage.X <- function(genotypes, haplotype=FALSE, ploidy=NULL, normalize = FALSE 
     if(normalize & ncol(alcount)!= 1) alcount <- apply(alcount,2,function(a) (a-mean(a))/sd(a))
     else if(normalize) alcount <- apply(alcount,2,function(a) (a-mean(a)))
 
-    inds <- unique(substr(rownames(genotypes), 1, nchar(rownames(genotypes)) - 2))
+    inds <- substr(rownames(genotypes), 1, nchar(rownames(genotypes)) - 2)[1:nrow(genotypes) %% ploidy == 1]
     rownames(alcount) <- inds
     colnames(alcount) <- unals
   }
