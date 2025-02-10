@@ -8,7 +8,7 @@ This package can use the [unified mixed model](https://doi.org/10.1038/ng1702 "A
 
 ### When is it most useful?
 
-Our research showed that the multiallelic models of `mpQTL` are particularly useful if you have a high number of alleles in your population. For example in multiparental populations, polyploid heterozygous populations or breeding programmes. In that case obtaining multiallelic markers (haplotypes) turned out to be more accurate and powerful than classical biparental analyses.
+Our research showed that the multiallelic models of `mpQTL` are particularly useful if you have a high number of alleles in your population. For example in multiparental populations, polyploid heterozygous populations or breeding programmes. In that case obtaining multiallelic markers (haplotypes) turned out to be more accurate and powerful than classical biallelic analyses.
 
 ## Installation
 
