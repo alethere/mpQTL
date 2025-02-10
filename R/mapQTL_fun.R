@@ -416,7 +416,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
     #First set up cluster
 
     cluster <- parallel::makeCluster(no_cores)
-    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo","ploidy")
+    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo","ploidy","w")
 
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
@@ -436,7 +436,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
     result <- lapply(1:ncol(phenotypes),function(w){
       res <- parallel::parLapply(cluster,1:nrow(genotypes),function(k){
         X <- dosage.X(genotypes[k,],ploidy = ploidy,haplotype = haplo,normalize = FALSE)
-        if(haplo) X <- X[,-ncol(X)]
+        if(haplo) X <- X[,-ncol(X),drop = F]
         #We create the naive and full matrices. The naive
         #model only includes Q, C and an intercept
         N <- cbind(matrix(1,nrow=nrow(X)),Q,C) #naive model
