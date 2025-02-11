@@ -416,7 +416,7 @@ map.QTL <- function(phenotypes, genotypes, ploidy, map, K=NULL, Q=NULL, Z=NULL,
     #First set up cluster
 
     cluster <- parallel::makeCluster(no_cores)
-    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo","ploidy","w")
+    export <- c("phenotypes","genotypes","dosage.X","Q","C","lm_compare","haplo","ploidy")
 
     if(is.null(Q)){
       # export<-c("phenotypes","genotypes","dosage.X")
